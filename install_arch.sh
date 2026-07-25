@@ -22,10 +22,10 @@ PACMAN_PKGS=(
     nodejs npm python uv
     # 文件管理 (Yazi)
     yazi file chafa imagemagick poppler ffmpeg 7zip unarchiver perl-image-exiftool mediainfo zathura zathura-pdf-poppler miller resvg xdg-utils xclip wl-clipboard
-    # 编辑器 (Neovim / VS Code)
-    neovim git base-devel gcc unzip tree-sitter-cli code
-    # 终端与复用 (Kitty / Zellij)
-    kitty zellij
+    # 编辑器 (Neovim)
+    neovim git base-devel gcc unzip tree-sitter-cli
+    # 终端复用 (Zellij)
+    zellij
     # 监控与系统 (Fastfetch / Btop)
     fastfetch btop
 )

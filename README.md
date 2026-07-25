@@ -11,11 +11,9 @@ srp-dotfiles/
 ├── config/              # ~/.config/ 目标映射目录
 │   ├── btop/            # Btop 资源监控配置
 │   ├── fastfetch/       # Fastfetch 系统硬件摘要配置
-│   ├── kitty/           # Kitty 终端模拟器配置
 │   ├── nvim/            # Neovim (AstroNvim v4) 代码编辑器配置
 │   ├── yazi/            # Yazi 终端文件管理器配置
-│   ├── zellij/          # Zellij 终端复用器配置
-│   └── Code/User/       # VS Code 用户配置文件 (settings.json)
+│   └── zellij/          # Zellij 终端复用器配置
 ├── home/                # ~/ 主目录映射配置
 │   ├── .zshrc           # Zsh 配置文件
 │   └── .hushlogin       # 静音登录文件
@@ -54,9 +52,7 @@ srp-dotfiles/
 | | uv | [astral-sh/uv](https://github.com/astral-sh/uv) | `home/.zshrc` | Python 包管理与项目构建工具 |
 | **文件管理** | Yazi | [sxyazi/yazi](https://github.com/sxyazi/yazi) | `config/yazi/`<br>`home/.zshrc` | 终端文件管理器及预览插件 |
 | **代码编辑器** | Neovim | [neovim/neovim](https://github.com/neovim/neovim) | `config/nvim/`<br>`home/.zshrc` | 终端代码编辑器 (AstroNvim 架构) |
-| | VS Code | [microsoft/vscode](https://github.com/microsoft/vscode) | `config/Code/User/settings.json` | VS Code 用户配置文件 |
-| **终端与复用** | Kitty | [kovidgoyal/kitty](https://github.com/kovidgoyal/kitty) | `config/kitty/` | GPU 加速终端模拟器 |
-| | Zellij | [zellij-org/zellij](https://github.com/zellij-org/zellij) | `config/zellij/`<br>`home/.zshrc` | 终端复用器 |
+| **终端与复用** | Zellij | [zellij-org/zellij](https://github.com/zellij-org/zellij) | `config/zellij/`<br>`home/.zshrc` | 终端复用器 |
 | **系统监控** | Fastfetch | [fastfetch-cli/fastfetch](https://github.com/fastfetch-cli/fastfetch) | `config/fastfetch/` | 系统与硬件信息摘要显示 |
 | | Btop | [aristocratos/btop](https://github.com/aristocratos/btop) | `config/btop/` | 终端资源监控工具 |
 | | 静音登录 | - | `home/.hushlogin` | 屏蔽登录系统提示 Banner |
@@ -73,8 +69,8 @@ srp-dotfiles/
 | **CLI 增强工具** | eza, zoxide, fzf, bat, fd, rg, diff-so-fancy, gh, lazygit, jq, tldr | `eza`, `zoxide`, `fzf`, `bat`, `fd`, `ripgrep`, `diff-so-fancy`, `github-cli`, `lazygit`, `jq`, `tldr` | `eza`, `zoxide`, `fzf`, `bat`, `fd-find`, `ripgrep`, `github-cli`, `jq`, `tldr` | - |
 | **语言与前端工具** | Node.js, Bun, uv, @antfu/ni, live-server | `nodejs`, `npm`, `python`, `uv` | `nodejs`, `npm`, `python3-uv` / `uv` | `@antfu/ni`<br>`live-server` |
 | **文件管理 (Yazi)** | Yazi & 各格式预览依赖 | `yazi`, `file`, `ripgrep`, `chafa`, `imagemagick`, `poppler`, `ffmpeg`, `jq`, `7zip`, `unarchiver`, `perl-image-exiftool`, `mediainfo`, `zathura`, `zathura-pdf-poppler`, `miller`, `resvg`, `xdg-utils`, `xclip`, `wl-clipboard` | `file`, `ripgrep`, `chafa`, `imagemagick`, `poppler-utils`, `ffmpeg`, `jq`, `p7zip-full`, `unar`, `libimage-exiftool-perl`, `mediainfo`, `zathura`, `miller`, `xdg-utils`, `xclip`, `wl-clipboard` | - |
-| **代码编辑器** | Neovim & 工具链 / VS Code | `neovim`, `git`, `base-devel`, `gcc`, `unzip`, `tree-sitter-cli`, `code` | `neovim`, `git`, `build-essential`, `gcc`, `unzip`, `code` | - |
-| **终端与复用** | Kitty, Zellij | `kitty`, `zellij` | `kitty` | - |
+| **代码编辑器** | Neovim & 工具链 | `neovim`, `git`, `base-devel`, `gcc`, `unzip`, `tree-sitter-cli` | `neovim`, `git`, `build-essential`, `gcc`, `unzip` | - |
+| **终端与复用** | Zellij | `zellij` | - | - |
 | **系统监控** | Fastfetch, Btop | `fastfetch`, `btop` | `fastfetch`, `btop` | - |
 
 ---
@@ -117,15 +113,3 @@ srp-dotfiles/
 
 #### 其他 Linux / 类 Unix 发行版
 参照上表**软件依赖与包管理器映射**，使用对应包管理器安装所需软件包即可。
-### 3. WSL 环境特别说明
-
-如果你在 Windows Subsystem for Linux (WSL) 环境下使用本套配置，特别是使用 **Yazi** 文件管理器打开视频、图片等文件时，系统需要依赖 `wslu` 工具包来连接 Windows 的默认应用程序。若不安装，`xdg-open` 会在后台报错（提示找不到打开方式）。
-
-* **Debian / Ubuntu (WSL)**：
-  ```bash
-  sudo apt update && sudo apt install wslu
-  ```
-* **Arch Linux (WSL)**（需通过 AUR 安装）：
-  ```bash
-  paru -S wslu
-  ```

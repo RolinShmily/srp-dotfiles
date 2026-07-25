@@ -27,8 +27,8 @@ if command -v apt-get &>/dev/null; then
         file chafa imagemagick poppler-utils ffmpeg p7zip-full unar libimage-exiftool-perl mediainfo zathura miller xdg-utils xclip wl-clipboard
         # 编辑器与编译工具链
         neovim git build-essential gcc unzip curl
-        # 终端与监控
-        kitty btop
+        # 系统监控
+        btop
     )
 
     sudo apt-get install -y "${APT_PKGS[@]}" || true
