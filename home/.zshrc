@@ -35,7 +35,6 @@ source $ZSH/oh-my-zsh.sh
 # Git
 # -------------------------------- #
 
-
 # Go to project root
 alias grt='cd "$(git rev-parse --show-toplevel)"'
 
@@ -92,8 +91,13 @@ function gsha() {
 
 alias ghci='gh run list -L 1'
 
+unalias glp 2>/dev/null
 function glp() {
-  git --no-pager log -"${1}"
+  if [[ -z $1 ]]; then
+    git --no-pager log
+  else
+    git --no-pager log -n "$1"
+  fi
 }
 
 function _git_origin_default_branch() {
@@ -215,12 +219,9 @@ fi
 # locale
 export LANG=en_US.UTF-8
 
-alias e='exit'
+
 alias cl='clear'
-alias n='nvim'
-alias ze='zellij'
 alias ff='fastfetch'
-alias lg='lazygit'
 
 # Modern CLI replacements
 if command -v bat &>/dev/null; then
@@ -242,16 +243,8 @@ alias lt='eza --tree --level=2 --icons --group-directories-first'
 alias lm='eza -lah --icons --git --sort=modified'
 alias lmd='eza -lah --icons --git --sort=modified --reverse'
 
-# Node Package Manager (ni / nr)
-if command -v nr &>/dev/null; then
-  alias d="nr dev"
-  alias b="nr build"
-  alias t="nr test"
-  alias c="nr typecheck"
-  alias lint="nr lint"
-fi
 
-function y() {
+function yaz() {
 	local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
 	yazi "$@" --cwd-file="$tmp"
 	if cwd="$(command cat -- "$tmp")" && [ -n "$cwd" ] && [ "$cwd" != "$PWD" ]; then
