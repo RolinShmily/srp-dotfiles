@@ -117,3 +117,15 @@ srp-dotfiles/
 
 #### 其他 Linux / 类 Unix 发行版
 参照上表**软件依赖与包管理器映射**，使用对应包管理器安装所需软件包即可。
+### 3. WSL 环境特别说明
+
+如果你在 Windows Subsystem for Linux (WSL) 环境下使用本套配置，特别是使用 **Yazi** 文件管理器打开视频、图片等文件时，系统需要依赖 `wslu` 工具包来连接 Windows 的默认应用程序。若不安装，`xdg-open` 会在后台报错（提示找不到打开方式）。
+
+* **Debian / Ubuntu (WSL)**：
+  ```bash
+  sudo apt update && sudo apt install wslu
+  ```
+* **Arch Linux (WSL)**：
+  ```bash
+  sudo pacman -S wslu
+  ```
