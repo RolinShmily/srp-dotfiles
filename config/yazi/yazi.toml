@@ -40,7 +40,7 @@ extract = [
 	{ run = 'unar "%1"', desc = "Extract here", for = "windows" },
 ]
 play = [
-	{ run = 'mpv --vo=libmpv --geometry=50% --no-border --focus-on=open --mute=yes "$@"', orphan = true, for = "unix" },
+	{ run = 'mpv --geometry=50% --no-border --focus-on=open --mute=yes "$@"', orphan = true, for = "unix" },
 	{ run = 'mpv "%1"', orphan = true, for = "windows" },
 	{ run = '''mediainfo "$1"; echo "Press enter to exit"; read''', block = true, desc = "Show media info", for = "unix" },
 ]
@@ -53,8 +53,8 @@ rules = [
 
 	{ mime = "text/*", use = ["edit", "reveal"] },
 	{ mime = "image/*", use = ["open", "reveal"] },
-	{ mime = "video/*", use = ["play", "reveal"] },
-	{ mime = "audio/*", use = ["play", "reveal"] },
+	{ mime = "video/*", use = ["open", "reveal"] },
+	{ mime = "audio/*", use = ["open", "reveal"] },
 	{ mime = "inode/x-empty", use = ["edit", "reveal"] },
 
 	{ mime = "application/json", use = ["edit", "reveal"] },
