@@ -125,7 +125,7 @@ srp-dotfiles/
   ```bash
   sudo apt update && sudo apt install wslu
   ```
-* **Arch Linux (WSL)**：
+* **Arch Linux (WSL)**（需通过 AUR 安装）：
   ```bash
-  sudo pacman -S wslu
+  paru -S wslu
   ```
