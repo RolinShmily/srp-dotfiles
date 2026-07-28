@@ -60,7 +60,7 @@ srp-dotfiles/
 | 类别 / 对应模块  | 核心软件 / 依赖 | Debian (`apt`) 包名 | 全局 JS (`npm`) 包名 |
 | :--- | :--- | :--- | :--- |
 | **Shell 环境** | Zsh 及插件 | `zsh`, `zsh-autosuggestions`, `zsh-syntax-highlighting` | - |
-| **CLI 增强工具** | eza, zoxide, fzf, bat, fd, rg, gh, lazygit, jq, tldr | `eza`, `zoxide`, `fzf`, `bat`, `fd-find`, `ripgrep`, `gh`, `lazygit`, `jq`, `tldr` | - |
+| **CLI 增强工具** | eza, zoxide, fzf, bat, fd, rg, gh, lazygit, jq, tldr | `eza`, `zoxide`, `fzf`, `bat`, `fd-find`, `ripgrep`, `gh`, `lazygit`, `jq`, `tealdeer` | - |
 | **语言与前端工具** | Node.js, Python, @antfu/ni, live-server | `nodejs`, `npm`, `python3`, `python3-pip`, `python3-venv` | `@antfu/ni`<br>`live-server` |
 | **代码编辑器** | Neovim & 工具链 / VS Code | `neovim`, `git`, `build-essential`, `gcc`, `unzip` | - |
 | **终端** | Kitty | `kitty` | - |

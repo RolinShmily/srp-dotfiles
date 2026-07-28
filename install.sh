@@ -17,7 +17,7 @@ if command -v apt-get >/dev/null 2>&1; then
     sudo apt-get update -y
 
     APT_PKGS="zsh zsh-autosuggestions zsh-syntax-highlighting \
-        eza zoxide fzf bat fd-find ripgrep gh lazygit jq tldr \
+        eza zoxide fzf bat fd-find ripgrep gh lazygit jq tealdeer \
         nodejs npm python3 python3-pip python3-venv \
         neovim git build-essential gcc unzip \
         kitty fastfetch btop"
