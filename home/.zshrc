@@ -235,13 +235,15 @@ if command -v tldr &>/dev/null; then
 fi
 
 # eza
-alias ls='eza --icons --group-directories-first'
-alias l='eza -1 --icons --group-directories-first'
-alias ll='eza -lh --icons --git --group-directories-first'
-alias la='eza -lah --icons --git --group-directories-first'
-alias lt='eza --tree --level=2 --icons --group-directories-first'
-alias lm='eza -lah --icons --git --sort=modified'
-alias lmd='eza -lah --icons --git --sort=modified --reverse'
+if command -v eza &>/dev/null; then
+  alias ls='eza --icons --group-directories-first'
+  alias l='eza -1 --icons --group-directories-first'
+  alias ll='eza -lh --icons --git --group-directories-first'
+  alias la='eza -lah --icons --git --group-directories-first'
+  alias lt='eza --tree --level=2 --icons --group-directories-first'
+  alias lm='eza -lah --icons --git --sort=modified'
+  alias lmd='eza -lah --icons --git --sort=modified --reverse'
+fi
 
 # zellij
 alias ze='zellij'
@@ -256,7 +258,9 @@ function yaz() {
 	rm -f -- "$tmp"
 }
 
-eval "$(zoxide init zsh)"
+if command -v zoxide &>/dev/null; then
+    eval "$(zoxide init zsh)"
+fi
 
 if command -v fd &>/dev/null; then
   export FZF_DEFAULT_COMMAND='fd --type f --hidden --exclude .git'
