@@ -20,7 +20,7 @@ srp-dotfiles/
 │   ├── .zshrc           # Zsh 配置文件
 │   └── .hushlogin       # 静音登录文件
 ├── config.sh            # 配置文件部署与软链接更新脚本
-├── install_arch.sh      # Arch Linux 环境依赖安装脚本
+├── install.sh      # Arch Linux 环境依赖安装脚本
 └── README.md            # 项目说明文档
 ```
 
@@ -106,7 +106,7 @@ srp-dotfiles/
 
 #### Arch Linux
 ```bash
-./install_arch.sh
+./install.sh
 ```
 
 #### 其他 Linux / 类 Unix 发行版
