@@ -68,11 +68,6 @@ link_file() {
 }
 
 setup_omz_plugins() {
-    if [ ! -d "$HOME/.oh-my-zsh" ]; then
-        log_info "Oh My Zsh 未安装，开始自动安装..."
-        env RUNZSH=no sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" || true
-    fi
-
     if [ -d "$HOME/.oh-my-zsh" ]; then
         local custom_dir="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
         mkdir -p "$custom_dir/plugins" "$custom_dir/themes"
