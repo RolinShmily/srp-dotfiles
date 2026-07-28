@@ -4,11 +4,11 @@
 
 set -e
 
-DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
 BACKUP_DIR="$HOME/.dotfiles_backup/$(date +%Y%m%d_%H%M%S)"
 FORCE=0
 
-while [[ $# -gt 0 ]]; do
+while [ $# -gt 0 ]; do
     case "$1" in
         -f|--force)
             FORCE=1
@@ -27,9 +27,9 @@ BLUE="\033[0;34m"
 YELLOW="\033[0;33m"
 RESET="\033[0m"
 
-log_info() { echo -e "${BLUE}[INFO]${RESET} $1"; }
-log_success() { echo -e "${GREEN}[OK]${RESET} $1"; }
-log_warn() { echo -e "${YELLOW}[WARN]${RESET} $1"; }
+log_info() { printf "${BLUE}[INFO]${RESET} %s\n" "$1"; }
+log_success() { printf "${GREEN}[OK]${RESET} %s\n" "$1"; }
+log_warn() { printf "${YELLOW}[WARN]${RESET} %s\n" "$1"; }
 
 link_file() {
     local src="$1"
@@ -45,7 +45,7 @@ link_file() {
     if [ -L "$dest" ]; then
         local current_target
         current_target="$(readlink "$dest")"
-        if [ "$current_target" == "$src" ]; then
+        if [ "$current_target" = "$src" ]; then
             log_info "软链接已正确指向: $dest"
             return
         else
@@ -103,8 +103,8 @@ link_file "$DOTFILES_DIR/home/.hushlogin" "$HOME/.hushlogin"
 
 # 部署 ~/.config/ 配置目录
 log_info "部署 ~/.config/ 软件配置目录..."
-CONFIG_APPS=(btop fastfetch nvim yazi zellij)
-for app in "${CONFIG_APPS[@]}"; do
+CONFIG_APPS="btop fastfetch nvim yazi zellij"
+for app in $CONFIG_APPS; do
     link_file "$DOTFILES_DIR/config/$app" "$HOME/.config/$app"
 done
 
