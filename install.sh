@@ -18,11 +18,17 @@ if command -v apt-get >/dev/null 2>&1; then
 
     APT_PKGS="zsh zsh-autosuggestions zsh-syntax-highlighting \
         eza zoxide fzf bat fd-find ripgrep gh lazygit jq tealdeer \
-        nodejs npm python3 python3-pip python3-venv \
+        nodejs python3 python3-pip python3-venv \
         neovim git build-essential gcc unzip \
         kitty fastfetch btop"
 
     sudo apt-get install -y $APT_PKGS
+    
+    if ! command -v npm >/dev/null 2>&1; then
+        log_info "未检测到 npm，正在补充安装 npm 包..."
+        sudo apt-get install -y npm || log_warn "npm 安装失败，请检查 Node.js 环境。"
+    fi
+
     log_success "Debian 系统软件包 (apt) 安装完成。"
 fi
 
