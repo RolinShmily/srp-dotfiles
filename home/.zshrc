@@ -243,6 +243,9 @@ alias lt='eza --tree --level=2 --icons --group-directories-first'
 alias lm='eza -lah --icons --git --sort=modified'
 alias lmd='eza -lah --icons --git --sort=modified --reverse'
 
+# zellij
+alias ze='zellij'
+
 
 function yaz() {
 	local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
