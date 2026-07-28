@@ -108,10 +108,6 @@ for app in $CONFIG_APPS; do
     link_file "$DOTFILES_DIR/config/$app" "$HOME/.config/$app"
 done
 
-# 部署 VS Code 用户配置文件 (仅链接 settings.json)
-log_info "部署 VS Code 配置文件..."
-link_file "$DOTFILES_DIR/config/Code/User/settings.json" "$HOME/.config/Code/User/settings.json"
-
 log_success "Dotfiles 配置部署完成。请在终端执行: source ~/.zshrc (或重新打开终端) 以使配置立即生效。"
 
 if [ -d "$BACKUP_DIR" ]; then

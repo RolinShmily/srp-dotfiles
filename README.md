@@ -13,7 +13,6 @@ srp-dotfiles/
 │   ├── fastfetch/       # Fastfetch 系统硬件摘要配置
 │   ├── kitty/           # Kitty 终端模拟器配置
 │   ├── nvim/            # Neovim (AstroNvim v4) 代码编辑器配置
-│   └── Code/User/       # VS Code 用户配置文件 (settings.json)
 ├── home/                # ~/ 主目录映射配置
 │   ├── .zshrc           # Zsh 配置文件
 │   └── .hushlogin       # 静音登录文件
@@ -47,7 +46,6 @@ srp-dotfiles/
 | | @antfu/ni | `home/.zshrc` | 智能包管理器别名工具 |
 | | live-server | `home/.zshrc` | 轻量静态 Web 服务器 |
 | **代码编辑器** | Neovim | `config/nvim/`<br>`home/.zshrc` | 终端代码编辑器 |
-| | VS Code | `config/Code/User/settings.json` | VS Code 用户配置文件 |
 | **终端** | Kitty | `config/kitty/` | GPU 加速终端模拟器 |
 | **系统监控** | Fastfetch | `config/fastfetch/` | 系统与硬件信息摘要显示 |
 | | Btop | `config/btop/` | 终端资源监控工具 |
@@ -62,7 +60,6 @@ srp-dotfiles/
 | **Shell 环境** | Zsh 及插件 | `zsh`, `zsh-autosuggestions`, `zsh-syntax-highlighting` | - |
 | **CLI 增强工具** | eza, zoxide, fzf, bat, fd, rg, gh, lazygit, jq, tldr | `eza`, `zoxide`, `fzf`, `bat`, `fd-find`, `ripgrep`, `gh`, `lazygit`, `jq`, `tealdeer` | - |
 | **语言与前端工具** | Node.js, Python, @antfu/ni, live-server | `nodejs`, `npm`, `python3`, `python3-pip`, `python3-venv` | `@antfu/ni`<br>`live-server` |
-| **代码编辑器** | Neovim & 工具链 / VS Code | `neovim`, `git`, `build-essential`, `gcc`, `unzip` | - |
 | **终端** | Kitty | `kitty` | - |
 | **系统监控** | Fastfetch, Btop | `fastfetch`, `btop` | - |
 
