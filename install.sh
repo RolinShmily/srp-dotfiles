@@ -57,6 +57,13 @@ set_default_shell() {
 
 set_default_shell
 
+# 安装 Oh My Zsh
+if [ ! -d "$HOME/.oh-my-zsh" ]; then
+    log_info "Oh My Zsh 未安装，开始自动安装..."
+    env RUNZSH=no sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" || true
+    log_success "Oh My Zsh 安装完成。"
+fi
+
 log_info "检查 Node.js / Bun 全局工具包依赖..."
 
 NPM_GLOBAL_PKGS=(

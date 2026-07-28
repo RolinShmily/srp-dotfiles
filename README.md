@@ -18,8 +18,7 @@ srp-dotfiles/
 │   ├── .zshrc           # Zsh 配置文件
 │   └── .hushlogin       # 静音登录文件
 ├── config.sh            # 配置文件部署与软链接更新脚本
-├── install_arch.sh      # Arch Linux 环境依赖安装脚本
-├── install_debian.sh    # Debian / Ubuntu 环境依赖安装脚本
+├── install.sh      # Arch Linux 环境依赖安装脚本
 └── README.md            # 项目说明文档
 ```
 
@@ -63,15 +62,15 @@ srp-dotfiles/
 
 下表列出各配置模块涉及的核心软件包在不同包管理器中的包名映射：
 
-| 类别 / 对应模块  | 核心软件 / 依赖 | Arch Linux (`pacman`) 包名 | Debian / Ubuntu (`apt`) 包名 | 全局 JS (`npm` / `bun`) 包名 |
-| :--- | :--- | :--- | :--- | :--- |
-| **Shell 环境** | Zsh 及插件 | `zsh`, `zsh-autosuggestions`, `zsh-syntax-highlighting` | `zsh`, `zsh-autosuggestions`, `zsh-syntax-highlighting` | - |
-| **CLI 增强工具** | eza, zoxide, fzf, bat, fd, rg, diff-so-fancy, gh, lazygit, jq, tldr | `eza`, `zoxide`, `fzf`, `bat`, `fd`, `ripgrep`, `diff-so-fancy`, `github-cli`, `lazygit`, `jq`, `tldr` | `eza`, `zoxide`, `fzf`, `bat`, `fd-find`, `ripgrep`, `github-cli`, `jq`, `tldr` | - |
-| **语言与前端工具** | Node.js, Bun, uv, @antfu/ni, live-server | `nodejs`, `npm`, `python`, `uv` | `nodejs`, `npm`, `python3-uv` / `uv` | `@antfu/ni`<br>`live-server` |
-| **文件管理 (Yazi)** | Yazi & 各格式预览依赖 | `yazi`, `file`, `ripgrep`, `chafa`, `imagemagick`, `poppler`, `ffmpeg`, `jq`, `7zip`, `unarchiver`, `perl-image-exiftool`, `mediainfo`, `zathura`, `zathura-pdf-poppler`, `miller`, `resvg`, `xdg-utils`, `xclip`, `wl-clipboard` | `file`, `ripgrep`, `chafa`, `imagemagick`, `poppler-utils`, `ffmpeg`, `jq`, `p7zip-full`, `unar`, `libimage-exiftool-perl`, `mediainfo`, `zathura`, `miller`, `xdg-utils`, `xclip`, `wl-clipboard` | - |
-| **代码编辑器** | Neovim & 工具链 | `neovim`, `git`, `base-devel`, `gcc`, `unzip`, `tree-sitter-cli` | `neovim`, `git`, `build-essential`, `gcc`, `unzip` | - |
-| **终端与复用** | Zellij | `zellij` | - | - |
-| **系统监控** | Fastfetch, Btop | `fastfetch`, `btop` | `fastfetch`, `btop` | - |
+| 类别 / 对应模块  | 核心软件 / 依赖 | Arch Linux (`pacman`) 包名 | 全局 JS (`npm` / `bun`) 包名 |
+| :--- | :--- | :--- | :--- |
+| **Shell 环境** | Zsh 及插件 | `zsh`, `zsh-autosuggestions`, `zsh-syntax-highlighting` | - |
+| **CLI 增强工具** | eza, zoxide, fzf, bat, fd, rg, diff-so-fancy, gh, lazygit, jq, tldr | `eza`, `zoxide`, `fzf`, `bat`, `fd`, `ripgrep`, `diff-so-fancy`, `github-cli`, `lazygit`, `jq`, `tldr` | - |
+| **语言与前端工具** | Node.js, Bun, uv, @antfu/ni, live-server | `nodejs`, `npm`, `python`, `uv` | `@antfu/ni`<br>`live-server` |
+| **文件管理 (Yazi)** | Yazi & 各格式预览依赖 | `yazi`, `file`, `ripgrep`, `chafa`, `imagemagick`, `poppler`, `ffmpeg`, `jq`, `7zip`, `unarchiver`, `perl-image-exiftool`, `mediainfo`, `zathura`, `zathura-pdf-poppler`, `miller`, `resvg`, `xdg-utils`, `xclip`, `wl-clipboard` | - |
+| **代码编辑器** | Neovim & 工具链 | `neovim`, `git`, `base-devel`, `gcc`, `unzip`, `tree-sitter-cli` | - |
+| **终端与复用** | Zellij | `zellij` | - |
+| **系统监控** | Fastfetch, Btop | `fastfetch`, `btop` | - |
 
 ---
 
@@ -103,12 +102,7 @@ srp-dotfiles/
 
 #### Arch Linux
 ```bash
-./install_arch.sh
-```
-
-#### Debian / Ubuntu
-```bash
-./install_debian.sh
+./install.sh
 ```
 
 #### 其他 Linux / 类 Unix 发行版
