@@ -103,7 +103,7 @@ link_file "$DOTFILES_DIR/home/.hushlogin" "$HOME/.hushlogin"
 
 # 部署 ~/.config/ 配置目录
 log_info "部署 ~/.config/ 软件配置目录..."
-CONFIG_APPS="btop fastfetch kitty nvim yazi zellij"
+CONFIG_APPS="btop fastfetch kitty nvim"
 for app in $CONFIG_APPS; do
     link_file "$DOTFILES_DIR/config/$app" "$HOME/.config/$app"
 done

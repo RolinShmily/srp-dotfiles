@@ -1,6 +1,6 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
-# install_arch.sh - Arch Linux 环境依赖安装脚本
+# install.sh - Debian 13 环境依赖安装脚本
 
 set -e
 
@@ -8,34 +8,27 @@ GREEN="\033[0;32m"
 BLUE="\033[0;34m"
 RESET="\033[0m"
 
-log_info() { echo -e "${BLUE}[INFO]${RESET} $1"; }
-log_success() { echo -e "${GREEN}[OK]${RESET} $1"; }
+log_info() { printf "${BLUE}[INFO]${RESET} %s\n" "$1"; }
+log_success() { printf "${GREEN}[OK]${RESET} %s\n" "$1"; }
 
-log_info "开始安装 Arch Linux 系统依赖包..."
+log_info "开始安装 Debian 13 系统依赖包..."
 
-PACMAN_PKGS=(
-    # Shell 环境
-    zsh zsh-autosuggestions zsh-syntax-highlighting
-    # CLI 增强
-    eza zoxide fzf bat fd ripgrep diff-so-fancy github-cli lazygit jq tldr
-    # 语言与运行时
-    nodejs npm python uv
-    # 文件管理 (Yazi)
-    yazi file chafa imagemagick poppler ffmpeg 7zip unarchiver perl-image-exiftool mediainfo zathura zathura-pdf-poppler miller resvg xdg-utils xclip wl-clipboard
-    # 编辑器 (Neovim / VS Code)
-    neovim git base-devel gcc unzip tree-sitter-cli code
-    # 终端与复用 (Kitty / Zellij)
-    kitty zellij
-    # 监控与系统 (Fastfetch / Btop)
-    fastfetch btop
-)
+if command -v apt-get >/dev/null 2>&1; then
+    sudo apt-get update -y
 
-sudo pacman -Sy --needed --noconfirm "${PACMAN_PKGS[@]}"
-log_success "Arch Linux 系统软件包 (pacman) 安装完成。"
+    APT_PKGS="zsh zsh-autosuggestions zsh-syntax-highlighting \
+        eza zoxide fzf bat fd-find ripgrep gh lazygit jq tldr \
+        nodejs npm python3 python3-pip python3-venv \
+        neovim git build-essential gcc unzip \
+        kitty fastfetch btop"
+
+    sudo apt-get install -y $APT_PKGS
+    log_success "Debian 系统软件包 (apt) 安装完成。"
+fi
 
 # 设置当前用户默认 Shell 为 zsh
 set_default_shell() {
-    if command -v zsh &>/dev/null; then
+    if command -v zsh >/dev/null 2>&1; then
         local zsh_path
         if grep -q "^/usr/bin/zsh$" /etc/shells; then
             zsh_path="/usr/bin/zsh"
@@ -66,18 +59,15 @@ fi
 
 log_info "检查 Node.js / Bun 全局工具包依赖..."
 
-NPM_GLOBAL_PKGS=(
-    "@antfu/ni"
-    "live-server"
-)
+NPM_GLOBAL_PKGS="@antfu/ni live-server"
 
-if command -v bun &>/dev/null; then
-    log_info "使用 bun 安装全局依赖: ${NPM_GLOBAL_PKGS[*]}"
-    bun add -g "${NPM_GLOBAL_PKGS[@]}"
+if command -v bun >/dev/null 2>&1; then
+    log_info "使用 bun 安装全局依赖: $NPM_GLOBAL_PKGS"
+    bun add -g $NPM_GLOBAL_PKGS
     log_success "全局 npm 包 (bun) 安装完成。"
-elif command -v npm &>/dev/null; then
-    log_info "使用 npm 安装全局依赖: ${NPM_GLOBAL_PKGS[*]}"
-    sudo npm install -g "${NPM_GLOBAL_PKGS[@]}" || npm install -g "${NPM_GLOBAL_PKGS[@]}"
+elif command -v npm >/dev/null 2>&1; then
+    log_info "使用 npm 安装全局依赖: $NPM_GLOBAL_PKGS"
+    sudo npm install -g $NPM_GLOBAL_PKGS || npm install -g $NPM_GLOBAL_PKGS
     log_success "全局 npm 包 (npm) 安装完成。"
 fi
 
