@@ -16,26 +16,9 @@ log_info "开始安装 Termux 系统依赖包..."
 # 更新包列表
 pkg update -y
 
-TERMUX_PKGS=(
-    # Shell 环境
-    zsh
-    # CLI 增强
-    eza zoxide fzf bat fd ripgrep diff-so-fancy gh lazygit jq tealdeer
-    # 语言与运行时
-    nodejs python uv
-    # 文件管理 (Yazi)
-    yazi file chafa imagemagick poppler ffmpeg p7zip unar exiftool mediainfo miller
-    # 编辑器 (Neovim)
-    neovim git clang make unzip tree-sitter
-    # 终端复用 (Zellij)
-    zellij
-    # 监控与系统 (Fastfetch / Htop)
-    fastfetch htop
-    # Termux 专属 API (剪贴板等)
-    termux-api
-)
+TERMUX_PKGS="zsh eza zoxide fzf bat fd ripgrep diff-so-fancy gh lazygit jq tealdeer nodejs python uv yazi file chafa imagemagick poppler ffmpeg p7zip unar exiftool mediainfo miller neovim git clang make unzip tree-sitter zellij fastfetch htop termux-api"
 
-pkg install -y "${TERMUX_PKGS[@]}"
+pkg install -y $TERMUX_PKGS
 log_success "Termux 系统软件包安装完成。"
 
 # 设置当前用户默认 Shell 为 zsh
@@ -77,14 +60,11 @@ log_success "Zsh 插件与主题安装完成。"
 
 log_info "检查 Node.js 全局工具包依赖..."
 
-NPM_GLOBAL_PKGS=(
-    "@antfu/ni"
-    "live-server"
-)
+NPM_GLOBAL_PKGS="@antfu/ni live-server"
 
 if command -v npm &>/dev/null; then
-    log_info "使用 npm 安装全局依赖: ${NPM_GLOBAL_PKGS[*]}"
-    npm install -g "${NPM_GLOBAL_PKGS[@]}"
+    log_info "使用 npm 安装全局依赖: $NPM_GLOBAL_PKGS"
+    npm install -g $NPM_GLOBAL_PKGS
     log_success "全局 npm 包安装完成。"
 fi
 
