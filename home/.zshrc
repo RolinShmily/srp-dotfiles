@@ -78,12 +78,8 @@ alias gx='git clean -df'
 
 function gsha() {
   local sha="$(git rev-parse HEAD)"
-  if command -v clip.exe &>/dev/null; then
-    echo -n "$sha" | clip.exe
-  elif command -v wl-copy &>/dev/null; then
-    echo -n "$sha" | wl-copy
-  elif command -v xclip &>/dev/null; then
-    echo -n "$sha" | xclip -selection clipboard
+  if command -v termux-clipboard-set &>/dev/null; then
+    echo -n "$sha" | termux-clipboard-set
   else
     echo "$sha"
   fi
@@ -290,9 +286,6 @@ export FZF_DEFAULT_OPTS="$FZF_DEFAULT_OPTS \
   --color=separator:#ff966c \
   --color=spinner:#ff007c \
 "
-# bun
-export BUN_INSTALL="$HOME/.bun"
-export PATH="$BUN_INSTALL/bin:$PATH"
 
 # Local binary PATH
 export PATH="$HOME/.local/bin:$PATH"

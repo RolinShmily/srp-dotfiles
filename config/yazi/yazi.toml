@@ -26,19 +26,19 @@ edit = [
 	{ run = 'code "%*"', orphan = true, for = "windows" },
 ]
 open = [
-	{ run = 'for f in "$@"; do /mnt/c/Windows/System32/rundll32.exe url.dll,FileProtocolHandler "$(wslpath -w "$f")"; done', orphan = true, desc = "Open in Windows", for = "unix" },
+	{ run = 'for f in "$@"; do termux-open "$f"; done', orphan = true, desc = "Open in Termux", for = "unix" },
 ]
 reveal = [
-	{ run = 'explorer.exe /select,"$(wslpath -w "$1")"', orphan = true, desc = "Reveal in Windows", for = "unix" },
+	{ run = 'termux-open "$1"', orphan = true, desc = "Open in Termux", for = "unix" },
 ]
 extract = [
 	{ run = 'unar "$1"', desc = "Extract here", for = "unix" },
 	{ run = 'unar "%1"', desc = "Extract here", for = "windows" },
 ]
 play = [
-	{ run = 'for f in "$@"; do /mnt/c/Windows/System32/rundll32.exe url.dll,FileProtocolHandler "$(wslpath -w "$f")"; done', orphan = true, desc = "Play in Windows", for = "unix" },
+	{ run = 'for f in "$@"; do termux-open "$f"; done', orphan = true, desc = "Play in Termux", for = "unix" },
 ]
-zathura = [{ run = 'zathura "$1"', orphan = true, for = "unix" }]
+pdf = [{ run = 'termux-open "$1"', orphan = true, for = "unix" }]
 rootbrowse = [{ run = 'rootbrowse "$1"', orphan = true, for = "unix" }]
 
 [open]
@@ -52,7 +52,7 @@ rules = [
 	{ mime = "inode/x-empty", use = ["edit", "reveal"] },
 
 	{ mime = "application/json", use = ["edit", "reveal"] },
-	{ mime = "application/pdf", use = ["zathura", "reveal"] },
+	{ mime = "application/pdf", use = ["pdf", "reveal"] },
 	{ mime = "*/javascript", use = ["edit", "reveal"] },
 	{ url = "*.root", use = ["rootbrowse"] },
 

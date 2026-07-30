@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# install_arch.sh - Arch Linux 环境依赖安装脚本
+# install.sh - Termux 环境依赖安装脚本
 
 set -e
 
@@ -11,45 +11,41 @@ RESET="\033[0m"
 log_info() { echo -e "${BLUE}[INFO]${RESET} $1"; }
 log_success() { echo -e "${GREEN}[OK]${RESET} $1"; }
 
-log_info "开始安装 Arch Linux 系统依赖包..."
+log_info "开始安装 Termux 系统依赖包..."
 
-PACMAN_PKGS=(
+# 更新包列表
+pkg update -y
+
+TERMUX_PKGS=(
     # Shell 环境
-    zsh zsh-autosuggestions zsh-syntax-highlighting
+    zsh
     # CLI 增强
-    eza zoxide fzf bat fd ripgrep diff-so-fancy github-cli lazygit jq tldr
+    eza zoxide fzf bat fd ripgrep diff-so-fancy gh lazygit jq tealdeer
     # 语言与运行时
-    nodejs npm python uv
+    nodejs python uv
     # 文件管理 (Yazi)
-    yazi file chafa imagemagick poppler ffmpeg 7zip unarchiver perl-image-exiftool mediainfo zathura zathura-pdf-poppler miller resvg xdg-utils xclip wl-clipboard
+    yazi file chafa imagemagick poppler ffmpeg p7zip unar exiftool mediainfo miller
     # 编辑器 (Neovim)
-    neovim git base-devel gcc unzip tree-sitter-cli
+    neovim git clang make unzip tree-sitter
     # 终端复用 (Zellij)
     zellij
-    # 监控与系统 (Fastfetch / Btop)
-    fastfetch btop
+    # 监控与系统 (Fastfetch / Htop)
+    fastfetch htop
+    # Termux 专属 API (剪贴板等)
+    termux-api
 )
 
-sudo pacman -Sy --needed --noconfirm "${PACMAN_PKGS[@]}"
-log_success "Arch Linux 系统软件包 (pacman) 安装完成。"
+pkg install -y "${TERMUX_PKGS[@]}"
+log_success "Termux 系统软件包安装完成。"
 
 # 设置当前用户默认 Shell 为 zsh
 set_default_shell() {
     if command -v zsh &>/dev/null; then
         local zsh_path
-        if grep -q "^/usr/bin/zsh$" /etc/shells; then
-            zsh_path="/usr/bin/zsh"
-        elif grep -q "^/bin/zsh$" /etc/shells; then
-            zsh_path="/bin/zsh"
-        else
-            zsh_path="$(which zsh)"
-            echo "$zsh_path" | sudo tee -a /etc/shells >/dev/null
-        fi
-
-        local current_user="${USER:-$(whoami)}"
+        zsh_path="$(which zsh)"
         if [ "$SHELL" != "$zsh_path" ]; then
-            log_info "设置当前用户 ($current_user) 默认 Shell 为 $zsh_path..."
-            sudo chsh -s "$zsh_path" "$current_user" || chsh -s "$zsh_path"
+            log_info "设置默认 Shell 为 $zsh_path..."
+            chsh -s "$zsh_path"
             log_success "默认 Shell 已修改为 $zsh_path。"
         fi
     fi
@@ -64,21 +60,32 @@ if [ ! -d "$HOME/.oh-my-zsh" ]; then
     log_success "Oh My Zsh 安装完成。"
 fi
 
-log_info "检查 Node.js / Bun 全局工具包依赖..."
+ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
+
+log_info "安装 Zsh 插件与主题..."
+if [ ! -d "$ZSH_CUSTOM/themes/spaceship-prompt" ]; then
+    git clone https://github.com/spaceship-prompt/spaceship-prompt.git "$ZSH_CUSTOM/themes/spaceship-prompt" --depth=1
+    ln -sf "$ZSH_CUSTOM/themes/spaceship-prompt/spaceship.zsh-theme" "$ZSH_CUSTOM/themes/spaceship.zsh-theme"
+fi
+if [ ! -d "$ZSH_CUSTOM/plugins/zsh-autosuggestions" ]; then
+    git clone https://github.com/zsh-users/zsh-autosuggestions "$ZSH_CUSTOM/plugins/zsh-autosuggestions"
+fi
+if [ ! -d "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting" ]; then
+    git clone https://github.com/zsh-users/zsh-syntax-highlighting.git "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting"
+fi
+log_success "Zsh 插件与主题安装完成。"
+
+log_info "检查 Node.js 全局工具包依赖..."
 
 NPM_GLOBAL_PKGS=(
     "@antfu/ni"
     "live-server"
 )
 
-if command -v bun &>/dev/null; then
-    log_info "使用 bun 安装全局依赖: ${NPM_GLOBAL_PKGS[*]}"
-    bun add -g "${NPM_GLOBAL_PKGS[@]}"
-    log_success "全局 npm 包 (bun) 安装完成。"
-elif command -v npm &>/dev/null; then
+if command -v npm &>/dev/null; then
     log_info "使用 npm 安装全局依赖: ${NPM_GLOBAL_PKGS[*]}"
-    sudo npm install -g "${NPM_GLOBAL_PKGS[@]}" || npm install -g "${NPM_GLOBAL_PKGS[@]}"
-    log_success "全局 npm 包 (npm) 安装完成。"
+    npm install -g "${NPM_GLOBAL_PKGS[@]}"
+    log_success "全局 npm 包安装完成。"
 fi
 
 log_success "所有依赖安装完成。请运行 ./config.sh 部署配置文件。"
