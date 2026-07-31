@@ -23,7 +23,7 @@ PACMAN_PKGS=(
     # 文件管理 (Yazi)
     yazi file chafa imagemagick poppler ffmpeg 7zip unarchiver perl-image-exiftool mediainfo zathura zathura-pdf-poppler miller resvg xdg-utils xclip wl-clipboard
     # 编辑器 (Neovim)
-    neovim git base-devel gcc unzip tree-sitter-cli
+    git base-devel gcc unzip tree-sitter-cli
     # 终端复用 (Zellij)
     zellij
     # 监控与系统 (Fastfetch / Btop)
@@ -82,3 +82,19 @@ elif command -v npm &>/dev/null; then
 fi
 
 log_success "所有依赖安装完成。请运行 ./config.sh 部署配置文件。"
+
+# 安装定制版 Neovim v0.11.7 (二进制)
+log_info "从 Github 下载并安装 Neovim v0.11.7 二进制版本..."
+NVIM_VERSION="v0.11.7"
+NVIM_URL="https://github.com/neovim/neovim/releases/download/${NVIM_VERSION}/nvim-linux-x86_64.tar.gz"
+NVIM_DIR="$HOME/.local/nvim-linux-x86_64"
+
+mkdir -p "$HOME/.local/bin"
+cd /tmp
+curl -L -O "$NVIM_URL"
+tar xzf nvim-linux-x86_64.tar.gz
+rm -rf "$NVIM_DIR"
+mv nvim-linux-x86_64 "$HOME/.local/"
+ln -sf "$NVIM_DIR/bin/nvim" "$HOME/.local/bin/nvim"
+rm -f /tmp/nvim-linux-x86_64.tar.gz
+log_success "Neovim v0.11.7 安装完成。请确保 ~/.local/bin 在 PATH 中。"
