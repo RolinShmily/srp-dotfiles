@@ -136,6 +136,52 @@ function gfrb() {
 alias gd='git diff'
 alias gdc='git diff --cached'
 
+function gcfg() {
+  if [[ -z "$1" || -z "$2" ]]; then
+    echo "Usage: gcfg <name> <email>"
+    return 1
+  fi
+  git config --global user.name "$1"
+  git config --global user.email "$2"
+}
+
+function gssh() {
+  local key="$1"
+  if [[ -z "$key" ]]; then
+    local -a pubkeys
+    pubkeys=($HOME/.ssh/*.pub(N))
+    if [[ ${#pubkeys[@]} -gt 0 ]]; then
+      key="${pubkeys[1]}"
+    else
+      echo "Error: No *.pub key found in $HOME/.ssh/"
+      return 1
+    fi
+  fi
+
+  git config --global gpg.format ssh
+  git config --global user.signingkey "$key"
+  git config --global commit.gpgsign true
+}
+
+function ggpg() {
+  if [[ -z "$1" ]]; then
+    echo "Usage: ggpg <key_id> (e.g. ggpg 3AA5C34371567BD2)"
+    echo ""
+    echo "# 1. 打印密钥列表（查找 sec 后面的 Key ID）"
+    echo "gpg --list-secret-keys --keyid-format=long"
+    echo ""
+    echo "# 2. 打印导出私钥（可附加特定 Key ID 或邮箱）"
+    echo "gpg --armor --export-secret-keys"
+    echo ""
+    echo "# 3. 生成 GPG 密钥"
+    echo "gpg --full-generate-key"
+    return 1
+  fi
+  git config --global gpg.format gpg
+  git config --global user.signingkey "$1"
+  git config --global commit.gpgsign true
+}
+
 # -------------------------------- #
 # Directories & Navigation
 # -------------------------------- #
