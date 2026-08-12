@@ -3,7 +3,7 @@
     "context7": {
       "url": "https://mcp.context7.com/mcp",
       "protocolVersion": "auto",
-      "directTools": true
+      "directTools": false
     },
     "playwright": {
       "command": "npx",
