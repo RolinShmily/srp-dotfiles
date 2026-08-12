@@ -5,6 +5,7 @@
   "defaultModel": "deepseek-v4-flash",
   "defaultThinkingLevel": "high",
   "packages": [
-    "npm:pi-mcp-adapter"
+    "npm:pi-mcp-adapter",
+    "npm:pi-web-access"
   ]
 }
