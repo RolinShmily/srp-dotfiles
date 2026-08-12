@@ -56,7 +56,6 @@
 - Neovim (AstroNvim)
 - Kitty (GPU 加速终端模拟器)
 - Fastfetch & Btop (系统监控)
-- *注：基于 Debian 分支派生，剔除了 Yazi, Zellij 等桌面/服务器差异组件，主打稳定轻量。*
 
 ---
 
