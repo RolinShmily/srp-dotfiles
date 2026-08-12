@@ -6,6 +6,7 @@
   "defaultThinkingLevel": "high",
   "packages": [
     "npm:pi-mcp-adapter",
-    "npm:pi-web-access"
+    "npm:pi-web-access",
+    "npm:pi-powerline-footer"
   ]
 }
