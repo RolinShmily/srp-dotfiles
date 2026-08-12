@@ -6,6 +6,12 @@ argument-hint: "<音视频文件路径> [台词本文件路径]"
 
 用户提供：`$1`（音视频文件），`$2`（可选台词本，用于精修校准）。
 
+## 0. 参考来源（命令不确定时先查原文）
+
+- 项目仓库：https://github.com/WEIFENG2333/VideoCaptioner
+- Skill 原文：https://github.com/WEIFENG2333/VideoCaptioner/blob/master/skills/SKILL.md
+- 先用 `videocaptioner <command> --help` 看参数；不够时 `web_fetch` 抓上面的 Skill 原文/README，以原文为准
+
 ## 1. 转录（videocaptioner 只做这一步）
 
 ```bash
