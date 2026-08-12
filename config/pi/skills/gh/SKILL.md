@@ -1,6 +1,6 @@
 ---
 name: gh
-description: Patterns for invoking the GitHub CLI (gh) from agents. Covers structured output, pagination, repo targeting, search vs list, gh api fallback.
+description: Patterns for invoking the GitHub CLI (gh) from agents. Covers structured output, pagination, repo targeting, search vs list, gh api fallback, and managing Agent Skills via `gh skill`.
 ---
 
 # Reference
@@ -155,6 +155,93 @@ Sometimes useful data isn't on the typed commands. Examples:
 - `gh auth status` prints the active host(s), user, and which env var (if
   any) is being honored.
 - `gh auth status --json` is supported.
+
+## Managing Agent Skills (`gh skill`)
+
+`gh skill` installs, previews, searches, updates, and publishes
+[Agent Skills](https://agentskills.io); an agent can use it to keep its own
+skill set in sync with one or more GitHub repos. Also aliased as `gh skills`;
+prefer the canonical singular form in scripts and docs.
+
+### Search
+
+```bash
+gh skill search <query>                                  # free-text search
+gh skill search <query> --owner <org>                    # restrict to one owner
+gh skill search <query> --limit 20 --page 2
+gh skill search <query> --json skillName,repo,description
+```
+
+### Preview before installing
+
+```bash
+gh skill preview <owner>/<repo> <skill-name>
+gh skill preview <owner>/<repo> <skill-name>@v1.2.0   # pin a version
+```
+
+### Install
+
+```bash
+gh skill install <owner>/<repo> <skill-name>
+gh skill install <owner>/<repo> <skill-name>@v1.2.0
+gh skill install <owner>/<repo> skills/<scope>/<skill-name>   # exact path, fastest
+gh skill install ./local-skills-repo --from-local
+```
+
+`<owner>/<repo>` and `<skill-name>` are both required. Useful flags:
+
+- `--agent <id>` - target host (e.g. `github-copilot`, `claude-code`,
+  `cursor`, `codex`, `gemini-cli`). Repeat for multiple. Default is
+  `github-copilot` when non-interactive. You know what agent you are, so set
+  this to install for yourself.
+- `--scope project|user` - `project` (default) writes inside the current git
+  repo; `user` writes to the home directory and applies everywhere.
+- `--pin <ref>` - pin to a tag, branch, or commit SHA. Mutually exclusive
+  with `--from-local` and with inline `@version` syntax.
+- `--allow-hidden-dirs` - also discover skills under dot-directories such as
+  `.claude/skills/`. Risky; don't use unless you need to.
+- `--force` - overwrite an existing install.
+
+### Update
+
+```bash
+gh skill update --all          # update every installed skill
+gh skill update <skill>        # update one
+gh skill update <skill> --force
+gh skill update --unpin        # drop the pin and move to latest
+```
+
+### Publish
+
+Skills are discovered in a repo via these conventions:
+
+- `skills/<name>/SKILL.md`
+- `skills/<scope>/<name>/SKILL.md`
+- `<name>/SKILL.md` (root-level)
+- `plugins/<scope>/skills/<name>/SKILL.md`
+
+Each `SKILL.md` needs YAML frontmatter (`name` must equal the directory name,
+`description` required, `license` optional but recommended).
+
+```bash
+gh skill publish --dry-run                 # validate only, no release
+gh skill publish --dry-run ./path/to/repo  # validate a specific dir
+gh skill publish --fix                     # auto-strip install metadata
+gh skill publish --tag v1.0.0              # non-interactive publish
+```
+
+`--fix` and `--dry-run` are mutually exclusive. The publish flow adds the
+`agent-skills` topic, auto-pushes any unpushed commits, and creates a GitHub
+release with auto-generated notes. Always pass `--tag` so it doesn't fall
+through to the interactive flow.
+
+### Self-management loop for agents
+
+1. `gh skill search <topic> --json skillName,repo,namespace`
+2. `gh skill preview <repo> <skill>` to inspect the `SKILL.md`.
+3. `gh skill install <repo> <skill> --agent <host> --pin <ref>` for a
+   reproducible install.
+4. Periodically `gh skill update --all` to refresh.
 
 ## Other notes
 
