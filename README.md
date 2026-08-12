@@ -28,6 +28,16 @@
 - Neovim (AstroNvim)
 - *注：剔除了该发行版未收录或服务器不常用的组件（如 Yazi, Zellij, VS Code 远端配置等），主打稳定轻量。*
 
+### 3. [Termux 分支 (`termux`)](https://github.com/RolinShmily/srp-dotfiles/tree/termux)
+**目标环境**：Android 上的 [Termux](https://termux.dev/) 终端模拟器
+**包管理器**：`pkg`
+**包含核心组件**：
+- 现代 CLI 增强 (eza, zoxide, fzf, ripgrep, bat, fd 等)
+- Neovim (AstroNvim)
+- Yazi (终端文件管理器)
+- Zellij (终端复用器)
+- Fastfetch & Htop (系统监控，以 Htop 替代 Btop)
+
 ---
 
 ## 🛠️ 如何开始？
@@ -43,6 +53,8 @@ cd ~/.dotfiles
 git checkout arch
 # 或者如果是 debian
 # git checkout debian
+# 或者如果是 termux
+# git checkout termux
 
 # 3. 按照该分支 README.md 中的说明执行部署
 ```
