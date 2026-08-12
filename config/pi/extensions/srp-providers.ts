@@ -1,8 +1,22 @@
 /**
  * srp-providers.ts — 自建模型提供商注册集合（一个文件可注册多个 provider）
  *
- * 密钥：读 <pi 配置目录>/.env（默认 ~/.pi/agent/.env，config.sh 部署），
- *       注入 process.env 后由 pi 解析 "$VAR" 引用。
+ * 认证：完全使用 pi 原生机制，不读 .env / 环境变量。
+ *
+ *   1. 交互式：用户执行 `/login <provider>` 输入 API key，pi 自动写入
+ *      ~/.pi/agent/auth.json（0600 权限，带锁保护）：
+ *
+ *        /login omniroute
+ *        /login shuaiapi
+ *
+ *   2. 手动：直接编辑 auth.json（条目 key 是 provider id，不是显示名）：
+ *
+ *        {
+ *          "omniroute": { "type": "api_key", "key": "sk-..." },
+ *          "shuaiapi":  { "type": "api_key", "key": "sk-..." }
+ *        }
+ *
+ *      key 还支持命令（"!cmd"）与环境变量插值（"$VAR"），见 providers.md。
  *
  * 注意：模型定义必须带 cost 字段（全 0 即可），否则回合结束算成本会崩
  *       （Cannot read properties of undefined (reading 'tiers')）。
@@ -12,32 +26,6 @@
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { readFileSync } from "node:fs";
-import { homedir } from "node:os";
-import { join } from "node:path";
-
-/** 读取 <pi 配置目录>/.env（默认 ~/.pi/agent/.env）并注入 process.env。 */
-function loadDotEnv(): void {
-  const dir = process.env.PI_CODING_AGENT_DIR ?? join(homedir(), ".pi", "agent");
-  let text: string;
-  try {
-    text = readFileSync(join(dir, ".env"), "utf8");
-  } catch {
-    return;
-  }
-  for (const rawLine of text.split(/\r?\n/)) {
-    const line = rawLine.trim();
-    if (!line || line.startsWith("#")) continue; // 空行或注释
-    const body = line.startsWith("export ") ? line.slice(7).trimStart() : line;
-    const eq = body.indexOf("=");
-    if (eq <= 0) continue;
-    const key = body.slice(0, eq).trim();
-    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) continue; // 只认合法变量名
-    const value = body.slice(eq + 1).trim().replace(/^["']|["']$/g, ""); // 去首尾引号
-    if (!value || process.env[key] !== undefined) continue; // 空占位不注入、不覆盖已有
-    process.env[key] = value;
-  }
-}
 
 // ============================ omniroute ============================
 
@@ -99,8 +87,8 @@ function registerOmniroute(pi: ExtensionAPI): void {
   pi.registerProvider("omniroute", {
     name: "OmniRoute",
     baseUrl: OMNIROUTE_BASE_URL,
-    apiKey: "$OMNIROUTE_API_KEY",
     api: "openai-completions",
+    // 认证走 /login omniroute（auth.json），不设 apiKey 字段
     compat: { supportsUsageInStreaming: true },
     models: OMNIROUTE_MODELS,
   });
@@ -150,16 +138,14 @@ function registerShuaiapi(pi: ExtensionAPI): void {
   pi.registerProvider("shuaiapi", {
     name: "SHUAI API",
     baseUrl: SHUAIAI_BASE_URL,
-    apiKey: "$SHUAIAI_API_KEY",
     api: "openai-completions",
+    // 认证走 /login shuaiapi（auth.json），不设 apiKey 字段
     compat: { supportsUsageInStreaming: true },
     models: SHUAIAI_MODELS,
   });
 }
 
 function registerAll(pi: ExtensionAPI): void {
-  loadDotEnv(); // 先注入 .env，再注册 provider
-
   registerOmniroute(pi);
   registerShuaiapi(pi);
 }

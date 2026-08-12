@@ -123,15 +123,6 @@ for res in extensions skills prompts themes; do
     fi
 done
 
-# .env 采用复制而非软链：避免用户填写 key 后污染仓库；已存在则不覆盖
-if [ ! -e "$PI_AGENT_DIR/.env" ]; then
-    cp "$DOTFILES_DIR/config/pi/.env" "$PI_AGENT_DIR/.env"
-    chmod 600 "$PI_AGENT_DIR/.env"
-    log_warn "已创建 $PI_AGENT_DIR/.env（模板），请手动填入所需的 API key 后重启 pi"
-else
-    log_info "$PI_AGENT_DIR/.env 已存在，跳过（保留已填写的 key）"
-fi
-
 log_success "Dotfiles 配置部署完成。请在终端执行: source ~/.zshrc (或重新打开终端) 以使配置立即生效。"
 
 if [ -d "$BACKUP_DIR" ]; then
