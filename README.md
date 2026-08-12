@@ -1,6 +1,6 @@
 # srp-dotfiles
 
-个人 Debian 13 环境配置文件仓库。通过符号链接（Symlink）将仓库内的配置文件部署至系统的主目录及 `~/.config` 目录。
+个人 macOS 环境配置文件仓库。通过符号链接（Symlink）将仓库内的配置文件部署至系统的主目录及 `~/.config` 目录。
 
 ---
 
@@ -17,7 +17,7 @@ srp-dotfiles/
 │   ├── .zshrc           # Zsh 配置文件
 │   └── .hushlogin       # 静音登录文件
 ├── config.sh            # 配置文件部署与软链接更新脚本
-├── install.sh           # Debian 环境依赖与 Oh My Zsh 安装脚本
+├── install.sh           # macOS (Homebrew) 环境依赖与 Oh My Zsh 安装脚本
 └── README.md            # 项目说明文档
 ```
 
@@ -53,13 +53,13 @@ srp-dotfiles/
 
 ---
 
-## 软件依赖映射 (Debian 13 Trixie)
+## 软件依赖映射 (macOS Homebrew)
 
-| 类别 / 对应模块  | 核心软件 / 依赖 | Debian (`apt`) 包名 | 全局 JS (`npm`) 包名 |
+| 类别 / 对应模块  | 核心软件 / 依赖 | macOS (`brew`) 包名 | 全局 JS (`npm`) 包名 |
 | :--- | :--- | :--- | :--- |
 | **Shell 环境** | Zsh 及插件 | `zsh`, `zsh-autosuggestions`, `zsh-syntax-highlighting` | - |
-| **CLI 增强工具** | eza, zoxide, fzf, bat, fd, rg, gh, lazygit, jq, tldr | `eza`, `zoxide`, `fzf`, `bat`, `fd-find`, `ripgrep`, `gh`, `lazygit`, `jq`, `tealdeer` | - |
-| **语言与前端工具** | Node.js, Python, @antfu/ni, live-server | `nodejs`, `npm`, `python3`, `python3-pip`, `python3-venv` | `@antfu/ni`<br>`live-server` |
+| **CLI 增强工具** | eza, zoxide, fzf, bat, fd, rg, gh, lazygit, jq, tldr | `eza`, `zoxide`, `fzf`, `bat`, `fd`, `ripgrep`, `gh`, `lazygit`, `jq`, `tealdeer` | - |
+| **语言与前端工具** | Node.js, Python, @antfu/ni, live-server | `node`, `python` | `@antfu/ni`<br>`live-server` |
 | **终端** | Kitty | `kitty` | - |
 | **系统监控** | Fastfetch, Btop | `fastfetch`, `btop` | - |
 
@@ -70,7 +70,9 @@ srp-dotfiles/
 本仓库的终端配置依赖 Nerd Fonts 字体编码。
 
 * **推荐字体**：[subframe7536/maple-font](https://github.com/subframe7536/maple-font) (**`Maple Mono NF CN`**)
-* **字体安装**：在系统字体目录安装 `.ttf` 文件，并在终端设置中指定。
+* **字体安装**：
+  * **macOS (Homebrew)**：`brew install --cask font-maple-mono-nf-cn`
+  * **其他系统**：从 [maple-font Releases](https://github.com/subframe7536/maple-font/releases) 下载 `.ttf` 文件安装到系统字体目录，并在终端设置中指定。
 
 ---
 
@@ -79,7 +81,7 @@ srp-dotfiles/
 ### 1. 系统依赖包安装
 
 ```bash
-sh ./install.sh
+./install.sh
 ```
 
 ### 2. 配置文件部署与更新 (`config.sh`)
@@ -87,8 +89,8 @@ sh ./install.sh
 运行 `config.sh` 脚本建立软链接，将仓库配置文件软链接至系统目标路径：
 
 ```bash
-sh ./config.sh
+./config.sh
 
 # 强制覆盖已存在的非软链接文件
-sh ./config.sh --force
+./config.sh --force
 ```
