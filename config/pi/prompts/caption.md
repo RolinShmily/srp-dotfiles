@@ -25,15 +25,15 @@ videocaptioner transcribe "$1" --asr bijian -o "${1%.*}.srt"
 - 按台词本校正断句与换行，保持 SRT 时间轴不变，只改文本
 - 直接编辑 SRT 文件（保持 `HH:MM:SS,mmm --> HH:MM:SS,mmm` 格式不动）
 
-**方式 B（LLM 批量优化）**：如用户接受额外开销，可配 LLM：
+**方式 B（LLM 批量优化，已配好可直接用）**：videocaptioner 的 LLM 配置已持久化指向 omniroute 网关（key 取自 `~/.pi/agent/auth.json` 的 omniroute，模型 deepseek-v4-flash），无需再设环境变量：
 
 ```bash
-export OPENAI_BASE_URL="http://192.168.22.174:20128/v1"   # omniroute 网关
-export OPENAI_API_KEY="<omniroute key>"                    # ~/.pi/agent/auth.json 里查
 videocaptioner subtitle "$1.srt" --no-translate -o optimized.srt
 ```
 
-LLM 优化可能改变措辞，重要场合先抽查对比。
+- 默认同时做断句重排（split）和文本优化（optimize），只改文本不动时间轴
+- LLM 优化可能改写措辞，重要场合先抽查；只需修错字就加 `--no-split`
+- 改回模型/网关：`videocaptioner config set llm.model <模型名>` / `llm.api_base` / `llm.api_key`
 
 ## 3. 交付
 
