@@ -38,6 +38,16 @@
 - Zellij (终端复用器)
 - Fastfetch & Htop (系统监控，以 Htop 替代 Btop)
 
+### 4. [macOS 分支 (`mac`)](https://github.com/RolinShmily/srp-dotfiles/tree/mac)
+**目标环境**：Apple Silicon / Intel 芯片的 macOS
+**包管理器**：`brew` (Homebrew)
+**包含核心组件**：
+- 现代 CLI 增强 (eza, zoxide, fzf, ripgrep, bat, fd 等)
+- Neovim (AstroNvim)
+- Kitty (GPU 加速终端模拟器)
+- Fastfetch & Btop (系统监控)
+- *注：基于 Debian 分支派生，剔除了 Yazi, Zellij 等桌面/服务器差异组件，主打稳定轻量。*
+
 ---
 
 ## 🛠️ 如何开始？
@@ -55,6 +65,8 @@ git checkout arch
 # git checkout debian
 # 或者如果是 termux
 # git checkout termux
+# 或者如果是 mac
+# git checkout mac
 
 # 3. 按照该分支 README.md 中的说明执行部署
 ```
