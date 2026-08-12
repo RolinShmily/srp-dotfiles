@@ -108,6 +108,29 @@ for app in $CONFIG_APPS; do
     link_file "$DOTFILES_DIR/config/$app" "$HOME/.config/$app"
 done
 
+# 部署 Pi 配置（~/.pi/agent，可用 $PI_CODING_AGENT_DIR 覆盖）
+log_info "部署 Pi 配置..."
+PI_AGENT_DIR="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
+
+# settings.json 软链：包清单（packages）随仓库走，pi 启动时自动补装缺失包
+link_file "$DOTFILES_DIR/config/pi/settings.json" "$PI_AGENT_DIR/settings.json"
+
+# 资源目录整体软链：pi 自动发现 ~/.pi/agent/ 下的 extensions/skills/prompts/themes，
+# 无需在 settings.json 中声明；仓库里没有的目录跳过
+for res in extensions skills prompts themes; do
+    if [ -d "$DOTFILES_DIR/config/pi/$res" ]; then
+        link_file "$DOTFILES_DIR/config/pi/$res" "$PI_AGENT_DIR/$res"
+    fi
+done
+
+# .env 采用复制而非软链：避免用户填写 key 后污染仓库；已存在则不覆盖
+if [ ! -e "$PI_AGENT_DIR/.env" ]; then
+    cp "$DOTFILES_DIR/config/pi/.env" "$PI_AGENT_DIR/.env"
+    chmod 600 "$PI_AGENT_DIR/.env"
+    log_warn "已创建 $PI_AGENT_DIR/.env（模板），请手动填入所需的 API key 后重启 pi"
+else
+    log_info "$PI_AGENT_DIR/.env 已存在，跳过（保留已填写的 key）"
+fi
 
 log_success "Dotfiles 配置部署完成。请在终端执行: source ~/.zshrc (或重新打开终端) 以使配置立即生效。"
 
