@@ -7,9 +7,8 @@
  * 注意：模型定义必须带 cost 字段（全 0 即可），否则回合结束算成本会崩
  *       （Cannot read properties of undefined (reading 'tiers')）。
  *
- * 新增 provider：复制下方模板，改 id/baseUrl/models，并在 registerAll 调用。
- * 网关模型查询：curl -H "Authorization: Bearer $OMNIROUTE_API_KEY" \
- *               http://192.168.22.174:20128/v1/models
+ * 新增 provider：参考下方 registerOmniroute / registerShuaiapi 的写法，
+ * 在 registerAll 中调用。网关模型查询见各 provider 段注释。
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -107,30 +106,62 @@ function registerOmniroute(pi: ExtensionAPI): void {
   });
 }
 
-// ========================= 新增 provider 模板 =========================
-// const XXX_BASE_URL = "http://...";
-// const XXX_MODELS: Record<string, unknown>[] = [
-//   { id: "...", name: "...", reasoning: false, input: ["text"],
-//     contextWindow: 128000, maxTokens: 16384,
-//     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, // cost 必填
-//     compat: {} },
-// ];
-// function registerXxx(pi: ExtensionAPI): void {
-//   pi.registerProvider("xxx", {
-//     name: "Xxx",
-//     baseUrl: XXX_BASE_URL,
-//     apiKey: "$XXX_API_KEY", // .env 中定义
-//     api: "openai-completions",
-//     models: XXX_MODELS,
-//   });
-// }
-// ====================================================================
+// ============================ shuaiapi ============================
+// 中转站：https://api.shuaiapi.com/v1 (OpenAI 兼容，Bearer 认证)
+// 文档：https://api.shuaiapi.com/llms-full.txt
+
+const SHUAIAI_BASE_URL = "https://oai.sb/v1";
+
+/** 静态模型列表（手动维护）。每个模型必须带 cost（全 0 即可）。 */
+const SHUAIAI_MODELS: Record<string, unknown>[] = [
+  {
+    id: "gpt-image-2",
+    name: "GPT Image 2",
+    reasoning: false,
+    input: ["text"],
+    contextWindow: 128_000,
+    maxTokens: 16_384,
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    compat: { supportsUsageInStreaming: true, supportsDeveloperRole: false },
+  },
+  {
+    id: "deepseek-v4-flash-0731",
+    name: "DeepSeek V4 Flash (0731)",
+    reasoning: true,
+    input: ["text"],
+    contextWindow: 1_000_000,
+    maxTokens: 384_000,
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    compat: { supportsUsageInStreaming: true, supportsDeveloperRole: false },
+  },
+  {
+    id: "gpt-5.6-sol",
+    name: "GPT 5.6 Sol",
+    reasoning: true,
+    input: ["text"],
+    contextWindow: 400_000,
+    maxTokens: 128_000,
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    compat: { supportsUsageInStreaming: true, supportsDeveloperRole: false },
+  },
+];
+
+function registerShuaiapi(pi: ExtensionAPI): void {
+  pi.registerProvider("shuaiapi", {
+    name: "SHUAI API",
+    baseUrl: SHUAIAI_BASE_URL,
+    apiKey: "$SHUAIAI_API_KEY",
+    api: "openai-completions",
+    compat: { supportsUsageInStreaming: true },
+    models: SHUAIAI_MODELS,
+  });
+}
 
 function registerAll(pi: ExtensionAPI): void {
   loadDotEnv(); // 先注入 .env，再注册 provider
 
   registerOmniroute(pi);
-  // registerXxx(pi);
+  registerShuaiapi(pi);
 }
 
 export default registerAll;
