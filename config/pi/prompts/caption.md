@@ -34,8 +34,6 @@ videocaptioner transcribe "$1" --asr bijian -o "${1%.*}.srt"
 - 用户只需转录时：到第 1 步为止
 - 需要双语/翻译/烧录进视频时再扩展（`videocaptioner --help` 看全命令）
 
-## 4. 参考来源（命令不确定时先查原文）
-
-- 项目仓库：https://github.com/WEIFENG2333/VideoCaptioner
-- Skill 原文：https://github.com/WEIFENG2333/VideoCaptioner/blob/master/skills/SKILL.md
-- 先用 `videocaptioner <command> --help` 看参数；不够时 `web_fetch` 抓上面的 Skill 原文/README，以原文为准
+<!-- 上游参考（命令不确定时自行查证，不进入工作流）：
+项目 https://github.com/WEIFENG2333/VideoCaptioner
+Skill 原文 https://github.com/WEIFENG2333/VideoCaptioner/blob/master/skills/SKILL.md -->
