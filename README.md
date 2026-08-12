@@ -12,7 +12,9 @@ srp-dotfiles/
 │   ├── btop/            # Btop 资源监控配置
 │   ├── fastfetch/       # Fastfetch 系统硬件摘要配置
 │   ├── kitty/           # Kitty 终端模拟器配置
-│   └── nvim/            # Neovim (AstroNvim v4) 代码编辑器配置
+│   ├── nvim/            # Neovim (AstroNvim v4) 代码编辑器配置
+│   ├── yazi/            # Yazi 终端文件管理器配置
+│   └── zellij/          # Zellij 终端复用器配置
 ├── home/                # ~/ 主目录映射配置
 │   ├── .zshrc           # Zsh 配置文件
 │   └── .hushlogin       # 静音登录文件
@@ -47,6 +49,8 @@ srp-dotfiles/
 | | @antfu/ni | [antfu-collective/ni](https://github.com/antfu-collective/ni) | `home/.zshrc` | 智能包管理器别名工具 |
 | | live-server | [tapio/live-server](https://github.com/tapio/live-server) | `home/.zshrc` | 轻量静态 Web 服务器 (用于 `serve()` 函数) |
 | **代码编辑器** | Neovim | [neovim/neovim](https://github.com/neovim/neovim) | `config/nvim/`<br>`home/.zshrc` | 终端代码编辑器 (AstroNvim 架构) |
+| **文件管理** | Yazi | [sxyazi/yazi](https://github.com/sxyazi/yazi) | `config/yazi/`<br>`home/.zshrc` | 终端文件管理器及预览插件 |
+| **终端与复用** | Zellij | [zellij-org/zellij](https://github.com/zellij-org/zellij) | `config/zellij/`<br>`home/.zshrc` | 终端复用器 |
 | **终端** | Kitty | [kovidgoyal/kitty](https://github.com/kovidgoyal/kitty) | `config/kitty/` | GPU 加速终端模拟器 |
 | **系统监控** | Fastfetch | [fastfetch-cli/fastfetch](https://github.com/fastfetch-cli/fastfetch) | `config/fastfetch/` | 系统与硬件信息摘要显示 |
 | | Btop | [aristocratos/btop](https://github.com/aristocratos/btop) | `config/btop/` | 终端资源监控工具 |
@@ -64,6 +68,8 @@ srp-dotfiles/
 | **CLI 增强工具** | eza, zoxide, fzf, bat, fd, rg, gh, lazygit, jq, tldr | `eza`, `zoxide`, `fzf`, `bat`, `fd`, `ripgrep`, `gh`, `lazygit`, `jq`, `tealdeer` | - |
 | **语言与前端工具** | Node.js, Python, @antfu/ni, live-server | `node`, `python` | `@antfu/ni`<br>`live-server` |
 | **代码编辑器** | Neovim & 工具链 | `neovim`, `git`, `unzip` | - |
+| **文件管理 (Yazi)** | Yazi & 各格式预览依赖 | `yazi`, `chafa`, `imagemagick`, `poppler`, `ffmpeg`, `sevenzip`, `unar`, `exiftool`, `mediainfo`, `zathura`, `zathura-pdf-poppler`, `miller`, `resvg` | - |
+| **终端与复用** | Zellij | `zellij` | - |
 | **终端** | Kitty | `kitty` | - |
 | **系统监控** | Fastfetch, Btop | `fastfetch`, `btop` | - |
 
@@ -71,7 +77,7 @@ srp-dotfiles/
 
 ## 终端字体配置
 
-本仓库的终端配置（包含 Spaceship 提示符符号、Kitty 图标、Neovim 等）依赖 Nerd Fonts 字体编码。
+本仓库的终端配置（包含 Yazi 图标、Spaceship 提示符符号、Kitty 图标、Neovim 等）依赖 Nerd Fonts 字体编码。
 
 * **推荐字体**：[subframe7536/maple-font](https://github.com/subframe7536/maple-font) (**`Maple Mono NF CN`**)
 * **字体安装**：

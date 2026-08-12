@@ -33,6 +33,10 @@ BREW_PKGS=(
     node python
     # 编辑器 (Neovim)
     git unzip neovim
+    # 文件管理 (Yazi)
+    yazi chafa imagemagick poppler ffmpeg sevenzip unar exiftool mediainfo zathura zathura-pdf-poppler miller resvg
+    # 终端复用 (Zellij)
+    zellij
     # 终端
     kitty
     # 监控与系统 (Fastfetch / Btop)

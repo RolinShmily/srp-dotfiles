@@ -78,7 +78,9 @@ alias gx='git clean -df'
 
 function gsha() {
   local sha="$(git rev-parse HEAD)"
-  if command -v clip.exe &>/dev/null; then
+  if command -v pbcopy &>/dev/null; then
+    echo -n "$sha" | pbcopy
+  elif command -v clip.exe &>/dev/null; then
     echo -n "$sha" | clip.exe
   elif command -v wl-copy &>/dev/null; then
     echo -n "$sha" | wl-copy
@@ -278,6 +280,19 @@ if command -v eza &>/dev/null; then
   alias lmd='eza -lah --icons --git --sort=modified --reverse'
 fi
 
+
+# zellij
+alias ze='zellij'
+
+
+function yaz() {
+	local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
+	yazi "$@" --cwd-file="$tmp"
+	if cwd="$(command cat -- "$tmp")" && [ -n "$cwd" ] && [ "$cwd" != "$PWD" ]; then
+		builtin cd -- "$cwd"
+	fi
+	rm -f -- "$tmp"
+}
 
 if command -v zoxide &>/dev/null; then
     eval "$(zoxide init zsh)"
