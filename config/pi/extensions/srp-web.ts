@@ -1,19 +1,13 @@
 /**
  * srp-web.ts — 轻量联网搜索 + 网页抓取（pi-web-access 的极简替代）。
  *
- * web_search: 双后端 AI 搜索，自动降级：
- *   1. gemini — 原生 Gemini API generateContent + googleSearch grounding
- *      （模型可配；若响应无 grounding 元数据，视为网关不支持，自动降级）
- *   2. felo   — 网关 felo/felo-search 模型，自带实时搜索与来源（当前网关实测可用）
+ * web_search: 经网关调 felo/felo-search 模型，AI 搜索并返回带来源的合成答案。
  * web_fetch : 直接 HTTP 抓取，HTML 转文本 / JSON 格式化，带超时与体积上限。
  *
  * 配置（环境变量，全部可选）：
  *   SRP_WEB_BASE_URL          网关地址，默认 http://192.168.22.174:20128/v1
  *   SRP_WEB_PROVIDER          auth.json 里的 provider id，默认 omniroute
- *   SRP_WEB_SEARCH_BACKEND    auto（默认，gemini 优先，无 grounding 则降级 felo）
- *                             | gemini（强制，失败即报错）| felo
- *   SRP_WEB_GEMINI_MODEL      原生 Gemini 模型，默认 gemini-2.5-flash
- *   SRP_WEB_SEARCH_MODEL      felo 模型，默认 felo/felo-search
+ *   SRP_WEB_SEARCH_MODEL      搜索模型，默认 felo/felo-search
  *   SRP_WEB_SEARCH_TIMEOUT_MS 搜索超时，默认 60_000
  *   SRP_WEB_FETCH_TIMEOUT_MS  抓取超时，默认 15_000
  *   SRP_WEB_FETCH_MAX_BYTES   抓取体积上限，默认 2 MiB
@@ -29,8 +23,7 @@ import { homedir } from "node:os";
 // ============================ 配置区 ============================
 
 const DEFAULT_BASE_URL = "http://192.168.22.174:20128/v1";
-const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
-const DEFAULT_FELO_MODEL = "felo/felo-search";
+const DEFAULT_SEARCH_MODEL = "felo/felo-search";
 const DEFAULT_PROVIDER = "omniroute";
 
 function envNum(name: string, fallback: number): number {
@@ -89,49 +82,13 @@ async function parseSSE(res: Response): Promise<string> {
   return text.trim();
 }
 
-/** 后端 1：原生 Gemini API + googleSearch grounding */
-async function searchWithGemini(
-  query: string,
-  signal?: AbortSignal,
-): Promise<{ text: string; model: string; grounded: boolean }> {
-  const base = (process.env.SRP_WEB_BASE_URL ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
-  const model = process.env.SRP_WEB_GEMINI_MODEL ?? DEFAULT_GEMINI_MODEL;
-  const key = await loadAuthKey(process.env.SRP_WEB_PROVIDER ?? DEFAULT_PROVIDER);
-  const { ac, done } = withTimeout(envNum("SRP_WEB_SEARCH_TIMEOUT_MS", 60_000), "Gemini 搜索超时", signal);
-  try {
-    const res = await fetch(`${base}/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: query }] }],
-        tools: [{ googleSearch: {} }],
-      }),
-      signal: ac.signal,
-    });
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}: ${(await res.text()).slice(0, 300)}`);
-    }
-    const json = await res.json();
-    const candidate = json?.candidates?.[0];
-    if (!candidate) throw new Error("Gemini 返回空响应");
-    const text = (candidate.content?.parts ?? [])
-      .map((p: { text?: string }) => p.text ?? "").join("").trim();
-    if (!text) throw new Error("Gemini 返回了空内容");
-    const chunks = candidate.groundingMetadata?.groundingChunks ?? [];
-    const grounded = Array.isArray(chunks) && chunks.length > 0;
-    return { text, model, grounded };
-  } finally {
-    done();
-  }
-}
-
-/** 后端 2：网关 felo/felo-search（AI 搜索，带来源引用） */
-async function searchWithFelo(
+/** 搜索：经网关调 felo/felo-search，返回带来源的合成答案 */
+export async function searchWeb(
   query: string,
   signal?: AbortSignal,
 ): Promise<{ text: string; model: string }> {
   const base = (process.env.SRP_WEB_BASE_URL ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
-  const model = process.env.SRP_WEB_SEARCH_MODEL ?? DEFAULT_FELO_MODEL;
+  const model = process.env.SRP_WEB_SEARCH_MODEL ?? DEFAULT_SEARCH_MODEL;
   const key = await loadAuthKey(process.env.SRP_WEB_PROVIDER ?? DEFAULT_PROVIDER);
   const { ac, done } = withTimeout(envNum("SRP_WEB_SEARCH_TIMEOUT_MS", 60_000), "搜索超时", signal);
   try {
@@ -155,27 +112,6 @@ async function searchWithFelo(
   } finally {
     done();
   }
-}
-
-/** 搜索入口：auto = gemini 优先，无 grounding 则降级 felo */
-export async function searchWeb(
-  query: string,
-  signal?: AbortSignal,
-): Promise<{ text: string; model: string; backend: string }> {
-  const backend = (process.env.SRP_WEB_SEARCH_BACKEND ?? "auto").toLowerCase();
-  if (backend === "gemini" || backend === "auto") {
-    try {
-      const r = await searchWithGemini(query, signal);
-      if (r.grounded || backend === "gemini") {
-        return { text: r.text, model: r.model, backend: "gemini" };
-      }
-      // auto 且无 grounding：网关不支持搜索透传，降级
-    } catch (e) {
-      if (backend === "gemini") throw e;
-    }
-  }
-  const r = await searchWithFelo(query, signal);
-  return { text: r.text, model: r.model, backend: "felo" };
 }
 
 const MAX_RETURN_CHARS = 30_000;
@@ -264,8 +200,8 @@ export default function (pi: ExtensionAPI) {
       query: Type.String({ description: "搜索问题，越具体越好" }),
     }),
     async execute(_toolCallId, params, signal) {
-      const { text, model, backend } = await searchWeb(params.query, signal);
-      return { content: [{ type: "text", text }], details: { backend, model } };
+      const { text, model } = await searchWeb(params.query, signal);
+      return { content: [{ type: "text", text }], details: { model } };
     },
   });
 
