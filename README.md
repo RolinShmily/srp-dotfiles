@@ -1,6 +1,6 @@
 # srp-dotfiles
 
-个人 Linux 及类 Unix 环境配置文件仓库。通过符号链接（Symlink）将仓库内的配置文件部署至系统的主目录及 `~/.config` 目录。
+个人 Termux 环境配置文件仓库。通过符号链接（Symlink）将仓库内的配置文件部署至系统的主目录及 `~/.config` 目录。
 
 ---
 
@@ -33,7 +33,7 @@ srp-dotfiles/
 | | zsh-autosuggestions | [zsh-users/zsh-autosuggestions](https://github.com/zsh-users/zsh-autosuggestions) | `home/.zshrc` | 命令历史自动补全 |
 | | zsh-syntax-highlighting | [zsh-users/zsh-syntax-highlighting](https://github.com/zsh-users/zsh-syntax-highlighting) | `home/.zshrc` | 命令语法高亮 |
 | **CLI 增强工具** | eza | [eza-community/eza](https://github.com/eza-community/eza) | `home/.zshrc` | `ls` 替代工具，支持图标与 Git 状态 |
-| | zoxide | [ajeetdsouza/zoxide](https://github.com/ajeetdsouza/zoxide) | `home/.zshrc` | 路径跳转工具（集成 `yazi` `y` 函数） |
+| | zoxide | [ajeetdsouza/zoxide](https://github.com/ajeetdsouza/zoxide) | `home/.zshrc` | 路径跳转工具 |
 | | fzf | [junegunn/fzf](https://github.com/junegunn/fzf) | `home/.zshrc` | 命令行模糊搜索工具 |
 | | bat | [sharkdp/bat](https://github.com/sharkdp/bat) | `home/.zshrc` | `cat` 替代工具，支持语法高亮 |
 | | fd | [sharkdp/fd](https://github.com/sharkdp/fd) | `home/.zshrc` | `find` 替代工具，文件路径搜索 |
@@ -44,7 +44,7 @@ srp-dotfiles/
 | | jq | [jqlang/jq](https://github.com/jqlang/jq) | `home/.zshrc` | JSON 格式化与提取工具 |
 | | tldr | [tldr-pages/tldr](https://github.com/tldr-pages/tldr) | `home/.zshrc` | 命令示例手册工具 |
 | **语言与前端工具** | Node.js (nvm) | [nvm-sh/nvm](https://github.com/nvm-sh/nvm) | `home/.zshrc` | Node.js 版本管理工具 |
-| | @antfu/ni | [antfu-collective/ni](https://github.com/antfu-collective/ni) | `home/.zshrc` | 智能包管理器别名工具 (用于 `d`, `b`, `t`, `c`, `lint` 等) |
+| | @antfu/ni | [antfu-collective/ni](https://github.com/antfu-collective/ni) | `home/.zshrc` | 智能包管理器别名工具 |
 | | live-server | [tapio/live-server](https://github.com/tapio/live-server) | `home/.zshrc` | 轻量静态 Web 服务器 (用于 `serve()` 函数) |
 | | uv | [astral-sh/uv](https://github.com/astral-sh/uv) | `home/.zshrc` | Python 包管理与项目构建工具 |
 | **文件管理** | Yazi | [sxyazi/yazi](https://github.com/sxyazi/yazi) | `config/yazi/`<br>`home/.zshrc` | 终端文件管理器及预览插件 |
@@ -58,17 +58,17 @@ srp-dotfiles/
 
 ## 软件依赖与包管理器映射
 
-下表列出各配置模块涉及的核心软件包在不同包管理器中的包名映射：
+下表列出各配置模块涉及的核心软件包在 Termux (`pkg`) 中的包名映射：
 
 | 类别 / 对应模块  | 核心软件 / 依赖 | Termux (`pkg`) 包名 | 全局 JS (`npm`) 包名 |
 | :--- | :--- | :--- | :--- |
-| **Shell 环境** | Zsh 及插件 | `zsh`, Zsh 插件需 Git 安装 | - |
+| **Shell 环境** | Zsh 及插件 | `zsh` (插件经 Git 安装) | - |
 | **CLI 增强工具** | eza, zoxide, fzf, bat, fd, rg, diff-so-fancy, gh, lazygit, jq, tldr | `eza`, `zoxide`, `fzf`, `bat`, `fd`, `ripgrep`, `diff-so-fancy`, `gh`, `lazygit`, `jq`, `tealdeer` | - |
-| **语言与前端工具** | Node.js, uv, @antfu/ni, live-server | `nodejs`, `python`, `uv` | `@antfu/ni`<br>`live-server` |
-| **文件管理 (Yazi)** | Yazi & 各格式预览依赖 | `yazi`, `file`, `chafa`, `imagemagick`, `poppler`, `ffmpeg`, `p7zip`, `unar`, `exiftool`, `mediainfo`, `miller`, `termux-api` | - |
+| **语言与前端工具** | Node.js, Python, uv, @antfu/ni, live-server | `nodejs`, `python`, `uv` | `@antfu/ni`<br>`live-server` |
+| **文件管理 (Yazi)** | Yazi & 各格式预览依赖 | `yazi`, `file`, `chafa`, `imagemagick`, `poppler`, `ffmpeg`, `p7zip`, `unar`, `exiftool`, `mediainfo`, `miller` | - |
 | **代码编辑器** | Neovim & 工具链 | `neovim`, `git`, `clang`, `make`, `unzip`, `tree-sitter` | - |
 | **终端与复用** | Zellij | `zellij` | - |
-| **系统监控** | Fastfetch, Htop | `fastfetch`, `htop` | - |
+| **系统监控** | Fastfetch, Htop | `fastfetch`, `htop`, `termux-api` | - |
 
 ---
 
@@ -77,13 +77,19 @@ srp-dotfiles/
 本仓库的终端配置（包含 Yazi 图标、Spaceship 提示符符号、Neovim 等）依赖 Nerd Fonts 字体编码。
 
 * **推荐字体**：[subframe7536/maple-font](https://github.com/subframe7536/maple-font) (**`Maple Mono NF CN`**)
-* **字体安装**：
-  * **Termux**：可以直接下载 Nerd Font 字体文件，命名为 `font.ttf` 并放入 `~/.termux/` 目录下，然后执行 `termux-reload-settings`。
+* **字体安装**：从 [maple-font Releases](https://github.com/subframe7536/maple-font/releases) 下载 `.ttf` 文件，复制至 `~/.termux/font.ttf`，随后在 Termux 内重启应用生效。
+
 ---
 
 ## 部署与使用
 
-### 1. 配置文件部署与更新 (`config.sh`)
+### 1. 系统依赖包安装
+
+```bash
+./install.sh
+```
+
+### 2. 配置文件部署与更新 (`config.sh`)
 
 运行 `config.sh` 脚本建立软链接，将仓库配置文件软链接至系统目标路径：
 
@@ -93,13 +99,3 @@ srp-dotfiles/
 # 强制覆盖已存在的非软链接文件
 ./config.sh --force
 ```
-
-### 2. 系统依赖包安装
-
-#### Termux 环境
-```bash
-./install.sh
-```
-
-#### 其他 Linux / 类 Unix 发行版
-参照上表**软件依赖与包管理器映射**，使用对应包管理器安装所需软件包即可。
