@@ -1,39 +1,32 @@
 ---
-description: 字幕转录/精修（VideoCaptioner）——音视频转字幕，可选台词本精修
+description: 字幕转录/精修（VideoCaptioner + agent 对拍）——音视频转字幕，可选台词本精修
 argument-hint: "<音视频文件路径> [台词本文件路径]"
 ---
 # 字幕转录任务
 
 用户提供：`$1`（音视频文件），`$2`（可选台词本，用于精修校准）。
 
-## 1. 转录
+## 1. 转录（videocaptioner 只做这一步）
 
 ```bash
 videocaptioner transcribe "$1" --asr bijian -o "${1%.*}.srt"
 ```
 
-- `bijian` 免费，支持中英文；其他语言改用 `--asr whisper-api --whisper-api-key <key>`（需要 key）
+- `bijian` 免费，支持中英文；其他语言改用 `--asr whisper-api`（需要 key）
 - 纯音频文件同样支持（自动跳过视频合成）
 - 转录完成后先 `read` 检查 SRT 质量（错字、漏句、时间轴错位）
 
-## 2. 精修（有台词本时）
+## 2. 精修（agent 直接做，不需要 CLI 的 LLM 功能）
 
-台词本是最佳参照，两种方式：
+**有台词本（推荐路径）**：
+1. `read` 转录出的 SRT 和台词本
+2. 逐句对拍：修正 ASR 错别字、同音字、专有名词，按台词本校正断句
+3. 用 `edit` 修改 SRT（保持 `HH:MM:SS,mmm --> HH:MM:SS,mmm` 时间轴和序号不变，只改文本）
+4. 句子多时按块分批处理；时间轴错位明显的用时间戳推算校正
 
-**方式 A（推荐，零成本）：手动对拍**
-- 通读 SRT 与台词本，修正 ASR 错别字、同音字、专有名词
-- 按台词本校正断句与换行，保持 SRT 时间轴不变，只改文本
-- 直接编辑 SRT 文件（保持 `HH:MM:SS,mmm --> HH:MM:SS,mmm` 格式不动）
-
-**方式 B（LLM 批量优化，已配好可直接用）**：videocaptioner 的 LLM 配置已持久化指向 omniroute 网关（key 取自 `~/.pi/agent/auth.json` 的 omniroute，模型 deepseek-v4-flash），无需再设环境变量：
-
-```bash
-videocaptioner subtitle "$1.srt" --no-translate -o optimized.srt
-```
-
-- 默认同时做断句重排（split）和文本优化（optimize），只改文本不动时间轴
-- LLM 优化可能改写措辞，重要场合先抽查；只需修错字就加 `--no-split`
-- 改回模型/网关：`videocaptioner config set llm.model <模型名>` / `llm.api_base` / `llm.api_key`
+**无台词本**：
+- 只修明显 ASR 错误（同音字、错别字、漏字、标点）
+- 不要过度改写措辞；不确定的地方保持原样，交付时标注存疑处
 
 ## 3. 交付
 
