@@ -3,7 +3,7 @@
   "theme": "dark",
   "defaultProvider": "deepseek",
   "defaultModel": "deepseek-v4-flash",
-  "defaultThinkingLevel": "high",
+  "defaultThinkingLevel": "max",
   "powerline": {
     "welcome": false
   },

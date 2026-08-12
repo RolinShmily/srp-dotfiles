@@ -108,15 +108,15 @@ for app in $CONFIG_APPS; do
     link_file "$DOTFILES_DIR/config/$app" "$HOME/.config/$app"
 done
 
-# MCP 全局配置（pi-mcp-adapter 及 Claude Code 等工具共享）
-link_file "$DOTFILES_DIR/config/mcp/mcp.json" "$HOME/.config/mcp/mcp.json"
-
 # 部署 Pi 配置（~/.pi/agent，可用 $PI_CODING_AGENT_DIR 覆盖）
 log_info "部署 Pi 配置..."
 PI_AGENT_DIR="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
 
 # settings.json 软链：包清单（packages）随仓库走，pi 启动时自动补装缺失包
 link_file "$DOTFILES_DIR/config/pi/settings.json" "$PI_AGENT_DIR/settings.json"
+
+# mcp.json 软链：pi 全局 MCP 服务配置（pi-mcp-adapter 读取）
+link_file "$DOTFILES_DIR/config/pi/mcp.json" "$PI_AGENT_DIR/mcp.json"
 
 # 资源目录整体软链：pi 自动发现 ~/.pi/agent/ 下的 extensions/skills/prompts/themes，
 # 无需在 settings.json 中声明；仓库里没有的目录跳过
