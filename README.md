@@ -1,6 +1,11 @@
 # srp-dotfiles
 
-个人 Linux 及类 Unix 环境配置文件仓库。通过符号链接（Symlink）将仓库内的配置文件部署至系统的主目录及 `~/.config` 目录。
+本分支专为 **Arch Linux 及 Windows Subsystem for Linux (WSL)** 环境打造：通过符号链接（Symlink）将仓库内的配置文件部署至系统的主目录及 `~/.config` 目录，并提供 Arch Linux (`pacman`) 的一键依赖安装脚本。
+
+* **Arch Linux 原生系统**：适用于日常桌面/开发机，完整支持 Yazi、Zellij、Kitty 等图形与终端组件。
+* **WSL (Windows Subsystem for Linux)**：在 Windows 下获得接近原生的 Linux 开发体验，配合 Kitty (WSL / GUI 终端) 使用效果更佳。
+
+> 提示：若你使用的是其他环境（如 macOS、Debian 服务器或 Termux），请切换到 [仓库主页](https://github.com/RolinShmily/srp-dotfiles) 查看对应的 `main` 分支导航。
 
 ---
 
