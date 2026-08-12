@@ -4,6 +4,10 @@
       "url": "https://mcp.context7.com/mcp",
       "protocolVersion": "auto",
       "directTools": true
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"]
     }
   }
 }
