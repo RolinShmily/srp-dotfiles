@@ -20,7 +20,7 @@ if command -v apt-get >/dev/null 2>&1; then
         eza zoxide fzf bat fd-find ripgrep gh lazygit jq tealdeer \
         nodejs python3 python3-pip python3-venv \
         git build-essential gcc unzip \
-        kitty fastfetch btop"
+        fastfetch btop"
 
     sudo apt-get install -y $APT_PKGS
     
