@@ -26,7 +26,6 @@
 - Neovim (AstroNvim)
 - Yazi (终端文件管理器)
 - Zellij (终端复用器)
-- Kitty (WSL / GUI 终端)
 
 ### 2. [Debian 13 分支 (`debian`)](https://github.com/RolinShmily/srp-dotfiles/tree/debian)
 **适用场景**：服务器环境（远程运维、生产/开发服务器）
