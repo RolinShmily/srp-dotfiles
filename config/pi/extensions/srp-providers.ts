@@ -123,6 +123,16 @@ const SHUAIAI_MODELS: Record<string, unknown>[] = [
     compat: { supportsUsageInStreaming: true, supportsDeveloperRole: false },
   },
   {
+    id: "deepseek-v4-pro-0813",
+    name: "DeepSeek V4 Pro (0813)",
+    reasoning: true,
+    input: ["text"],
+    contextWindow: 1_000_000,
+    maxTokens: 384_000,
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    compat: { supportsUsageInStreaming: true, supportsDeveloperRole: false },
+  },
+  {
     id: "gpt-5.6-sol",
     name: "GPT 5.6 Sol",
     reasoning: true,
