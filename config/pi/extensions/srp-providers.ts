@@ -95,7 +95,7 @@ function registerOmniroute(pi: ExtensionAPI): void {
 }
 
 // ============================ shuaiapi ============================
-// 中转站：https://api.shuaiapi.com/v1 (OpenAI 兼容，Bearer 认证)
+// 中转站：https://api.oai.sb/v1 (OpenAI 兼容，Bearer 认证)
 // 文档：https://api.shuaiapi.com/llms-full.txt
 
 const SHUAIAI_BASE_URL = "https://oai.sb/v1";
