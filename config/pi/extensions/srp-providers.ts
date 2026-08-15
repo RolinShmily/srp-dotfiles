@@ -34,26 +34,6 @@ const OMNIROUTE_BASE_URL = "http://192.168.22.174:20128/v1";
 /** 静态模型列表（手动维护）。每个模型必须带 cost（全 0 即可）。 */
 const OMNIROUTE_MODELS: Record<string, unknown>[] = [
   {
-    id: "deepseek/deepseek-v4-flash",
-    name: "DeepSeek V4 Flash (官方)",
-    reasoning: true,
-    input: ["text"],
-    contextWindow: 1_000_000,
-    maxTokens: 384_000,
-    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    compat: { supportsUsageInStreaming: true },
-  },
-  {
-    id: "deepseek/deepseek-v4-pro",
-    name: "DeepSeek V4 Pro (官方)",
-    reasoning: true,
-    input: ["text"],
-    contextWindow: 1_000_000,
-    maxTokens: 384_000,
-    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    compat: { supportsUsageInStreaming: true },
-  },
-  {
     id: "opencode-zen/deepseek-v4-flash-free",
     name: "DeepSeek V4 Flash Free (OpenCode Zen)",
     reasoning: true,
@@ -72,15 +52,6 @@ const OMNIROUTE_MODELS: Record<string, unknown>[] = [
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
     compat: { supportsUsageInStreaming: true },
   },
-  {
-    id: "antigravity/gemini-3.1-pro-low",
-    name: "Gemini 3.1 Pro Low (Antigravity)",
-    input: ["text", "image"],
-    contextWindow: 1_048_576,
-    maxTokens: 65_535,
-    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    compat: { supportsUsageInStreaming: true },
-  },
 ];
 
 function registerOmniroute(pi: ExtensionAPI): void {
@@ -95,52 +66,92 @@ function registerOmniroute(pi: ExtensionAPI): void {
 }
 
 // ============================ shuaiapi ============================
-// 中转站：https://api.oai.sb/v1 (OpenAI 兼容，Bearer 认证)
-// 文档：https://api.shuaiapi.com/llms-full.txt
+// 中转站：https://oai.sb/v1（OpenAI 兼容，Bearer 认证）
+// 文档及当前启用模型：https://api.shuaiapi.com/llms-full.txt
 
 const SHUAIAI_BASE_URL = "https://oai.sb/v1";
+const SHUAIAI_COST = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
+const SHUAIAI_COMPAT = {
+  supportsUsageInStreaming: true,
+  supportsDeveloperRole: false,
+};
+const GPT_5_6_THINKING_LEVELS = {
+  off: "none",
+  minimal: null,
+  low: "low",
+  medium: "medium",
+  high: "high",
+  xhigh: "xhigh",
+  max: "max",
+};
+const DEEPSEEK_V4_THINKING_LEVELS = {
+  minimal: null,
+  low: null,
+  medium: null,
+  high: "high",
+  xhigh: null,
+  max: "max",
+};
 
-/** 静态模型列表（手动维护）。每个模型必须带 cost（全 0 即可）。 */
+/**
+ * ShuaiAPI 当前启用、且适用于 pi 对话/编码的精选模型。
+ * 网关按分组和动态表达式计费，无法在此准确表示，故成本统一记为 0。
+ * gpt-image-2 仅用于图片生成端点，不注册为 Chat Completions 模型。
+ */
 const SHUAIAI_MODELS: Record<string, unknown>[] = [
   {
-    id: "gpt-image-2",
-    name: "GPT Image 2",
-    reasoning: false,
-    input: ["text"],
-    contextWindow: 128_000,
-    maxTokens: 16_384,
-    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    compat: { supportsUsageInStreaming: true, supportsDeveloperRole: false },
-  },
-  {
     id: "deepseek-v4-flash-0731",
-    name: "DeepSeek V4 Flash (0731)",
+    name: "DeepSeek V4 Flash 0731",
     reasoning: true,
     input: ["text"],
     contextWindow: 1_000_000,
     maxTokens: 384_000,
-    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    compat: { supportsUsageInStreaming: true, supportsDeveloperRole: false },
+    thinkingLevelMap: DEEPSEEK_V4_THINKING_LEVELS,
+    cost: SHUAIAI_COST,
+    compat: {
+      ...SHUAIAI_COMPAT,
+      supportsStore: false,
+      requiresReasoningContentOnAssistantMessages: true,
+      thinkingFormat: "deepseek",
+    },
   },
   {
-    id: "deepseek-v4-pro-0813",
-    name: "DeepSeek V4 Pro (0813)",
+    id: "deepseek-v4-pro",
+    name: "DeepSeek V4 Pro",
     reasoning: true,
     input: ["text"],
     contextWindow: 1_000_000,
     maxTokens: 384_000,
-    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    compat: { supportsUsageInStreaming: true, supportsDeveloperRole: false },
+    thinkingLevelMap: DEEPSEEK_V4_THINKING_LEVELS,
+    cost: SHUAIAI_COST,
+    compat: {
+      ...SHUAIAI_COMPAT,
+      supportsStore: false,
+      requiresReasoningContentOnAssistantMessages: true,
+      thinkingFormat: "deepseek",
+    },
   },
   {
     id: "gpt-5.6-sol",
-    name: "GPT 5.6 Sol",
+    name: "GPT-5.6 Sol",
     reasoning: true,
-    input: ["text"],
-    contextWindow: 400_000,
+    input: ["text", "image"],
+    contextWindow: 1_000_000,
     maxTokens: 128_000,
-    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    compat: { supportsUsageInStreaming: true, supportsDeveloperRole: false },
+    thinkingLevelMap: GPT_5_6_THINKING_LEVELS,
+    cost: SHUAIAI_COST,
+    compat: SHUAIAI_COMPAT,
+  },
+  {
+    id: "gpt-5.6-luna",
+    name: "GPT-5.6 Luna",
+    reasoning: true,
+    input: ["text", "image"],
+    contextWindow: 1_000_000,
+    maxTokens: 128_000,
+    thinkingLevelMap: GPT_5_6_THINKING_LEVELS,
+    cost: SHUAIAI_COST,
+    compat: SHUAIAI_COMPAT,
   },
 ];
 

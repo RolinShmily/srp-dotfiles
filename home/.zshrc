@@ -47,6 +47,7 @@ alias gcl='git clone'
 alias gst='git stash'
 alias grm='git rm'
 alias gmv='git mv'
+alias lg='lazygit'
 
 alias main='git checkout main'
 

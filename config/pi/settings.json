@@ -1,14 +1,18 @@
 {
-  "lastChangelogVersion": "0.84.1",
+  "lastChangelogVersion": "0.84.2",
   "theme": "dark",
-  "defaultProvider": "shuaiapi",
-  "defaultModel": "deepseek-v4-flash-0731",
+  "defaultProvider": "deepseek",
+  "defaultModel": "deepseek-v4-flash",
   "defaultThinkingLevel": "high",
   "powerline": {
     "welcome": false
   },
   "packages": [
-    "npm:pi-mcp-adapter",
-    "npm:pi-powerline-footer"
+    "npm:pi-powerline-footer",
+    "npm:pi-simplify",
+    "npm:@narumitw/pi-goal",
+    "npm:@juicesharp/rpiv-ask-user-question",
+    "npm:@ff-labs/pi-fff",
+    "npm:@upstash/context7-pi"
   ]
 }

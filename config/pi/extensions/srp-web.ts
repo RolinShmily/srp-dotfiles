@@ -1,13 +1,10 @@
 /**
  * srp-web.ts — 轻量联网搜索 + 网页抓取（pi-web-access 的极简替代）。
  *
- * web_search: 经网关调 felo/felo-search 模型，AI 搜索并返回带来源的合成答案。
+ * web_search: 调用 Exa 公共 MCP 搜索（免 API key），返回带来源的搜索结果。
  * web_fetch : 直接 HTTP 抓取，HTML 转文本 / JSON 格式化，带超时与体积上限。
  *
  * 配置（环境变量，全部可选）：
- *   SRP_WEB_BASE_URL          网关地址，默认 http://192.168.22.174:20128/v1
- *   SRP_WEB_PROVIDER          auth.json 里的 provider id，默认 omniroute
- *   SRP_WEB_SEARCH_MODEL      搜索模型，默认 felo/felo-search
  *   SRP_WEB_SEARCH_TIMEOUT_MS 搜索超时，默认 60_000
  *   SRP_WEB_FETCH_TIMEOUT_MS  抓取超时，默认 15_000
  *   SRP_WEB_FETCH_MAX_BYTES   抓取体积上限，默认 2 MiB
@@ -15,16 +12,11 @@
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
-import { readFile } from "node:fs/promises";
-import { execSync } from "node:child_process";
-import { join } from "node:path";
-import { homedir } from "node:os";
 
 // ============================ 配置区 ============================
 
-const DEFAULT_BASE_URL = "http://192.168.22.174:20128/v1";
-const DEFAULT_SEARCH_MODEL = "felo/felo-search";
-const DEFAULT_PROVIDER = "omniroute";
+const EXA_MCP_URL = "https://mcp.exa.ai/mcp";
+const EXA_SEARCH_TOOL = "web_search_exa";
 
 function envNum(name: string, fallback: number): number {
   const n = Number(process.env[name]);
@@ -33,82 +25,91 @@ function envNum(name: string, fallback: number): number {
 
 // ============================ 核心逻辑（无 pi 依赖，可独立测试） ============================
 
-/** auth.json 的 key 支持 "$VAR" 插值与 "!cmd" 命令（与 Pi 行为一致） */
-function resolveValue(v: string): string {
-  if (v.startsWith("!!")) return v.slice(1);
-  if (v.startsWith("!")) {
-    return execSync(v.slice(1), { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
-  }
-  return v.replace(/\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?/g, (m, name) => process.env[name] ?? m);
-}
-
-function agentDir(): string {
-  return process.env.PI_CODING_AGENT_DIR ?? join(homedir(), ".pi", "agent");
-}
-
-async function loadAuthKey(provider: string): Promise<string> {
-  const authPath = join(agentDir(), "auth.json");
-  try {
-    const auth = JSON.parse(await readFile(authPath, "utf8"));
-    const entry = auth[provider]?.key;
-    if (entry) return resolveValue(entry);
-  } catch { /* fallthrough */ }
-  throw new Error(
-    `未找到 provider "${provider}" 的 API key。请先 /login ${provider}，或编辑 ${agentDir()}/auth.json。`,
-  );
-}
-
 /** 带超时 + 外部 abort 的请求上下文 */
 function withTimeout(ms: number, label: string, signal?: AbortSignal): { ac: AbortController; done: () => void } {
   const ac = new AbortController();
   const timer = setTimeout(() => ac.abort(new Error(`${label}（${ms / 1000}s）`)), ms);
-  signal?.addEventListener("abort", () => ac.abort(signal.reason), { once: true });
-  if (signal?.aborted) ac.abort(signal.reason);
-  return { ac, done: () => clearTimeout(timer) };
+  const onAbort = () => ac.abort(signal?.reason);
+  signal?.addEventListener("abort", onAbort, { once: true });
+  if (signal?.aborted) onAbort();
+  return {
+    ac,
+    done: () => {
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", onAbort);
+    },
+  };
 }
 
-/** 解析 OpenAI 兼容 SSE 流（felo 强制流式） */
-async function parseSSE(res: Response): Promise<string> {
-  let text = "";
-  for (const line of (await res.text()).split("\n")) {
+interface ExaMcpResponse {
+  result?: {
+    content?: Array<{ type?: string; text?: string }>;
+    isError?: boolean;
+  };
+  error?: { code?: number; message?: string };
+}
+
+function parseExaResponse(body: string): ExaMcpResponse | undefined {
+  for (const line of body.split("\n")) {
     if (!line.startsWith("data:")) continue;
     const payload = line.slice(5).trim();
-    if (!payload || payload === "[DONE]") continue;
+    if (!payload) continue;
     try {
-      const delta = JSON.parse(payload)?.choices?.[0]?.delta;
-      if (delta) text += delta.content ?? "";
-    } catch { /* 跳过无法解析的行 */ }
+      const parsed = JSON.parse(payload) as ExaMcpResponse;
+      if (parsed.result || parsed.error) return parsed;
+    } catch { /* 继续查找下一个 SSE 事件 */ }
   }
-  return text.trim();
+  try {
+    const parsed = JSON.parse(body) as ExaMcpResponse;
+    return parsed.result || parsed.error ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
-/** 搜索：经网关调 felo/felo-search，返回带来源的合成答案 */
+/** 搜索：调用 Exa 公共 MCP，无需 API key。 */
 export async function searchWeb(
   query: string,
   signal?: AbortSignal,
-): Promise<{ text: string; model: string }> {
-  const base = (process.env.SRP_WEB_BASE_URL ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
-  const model = process.env.SRP_WEB_SEARCH_MODEL ?? DEFAULT_SEARCH_MODEL;
-  const key = await loadAuthKey(process.env.SRP_WEB_PROVIDER ?? DEFAULT_PROVIDER);
+): Promise<{ text: string; provider: string }> {
+  query = query.trim();
+  if (!query) throw new Error("搜索问题不能为空");
   const { ac, done } = withTimeout(envNum("SRP_WEB_SEARCH_TIMEOUT_MS", 60_000), "搜索超时", signal);
   try {
-    const res = await fetch(`${base}/chat/completions`, {
+    const res = await fetch(`${EXA_MCP_URL}?tools=${EXA_SEARCH_TOOL}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json, text/event-stream",
+        "x-exa-source": "srp-web",
+      },
       body: JSON.stringify({
-        model,
-        messages: [{ role: "user", content: query }],
-        max_tokens: 2048,
-        stream: true,
+        jsonrpc: "2.0",
+        id: 1,
+        method: "tools/call",
+        params: { name: EXA_SEARCH_TOOL, arguments: { query, numResults: 5 } },
       }),
       signal: ac.signal,
     });
+    const body = await res.text();
     if (!res.ok) {
-      throw new Error(`HTTP ${res.status}: ${(await res.text()).slice(0, 300)}`);
+      const hint = res.status === 429 ? "（Exa 免费服务已限流，请稍后重试）" : "";
+      throw new Error(`Exa MCP HTTP ${res.status}${hint}: ${body.slice(0, 300)}`);
     }
-    const text = await parseSSE(res);
-    if (!text) throw new Error("搜索模型返回了空内容");
-    return { text, model };
+
+    const payload = parseExaResponse(body);
+    if (!payload) throw new Error("Exa MCP 返回了无法解析的响应");
+    if (payload.error) {
+      throw new Error(`Exa MCP 错误${payload.error.code ? ` ${payload.error.code}` : ""}: ${payload.error.message ?? "未知错误"}`);
+    }
+
+    const text = payload.result?.content
+      ?.find((item) => item.type === "text" && item.text?.trim())
+      ?.text?.trim();
+    if (payload.result?.isError || !text) {
+      throw new Error(text || "Exa MCP 返回了空内容");
+    }
+    return { text: truncate(text), provider: "exa-mcp" };
   } finally {
     done();
   }
@@ -128,8 +129,8 @@ function stripHtml(html: string): string {
   s = s.replace(/<t[dh][^>]*>/gi, " | ");
   s = stripTags(s);
   s = s.replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<")
-       .replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'")
-       .replace(/&hellip;/g, "…").replace(/&mdash;/g, "—").replace(/&ndash;/g, "–");
+    .replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    .replace(/&hellip;/g, "…").replace(/&mdash;/g, "—").replace(/&ndash;/g, "–");
   return s.split("\n").map((l) => l.replace(/[ \t]+/g, " ").trim())
     .filter((l, i, arr) => !(l === "" && arr[i - 1] === "")).join("\n").trim();
 }
@@ -195,13 +196,13 @@ export default function (pi: ExtensionAPI) {
   pi.registerTool({
     name: "web_search",
     description:
-      "联网搜索：经 AI 搜索模型返回带来源的合成答案（支持中文）。适合实时信息、最新动态、陌生领域调研。",
+      "联网搜索：通过免 Key 的 Exa MCP 返回带来源的搜索结果。适合实时信息、最新动态和陌生领域调研；需要核对原文时，再对结果 URL 调用 web_fetch。",
     parameters: Type.Object({
-      query: Type.String({ description: "搜索问题，越具体越好" }),
+      query: Type.String({ minLength: 1, description: "搜索问题，越具体越好" }),
     }),
     async execute(_toolCallId, params, signal) {
-      const { text, model } = await searchWeb(params.query, signal);
-      return { content: [{ type: "text", text }], details: { model } };
+      const { text, provider } = await searchWeb(params.query, signal);
+      return { content: [{ type: "text", text }], details: { provider } };
     },
   });
 
