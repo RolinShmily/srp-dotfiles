@@ -1,8 +1,8 @@
 {
   "lastChangelogVersion": "0.84.2",
   "theme": "dark",
-  "defaultProvider": "shuaiapi",
-  "defaultModel": "deepseek-v4-flash-0731",
+  "defaultProvider": "omniroute",
+  "defaultModel": "antigravity/gemini-3.6-flash-high",
   "defaultThinkingLevel": "high",
   "powerline": {
     "welcome": false
