@@ -1,8 +1,8 @@
 {
   "lastChangelogVersion": "0.84.2",
   "theme": "dark",
-  "defaultProvider": "omniroute",
-  "defaultModel": "antigravity/gemini-3.6-flash-high",
+  "defaultProvider": "shuaiapi",
+  "defaultModel": "gpt-5.6-luna",
   "defaultThinkingLevel": "high",
   "powerline": {
     "welcome": false

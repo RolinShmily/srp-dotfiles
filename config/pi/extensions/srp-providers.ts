@@ -70,7 +70,7 @@ function registerOmniroute(pi: ExtensionAPI): void {
 // 中转站：https://oai.sb/v1（OpenAI 兼容，Bearer 认证）
 // 文档及当前启用模型：https://api.shuaiapi.com/llms-full.txt
 
-const SHUAIAI_BASE_URL = "https://oai.sb/v1";
+const SHUAIAI_BASE_URL = "https://cdn.shuaiapi.com/v1";
 const SHUAIAI_COST = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
 const SHUAIAI_COMPAT = {
   supportsUsageInStreaming: true,
