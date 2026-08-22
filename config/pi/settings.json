@@ -1,0 +1,18 @@
+{
+  "lastChangelogVersion": "0.84.2",
+  "theme": "dark",
+  "defaultProvider": "shuaiapi",
+  "defaultModel": "gpt-5.6-luna",
+  "defaultThinkingLevel": "high",
+  "powerline": {
+    "welcome": false
+  },
+  "packages": [
+    "npm:pi-powerline-footer",
+    "npm:pi-simplify",
+    "npm:@narumitw/pi-goal",
+    "npm:@juicesharp/rpiv-ask-user-question",
+    "npm:@ff-labs/pi-fff",
+    "npm:@upstash/context7-pi"
+  ]
+}
