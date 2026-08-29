@@ -216,6 +216,24 @@ for app in "${CONFIG_APPS[@]}"; do
     fi
 done
 
+# ------------------------------------------------------------------
+# 7. Termux 专属字体与外观适配
+# ------------------------------------------------------------------
+if [ "$TARGET_OS" = "termux" ]; then
+    if [ ! -f "$HOME/.termux/font.ttf" ]; then
+        log_info "检测到 Termux 环境，正在自动下载并配置 Nerd Font (MesloLGS NF)..."
+        mkdir -p "$HOME/.termux"
+        if curl -fsSL -o "$HOME/.termux/font.ttf" "https://raw.githubusercontent.com/romkatv/powerlevel10k-media/master/MesloLGS%20NF%20Regular.ttf"; then
+            if command -v termux-reload-settings &>/dev/null; then
+                termux-reload-settings || true
+            fi
+            log_success "Termux Nerd Font 字体部署完成！"
+        else
+            log_warn "字体下载失败，请手动将 Nerd Font 字体放入 ~/.termux/font.ttf"
+        fi
+    fi
+fi
+
 log_success "Dotfiles 配置部署完成！"
 log_info "请在终端执行: source ~/.zshrc (或重启终端) 使配置立即生效。"
 
