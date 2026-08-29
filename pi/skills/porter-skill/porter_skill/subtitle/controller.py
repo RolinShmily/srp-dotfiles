@@ -168,9 +168,36 @@ def generate_subtitles(
         raw_srt_path.read_text(encoding="utf-8", errors="replace") if raw_srt_path.exists() else ""
     )
     base_items = parse_srt(base_srt_content)
-    if base_items:
+    translated_items: list[SubtitleItem] = []
+
+    # Step 2: Check for Pre-extracted Chinese Subtitles (Zero-latency / Zero-cost fast path)
+    if base_items and raw_zh_srt_path.exists() and raw_zh_srt_path.stat().st_size > 0:
+        zh_content = raw_zh_srt_path.read_text(encoding="utf-8", errors="replace")
+        zh_items = parse_srt(zh_content)
+        if zh_items:
+            print(
+                "  ✓ Found pre-extracted Chinese subtitle (raw/subtitle_zh.srt). Aligning directly..."
+            )
+            aligned = align_bilingual_items(base_items, zh_items)
+            merged_bilingual = merge_short_fragments(aligned)
+            if any(it.target_text for it in merged_bilingual):
+                translated_items = merged_bilingual
+                base_items = [
+                    SubtitleItem(
+                        index=it.index,
+                        start_ms=it.start_ms,
+                        end_ms=it.end_ms,
+                        source_text=it.source_text,
+                        target_text="",
+                    )
+                    for it in merged_bilingual
+                ]
+
+    if base_items and not translated_items:
         # Merge short consecutive fragments into natural single lines
         base_items = merge_short_fragments(base_items)
+
+    if base_items:
         # Update raw_srt_path with clean single-line cues
         cleaned_raw_srt = (
             "\n\n".join(
@@ -180,27 +207,6 @@ def generate_subtitles(
             + "\n"
         )
         raw_srt_path.write_text(cleaned_raw_srt, encoding="utf-8")
-
-    translated_items: list[SubtitleItem] = []
-
-    # Step 2: Check for Pre-extracted Chinese Subtitles (Zero-latency / Zero-cost fast path)
-    if base_items and raw_zh_srt_path.exists() and raw_zh_srt_path.stat().st_size > 0:
-        zh_content = raw_zh_srt_path.read_text(encoding="utf-8", errors="replace")
-        zh_items = parse_srt(zh_content)
-        if zh_items:
-            zh_items = merge_short_fragments(zh_items)
-            cleaned_zh_srt = (
-                "\n\n".join(
-                    f"{it.index}\n{it.start_srt} --> {it.end_srt}\n{it.source_text or it.target_text}"
-                    for it in zh_items
-                )
-                + "\n"
-            )
-            raw_zh_srt_path.write_text(cleaned_zh_srt, encoding="utf-8")
-            print("  ✓ Found pre-extracted Chinese subtitle (raw/subtitle_zh.srt). Aligning directly...")
-            aligned = align_bilingual_items(base_items, zh_items)
-            if any(it.target_text for it in aligned):
-                translated_items = aligned
 
     if base_items and not translated_items:
         temp_translated_srt = cooked_dir / ".tmp_translated.srt"

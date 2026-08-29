@@ -39,7 +39,7 @@ packages = [
     # CLI 现代增强
     "eza", "zoxide", "fzf", "bat", "fd-find", "ripgrep", "gh", "lazygit", "jq", "tealdeer",
     # 语言与运行时
-    "nodejs", "npm", "python3", "python3-pip", "python3-venv",
+    "nodejs", "python3", "python3-pip", "python3-venv",
     # 编辑器与基础开发
     "vim", "git", "build-essential", "gcc", "unzip",
     # 监控与系统

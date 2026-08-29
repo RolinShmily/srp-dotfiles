@@ -134,9 +134,7 @@ class YouTubeExtractor(BasePlatformExtractor):
 
         return None
 
-    def _select_chinese_subtitle_lang(
-        self, subtitles_dict: dict[str, Any]
-    ) -> str | None:
+    def _select_chinese_subtitle_lang(self, subtitles_dict: dict[str, Any]) -> str | None:
         """Select best Chinese subtitle language code."""
         if not subtitles_dict:
             return None
@@ -363,14 +361,15 @@ class YouTubeExtractor(BasePlatformExtractor):
         subtitle_zh_path: Path | None = None
 
         def _save_sub(lang_tag: str, dest_name: str) -> Path | None:
-            sub_files = (
-                list(temp_dir.glob(f"download*.{lang_tag}.*"))
-                + list(temp_dir.glob(f"download*.{lang_tag}*"))
+            sub_files = list(temp_dir.glob(f"download*.{lang_tag}.*")) + list(
+                temp_dir.glob(f"download*.{lang_tag}*")
             )
             for sf in sub_files:
                 if sf.suffix.lower() == ".srt":
                     dest = raw_dir / dest_name
-                    dest.write_text(sf.read_text(encoding="utf-8", errors="replace"), encoding="utf-8")
+                    dest.write_text(
+                        sf.read_text(encoding="utf-8", errors="replace"), encoding="utf-8"
+                    )
                     return dest
                 elif sf.suffix.lower() == ".vtt":
                     dest = raw_dir / dest_name
@@ -407,7 +406,9 @@ class YouTubeExtractor(BasePlatformExtractor):
             audio_path=standard_audio_path,
             cover_path=cover_path if cover_path.exists() else None,
             subtitle_path=subtitle_path if (subtitle_path and subtitle_path.exists()) else None,
-            subtitle_zh_path=subtitle_zh_path if (subtitle_zh_path and subtitle_zh_path.exists()) else None,
+            subtitle_zh_path=subtitle_zh_path
+            if (subtitle_zh_path and subtitle_zh_path.exists())
+            else None,
             metadata_path=metadata_path,
             metadata=metadata,
         )
