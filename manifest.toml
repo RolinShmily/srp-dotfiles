@@ -62,7 +62,7 @@ packages = [
     # 语言与运行时
     "nodejs", "python", "uv",
     # 文件管理 (Yazi)
-    "yazi", "file", "chafa", "imagemagick", "poppler", "ffmpeg", "p7zip", "unar", "exiftool", "mediainfo", "miller",
+    "yazi", "file", "chafa", "imagemagick", "poppler", "ffmpeg", "7zip", "unar", "exiftool", "mediainfo", "miller",
     # 基础开发
     "git", "clang", "make", "unzip", "tree-sitter",
     # 终端复用与监控
