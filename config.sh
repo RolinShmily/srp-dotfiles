@@ -62,8 +62,6 @@ parse_toml_array() {
 detect_os() {
     if [ -d "/data/data/com.termux" ]; then
         echo "termux"
-    elif [ "$(uname -s)" = "Darwin" ]; then
-        echo "mac"
     elif [ -f /etc/os-release ]; then
         if grep -qi "arch" /etc/os-release; then
             echo "arch"
@@ -91,7 +89,7 @@ while [ $# -gt 0 ]; do
             TARGET_OS="$2"
             shift 2
             ;;
-        arch|debian|mac|termux)
+        arch|debian|termux)
             TARGET_OS="$1"
             shift
             ;;

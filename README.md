@@ -2,7 +2,7 @@
 
 统一、现代且模块化的跨平台 Dotfiles 配置仓库。
 
-本仓库采用**单分支（`main`）+ 声明式清单（`manifest.toml`）+ 模块化 Zsh（`zsh.d/`）**设计，自动适配 **Arch Linux (WSL/原生)**、**Debian / Ubuntu**、**macOS** 与 **Android (Termux)** 等不同环境。
+本仓库采用**单分支（`main`）+ 声明式清单（`manifest.toml`）+ 模块化 Zsh（`zsh.d/`）**设计，自动适配 **Arch Linux (WSL/原生)**、**Debian / Ubuntu** 与 **Android (Termux)** 等不同环境。
 
 ---
 
@@ -35,7 +35,6 @@ srp-dotfiles/
 │   └── os/                # 操作系统特供片段 (剪贴板、特定环境变量)
 │       ├── arch.zsh       # Arch / WSL 剪贴板适配
 │       ├── debian.zsh     # Debian / Ubuntu 特供
-│       ├── mac.zsh        # macOS Homebrew 与 pbcopy
 │       └── termux.zsh     # Android Termux 剪贴板
 ├── btop/                  # Btop 监控配置与 Catppuccin 主题
 ├── fastfetch/             # Fastfetch 现代系统信息展示配置
@@ -78,7 +77,7 @@ cd ~/.dotfiles
 # 强制覆盖已有配置文件
 ./launch.sh config -f
 
-# 显式指定操作系统安装 (可选: arch | debian | mac | termux)
+# 显式指定操作系统安装 (可选: arch | debian | termux)
 ./launch.sh install arch
 ```
 

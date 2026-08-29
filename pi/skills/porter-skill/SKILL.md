@@ -22,6 +22,7 @@ git clone <REPO_URL> ~/.pi/agent/skills/porter-skill
 1. **自包含与极简系统依赖**：
    - 依赖严格控制在标准 Python 生态与 FFmpeg 范围内；
    - 优先提取 YouTube 官方字幕 / 自动字幕；
+   - 具备平台原生字幕极速直连（Fast Path），自动对齐中文译轨，0 延迟、0 消耗出片；
    - 开箱即用，零配置即可 100% 成功出产中英双语与纯中文熟肉视频。
 2. **通用 ASR 多引擎逐级回退（链式探测）**：
    - 当视频无原生字幕需 ASR 时，自动按顺序逐个尝试：
@@ -55,7 +56,7 @@ porter-skill/
 │   ├── run_porter.py         # 免安装直接运行入口
 │   └── setup_env.sh          # 环境一键初始化脚本
 ├── porter_skill/             # Python 核心实现源码
-└── tests/                    # 30 个自动化单元与集成测试
+└── tests/                    # 35 个自动化单元与集成测试
 ```
 
 ---
@@ -79,13 +80,19 @@ porter-skill/
     "whisper_model": "whisper-1"
   },
   "style": {
-    "zh_font": "Arial",
+    "zh_font": "Microsoft YaHei",
     "en_font": "Arial",
     "zh_font_size": 52,
     "en_font_size": 34,
     "zh_primary_color": "&H00FFFFFF",
-    "en_primary_color": "&H0000FFFF"
-  }
+    "en_primary_color": "&H0000FFFF",
+    "outline_color": "&H00000000",
+    "outline_width": 3.5,
+    "shadow": 1.5,
+    "margin_v": 30
+  },
+  "cookies_browser": "chrome",
+  "cookies_file": ""
 }
 ```
 

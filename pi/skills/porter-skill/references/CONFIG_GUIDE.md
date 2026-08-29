@@ -61,7 +61,7 @@ Configurations are resolved using cascading priority (highest to lowest):
 
 ---
 
-## 3. ASR Engine Options
+## 4. ASR Engine Options
 
 - **`bijian`** (Default): Free Bilibili/Bijian speech recognition. No API Key required.
 - **`jianying`**: Free CapCut/Jianying speech recognition. High accuracy for short sentences. No API Key required.
@@ -70,8 +70,9 @@ Configurations are resolved using cascading priority (highest to lowest):
 
 ---
 
-## 4. Translation Engines & Fallback Order
+## 5. Translation Engines & Subtitle Fast Path
 
-1. **LLM Translation**: When `llm.api_key` or `OPENAI_API_KEY` is present, performs contextual semantic translation and subtitle optimization.
-2. **Bing Translator**: Free translation fallback.
-3. **Google Translator**: Free translation fallback (VideoCaptioner + Pure Python HTTP fallback).
+1. **Pre-extracted Chinese Subtitles (Zero-Cost Fast Path)**: If the streaming platform provides a Chinese translation or auto-caption track (`zh-Hans`/`zh`), it is downloaded into `raw/subtitle_zh.srt` and aligned directly with `raw/subtitle.srt` with zero latency and zero API cost.
+2. **LLM Translation**: When `llm.api_key` or `OPENAI_API_KEY` is present, performs contextual semantic translation and subtitle optimization.
+3. **Bing Translator**: Free translation fallback.
+4. **Google Translator**: Free translation fallback (VideoCaptioner + Pure Python HTTP fallback).

@@ -82,8 +82,6 @@ parse_toml_array() {
 detect_os() {
     if [ -d "/data/data/com.termux" ]; then
         echo "termux"
-    elif [ "$(uname -s)" = "Darwin" ]; then
-        echo "mac"
     elif [ -f /etc/os-release ]; then
         if grep -qi "arch" /etc/os-release; then
             echo "arch"
@@ -109,7 +107,7 @@ while [ $# -gt 0 ]; do
             TARGET_OS="$2"
             shift 2
             ;;
-        arch|debian|mac|termux)
+        arch|debian|termux)
             TARGET_OS="$1"
             shift
             ;;
@@ -157,19 +155,6 @@ case "$TARGET_OS" in
         sudo apt-get update -y
         sudo apt-get install -y "${PKGS[@]}"
         log_success "Debian/Ubuntu (apt) 系统依赖安装完成。"
-        ;;
-    mac)
-        if ! command -v brew >/dev/null 2>&1; then
-            log_info "未检测到 Homebrew，开始安装 Homebrew..."
-            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-            if [ -x "/opt/homebrew/bin/brew" ]; then
-                eval "$(/opt/homebrew/bin/brew shellenv)"
-            elif [ -x "/usr/local/bin/brew" ]; then
-                eval "$(/usr/local/bin/brew shellenv)"
-            fi
-        fi
-        brew install "${PKGS[@]}"
-        log_success "macOS (Homebrew) 系统依赖安装完成。"
         ;;
     termux)
         pkg update -y
@@ -231,7 +216,7 @@ if [ ${#NPM_GLOBALS[@]} -gt 0 ]; then
         log_success "全局 npm 包 (bun) 安装完成。"
     elif command -v npm &>/dev/null; then
         log_info "使用 npm 安装全局依赖: ${NPM_GLOBALS[*]}"
-        if [ "$TARGET_OS" = "termux" ] || [ "$TARGET_OS" = "mac" ]; then
+        if [ "$TARGET_OS" = "termux" ]; then
             npm install -g "${NPM_GLOBALS[@]}" || true
         else
             sudo npm install -g "${NPM_GLOBALS[@]}" 2>/dev/null || npm install -g "${NPM_GLOBALS[@]}" || true

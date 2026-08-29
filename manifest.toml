@@ -45,47 +45,12 @@ packages = [
     # 监控与系统
     "fastfetch", "btop"
 ]
-npm_globals = [
-    "@antfu/ni",
-    "live-server"
-]
+npm_globals = []
 configs = [
     "btop",
     "fastfetch",
-    "pi"
 ]
 zsh_module = "debian"
-
-[mac]
-package_manager = "brew"
-packages = [
-    # Shell 环境
-    "zsh", "zsh-autosuggestions", "zsh-syntax-highlighting",
-    # CLI 现代增强
-    "eza", "zoxide", "fzf", "bat", "fd", "ripgrep", "gh", "lazygit", "jq", "tealdeer",
-    # 语言与运行时
-    "node", "python",
-    # 编辑器与基础开发
-    "git", "unzip",
-    # 文件管理 (Yazi)
-    "yazi", "chafa", "imagemagick", "poppler", "ffmpeg", "sevenzip", "unar", "exiftool", "mediainfo", "zathura", "zathura-pdf-poppler", "miller", "resvg",
-    # 终端复用
-    "zellij",
-    # 监控与系统
-    "fastfetch", "btop"
-]
-npm_globals = [
-    "@antfu/ni",
-    "live-server"
-]
-configs = [
-    "btop",
-    "fastfetch",
-    "yazi",
-    "zellij",
-    "pi"
-]
-zsh_module = "mac"
 
 [termux]
 package_manager = "pkg"

@@ -48,8 +48,6 @@ unset _mod _generic_modules
 _detect_os_module() {
     if [ -d "/data/data/com.termux" ]; then
         echo "termux"
-    elif [ "$(uname -s)" = "Darwin" ]; then
-        echo "mac"
     elif [ -f /etc/os-release ]; then
         if grep -qi "arch" /etc/os-release; then
             echo "arch"

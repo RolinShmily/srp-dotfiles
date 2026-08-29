@@ -20,8 +20,6 @@ RESET="\033[0m"
 detect_os() {
     if [ -d "/data/data/com.termux" ]; then
         echo "termux"
-    elif [ "$(uname -s)" = "Darwin" ]; then
-        echo "mac"
     elif [ -f /etc/os-release ]; then
         if grep -qi "arch" /etc/os-release; then
             echo "arch"
@@ -71,7 +69,6 @@ ${BOLD}子命令:${RESET}
 ${BOLD}支持的操作系统参数:${RESET}
   arch                 Arch Linux / Manjaro / WSL Arch
   debian               Debian / Ubuntu / 服务器环境
-  mac                  macOS (Homebrew)
   termux               Android Termux 环境
 
 ${BOLD}选项:${RESET}
@@ -94,7 +91,7 @@ while [ $# -gt 0 ]; do
             ACTION="$1"
             shift
             ;;
-        arch|debian|mac|termux)
+        arch|debian|termux)
             TARGET_OS="$1"
             shift
             ;;
@@ -196,14 +193,12 @@ case "$choice" in
         echo "可选操作系统列表:"
         echo "  1) arch   (Arch Linux / WSL)"
         echo "  2) debian (Debian 13 / Ubuntu / 服务器)"
-        echo "  3) mac    (macOS Homebrew)"
-        echo "  4) termux (Android Termux)"
-        read -rp "请选择编号 [1-4]: " os_choice
+        echo "  3) termux (Android Termux)"
+        read -rp "请选择编号 [1-3]: " os_choice
         case "$os_choice" in
             1) TARGET_OS="arch" ;;
             2) TARGET_OS="debian" ;;
-            3) TARGET_OS="mac" ;;
-            4) TARGET_OS="termux" ;;
+            3) TARGET_OS="termux" ;;
             *) echo -e "${RED}无效选择，保持当前: $TARGET_OS${RESET}" ;;
         esac
         echo -e "已切换为: ${GREEN}${TARGET_OS}${RESET}"
