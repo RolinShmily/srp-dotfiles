@@ -1,83 +1,105 @@
-# srp-dotfiles
+# SrP-Dotfiles
 
-欢迎来到我的个人 Linux 及类 Unix 环境配置文件（Dotfiles）仓库！
+统一、现代且模块化的跨平台 Dotfiles 配置仓库。
 
-为了更好地适配不同环境（桌面开发、WSL、服务器等）的包管理器及使用场景差异，本仓库采用了**多分支管理**策略。`main` 分支仅作为文档导航，具体的配置文件、部署脚本及安装指南均存放在对应的系统分支中。
-
----
-
-## 🧭 分支导航
-
-请根据你的**使用场景**，切换到对应的分支查看详细的配置说明和安装方法：
-
-| 分支 | 适用场景 | 包管理器 |
-| :--- | :--- | :--- |
-| [`arch`](https://github.com/RolinShmily/srp-dotfiles/tree/arch) | WSL 环境（及 Arch 原生系统） | `pacman` |
-| [`debian`](https://github.com/RolinShmily/srp-dotfiles/tree/debian) | 服务器环境 | `apt` |
-| [`mac`](https://github.com/RolinShmily/srp-dotfiles/tree/mac) | 日常类 Unix 编码环境 | `brew` |
-| [`termux`](https://github.com/RolinShmily/srp-dotfiles/tree/termux) | 类服务器 SSH 客户端环境 | `pkg` |
-
-### 1. [Arch Linux / WSL 分支 (`arch`)](https://github.com/RolinShmily/srp-dotfiles/tree/arch)
-**适用场景**：Windows 下的 WSL 开发环境（也适用于 Arch Linux 原生系统）
-**目标环境**：Arch Linux 及 Windows Subsystem for Linux (WSL)
-**包管理器**：`pacman`
-**包含核心组件**：
-- 现代 CLI 增强 (eza, zoxide, fzf, ripgrep, bat, fd 等)
-- Neovim (AstroNvim)
-- Yazi (终端文件管理器)
-- Zellij (终端复用器)
-
-### 2. [Debian 13 分支 (`debian`)](https://github.com/RolinShmily/srp-dotfiles/tree/debian)
-**适用场景**：服务器环境（远程运维、生产/开发服务器）
-**目标环境**：Debian 13 (Trixie) 及现代 Ubuntu 服务器/虚拟机
-**包管理器**：`apt`
-**包含核心组件**：
-- 精简版现代 CLI 工具链 (依赖官方 Debian 仓库原生支持的工具)
-- Neovim (AstroNvim)
-- *注：剔除了该发行版未收录或服务器不常用的组件（如 Kitty, Yazi, Zellij 等），主打稳定轻量。*
-
-### 3. [Termux 分支 (`termux`)](https://github.com/RolinShmily/srp-dotfiles/tree/termux)
-**适用场景**：类服务器 SSH 客户端环境（通过手机上的 Termux 远程 SSH 登录并管理服务器）
-**目标环境**：Android 上的 [Termux](https://termux.dev/) 终端模拟器
-**包管理器**：`pkg`
-**包含核心组件**：
-- 现代 CLI 增强 (eza, zoxide, fzf, ripgrep, bat, fd 等)
-- Neovim (AstroNvim)
-- Yazi (终端文件管理器)
-- Zellij (终端复用器)
-- Fastfetch & Htop (系统监控，以 Htop 替代 Btop)
-
-### 4. [macOS 分支 (`mac`)](https://github.com/RolinShmily/srp-dotfiles/tree/mac)
-**适用场景**：日常类 Unix 编码环境（macOS 桌面开发、日常终端使用）
-**目标环境**：Apple Silicon / Intel 芯片的 macOS
-**包管理器**：`brew` (Homebrew)
-**包含核心组件**：
-- 现代 CLI 增强 (eza, zoxide, fzf, ripgrep, bat, fd 等)
-- Neovim (AstroNvim)
-- Kitty (GPU 加速终端模拟器)
-- Fastfetch & Btop (系统监控)
+本仓库采用**单分支（`main`）+ 声明式清单（`manifest.toml`）+ 模块化 Zsh（`zsh.d/`）**设计，自动适配 **Arch Linux (WSL/原生)**、**Debian / Ubuntu**、**macOS** 与 **Android (Termux)** 等不同环境。
 
 ---
 
-## 🛠️ 如何开始？
+## 🌟 核心特性
 
-在使用本仓库前，请先将仓库克隆到本地，然后**签出 (checkout)** 你需要的操作系统分支。
+- 🚀 **跨平台统一维护**：全平台配置合流于 `main` 分支，多机同步零冲突。
+- 📋 **TOML 声明式清单 (`manifest.toml`)**：不同操作系统的软件包、npm 全局工具与部署目标清晰分离。
+- 🧩 **模块化 Zsh (`zsh.d/`)**：拆分为环境变量、Oh My Zsh、Git 别名、CLI 工具及系统特供片段，支持 `~/.zshrc.local` 私有环境变量隔离。
+- 🤖 **Pi Agent 集成**：内置 Pi Coding Agent 的全局规则、自定义技能（Skills）与扩展（Extensions）。
+- 🛠️ **一键式体验 (`launch.sh`)**：自动探测系统环境与 WSL 标识，支持交互式菜单与无交互 CLI 参数调用。
 
-```bash
-# 1. 克隆仓库
-git clone https://github.com/RolinShmily/srp-dotfiles.git ~/.dotfiles
-cd ~/.dotfiles
+---
 
-# 2. 切换到你的目标环境分支 (以 arch 为例)
-git checkout arch
-# 或者如果是 debian
-# git checkout debian
-# 或者如果是 termux
-# git checkout termux
-# 或者如果是 mac
-# git checkout mac
+## 📁 目录结构
 
-# 3. 按照该分支 README.md 中的说明执行部署
+```text
+srp-dotfiles/
+├── launch.sh              # 统一交互式启动与环境检测总入口
+├── install.sh             # 依赖包安装引擎 (基于 manifest.toml)
+├── config.sh              # 软链接部署引擎 (基于 manifest.toml)
+├── manifest.toml          # 各操作系统软件依赖与配置清单
+├── .zshrc                 # Zsh 配置入口 (软链至 ~/.zshrc)
+├── .vimrc                 # 原生轻量 Vim 现代化配置 (软链至 ~/.vimrc)
+├── zsh.d/                 # 模块化 Zsh 配置片段
+│   ├── env.zsh            # 环境变量、NVM、Bun、PATH、Locale
+│   ├── omz.zsh            # Oh My Zsh 插件与 Spaceship 主题
+│   ├── git.zsh            # Git 别名、快捷函数与 GPG/SSH 签名配置
+│   ├── aliases.zsh        # 现代 CLI 增强 (eza, bat, fd) 与目录导航
+│   ├── tools.zsh          # Zellij, Yazi, Zoxide, FZF 深度集成
+│   └── os/                # 操作系统特供片段 (剪贴板、特定环境变量)
+│       ├── arch.zsh       # Arch / WSL 剪贴板适配
+│       ├── debian.zsh     # Debian / Ubuntu 特供
+│       ├── mac.zsh        # macOS Homebrew 与 pbcopy
+│       └── termux.zsh     # Android Termux 剪贴板
+├── btop/                  # Btop 监控配置与 Catppuccin 主题
+├── fastfetch/             # Fastfetch 现代系统信息展示配置
+├── pi/                    # Pi Coding Agent 配置、Prompts、Extensions、Skills
+├── yazi/                  # Yazi 现代终端文件管理器配置与插件
+└── zellij/                # Zellij 终端复用器布局与快捷键
 ```
 
-> **注意**：请勿在 `main` 分支下执行任何安装脚本，因为所有的配置实体均保存在特定分支中。
+---
+
+## 🚀 快速开始
+
+### 1. 克隆仓库
+
+```bash
+git clone https://github.com/RolinShmily/srp-dotfiles.git ~/.dotfiles
+cd ~/.dotfiles
+```
+
+### 2. 一键安装与部署
+
+运行主入口脚本启动交互式菜单：
+
+```bash
+./launch.sh
+```
+
+或使用命令行参数快速执行：
+
+```bash
+# 自动探测系统并完成全部安装与配置部署 (推荐)
+./launch.sh all
+
+# 仅安装依赖包
+./launch.sh install
+
+# 仅部署配置文件 (软链接)
+./launch.sh config
+
+# 强制覆盖已有配置文件
+./launch.sh config -f
+
+# 显式指定操作系统安装 (可选: arch | debian | mac | termux)
+./launch.sh install arch
+```
+
+### 3. 使配置生效
+
+配置部署完成后，重新打开终端或执行：
+
+```bash
+source ~/.zshrc
+```
+
+---
+
+## 🔒 私有环境变量扩展
+
+若需要配置仅在当前单机生效且不希望提交到 Git 的私有环境变量（如 API Keys、Token 等），只需在用户家目录下创建 `~/.zshrc.local`：
+
+```bash
+# ~/.zshrc.local
+export OPENAI_API_KEY="sk-..."
+export ANTHROPIC_API_KEY="sk-..."
+```
+
+`.zshrc` 会在加载完所有模块后自动引入 `~/.zshrc.local`。

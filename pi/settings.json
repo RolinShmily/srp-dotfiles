@@ -1,0 +1,50 @@
+{
+  "lastChangelogVersion": "0.84.4",
+  "theme": "dark",
+  "defaultProvider": "antigravity",
+  "defaultModel": "gemini-3.7-flash",
+  "defaultThinkingLevel": "high",
+  "srpTheme": {
+    "header": true,
+    "footer": true,
+    "tps": true
+  },
+  "srpAsk": {
+    "enabled": true
+  },
+  "srpWeb": {
+    "search": false,
+    "fetch": false
+  },
+  "srpVision": {
+    "enabled": true
+  },
+  "wslScreenshot": {
+    "enabled": true
+  },
+  "srpSubagent": {
+    "enabled": true,
+    "mux": "auto",
+    "statusWidget": true
+  },
+  "srpMemory": {
+    "chunkTokens": 10000,
+    "poolTargetTokens": 10000,
+    "consolidateAtPoolTokens": 15000,
+    "compactAtContextTokens": 150000,
+    "tailTokens": 20000,
+    "journeyTargetTokens": 1000,
+    "observerConcurrency": 4,
+    "models": {
+      "observer": { "thinking": "low" },
+      "consolidator": { "thinking": "medium" }
+    }
+  },
+  "packages": [
+    "npm:@narumitw/pi-goal",
+    "npm:@ff-labs/pi-fff",
+    "npm:@upstash/context7-pi",
+    "npm:@narumitw/pi-btw",
+    "npm:pi-antigravity"
+  ]
+}

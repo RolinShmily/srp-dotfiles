@@ -1,0 +1,116 @@
+# manifest.toml - SrP-Dotfiles 跨平台依赖与配置清单
+
+[arch]
+package_manager = "pacman"
+packages = [
+    # Shell 环境
+    "zsh", "zsh-autosuggestions", "zsh-syntax-highlighting",
+    # CLI 现代增强
+    "eza", "zoxide", "fzf", "bat", "fd", "ripgrep", "diff-so-fancy", "github-cli", "lazygit", "jq", "tldr",
+    # 语言与运行时
+    "nodejs", "npm", "python", "uv",
+    # 文件管理 (Yazi 及其预览插件依赖)
+    "yazi", "file", "chafa", "imagemagick", "poppler", "ffmpeg", "7zip", "unarchiver", "perl-image-exiftool", "mediainfo", "zathura", "zathura-pdf-poppler", "miller", "resvg", "xdg-utils", "xclip", "wl-clipboard",
+    # 编辑器与编译基础
+    "vim", "git", "base-devel", "gcc", "unzip",
+    # 终端复用
+    "zellij",
+    # 监控与信息展示
+    "fastfetch", "btop"
+]
+npm_globals = [
+    "@antfu/ni",
+    "live-server"
+]
+configs = [
+    "btop",
+    "fastfetch",
+    "yazi",
+    "zellij",
+    "pi"
+]
+zsh_module = "arch"
+
+[debian]
+package_manager = "apt"
+packages = [
+    # Shell 环境
+    "zsh", "zsh-autosuggestions", "zsh-syntax-highlighting",
+    # CLI 现代增强
+    "eza", "zoxide", "fzf", "bat", "fd-find", "ripgrep", "gh", "lazygit", "jq", "tealdeer",
+    # 语言与运行时
+    "nodejs", "npm", "python3", "python3-pip", "python3-venv",
+    # 编辑器与基础开发
+    "vim", "git", "build-essential", "gcc", "unzip",
+    # 监控与系统
+    "fastfetch", "btop"
+]
+npm_globals = [
+    "@antfu/ni",
+    "live-server"
+]
+configs = [
+    "btop",
+    "fastfetch",
+    "pi"
+]
+zsh_module = "debian"
+
+[mac]
+package_manager = "brew"
+packages = [
+    # Shell 环境
+    "zsh", "zsh-autosuggestions", "zsh-syntax-highlighting",
+    # CLI 现代增强
+    "eza", "zoxide", "fzf", "bat", "fd", "ripgrep", "gh", "lazygit", "jq", "tealdeer",
+    # 语言与运行时
+    "node", "python",
+    # 编辑器与基础开发
+    "git", "unzip",
+    # 文件管理 (Yazi)
+    "yazi", "chafa", "imagemagick", "poppler", "ffmpeg", "sevenzip", "unar", "exiftool", "mediainfo", "zathura", "zathura-pdf-poppler", "miller", "resvg",
+    # 终端复用
+    "zellij",
+    # 监控与系统
+    "fastfetch", "btop"
+]
+npm_globals = [
+    "@antfu/ni",
+    "live-server"
+]
+configs = [
+    "btop",
+    "fastfetch",
+    "yazi",
+    "zellij",
+    "pi"
+]
+zsh_module = "mac"
+
+[termux]
+package_manager = "pkg"
+packages = [
+    # Shell 环境
+    "zsh",
+    # CLI 现代增强
+    "eza", "zoxide", "fzf", "bat", "fd", "ripgrep", "diff-so-fancy", "gh", "lazygit", "jq", "tealdeer",
+    # 语言与运行时
+    "nodejs", "python", "uv",
+    # 文件管理 (Yazi)
+    "yazi", "file", "chafa", "imagemagick", "poppler", "ffmpeg", "p7zip", "unar", "exiftool", "mediainfo", "miller",
+    # 基础开发
+    "git", "clang", "make", "unzip", "tree-sitter",
+    # 终端复用与监控
+    "zellij", "fastfetch", "htop", "termux-api"
+]
+npm_globals = [
+    "@antfu/ni",
+    "live-server"
+]
+configs = [
+    "fastfetch",
+    "yazi",
+    "zellij",
+    "pi"
+]
+zsh_module = "termux"

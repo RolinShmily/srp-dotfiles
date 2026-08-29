@@ -1,0 +1,11 @@
+# Pi 智能体会话记忆与 MCP 产物
+.memory/
+.playwright-mcp/
+
+# 日志与临时文件
+*.log
+*.tmp
+
+# 本地私有 Zsh 配置 (若放置在 zsh.d 中)
+zsh.d/local.zsh
+zsh.d/*.local.zsh
