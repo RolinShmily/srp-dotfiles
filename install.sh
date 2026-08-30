@@ -134,6 +134,7 @@ fi
 PACKAGE_MANAGER="$(parse_toml_val "$TARGET_OS" "package_manager" "$MANIFEST_FILE")"
 readarray -t PKGS < <(parse_toml_array "$TARGET_OS" "packages" "$MANIFEST_FILE")
 readarray -t NPM_GLOBALS < <(parse_toml_array "$TARGET_OS" "npm_globals" "$MANIFEST_FILE")
+readarray -t SKILLS_ADD < <(parse_toml_array "$TARGET_OS" "skills_add" "$MANIFEST_FILE")
 
 if [ ${#PKGS[@]} -eq 0 ]; then
     log_error "未能从 manifest.toml 读取到 [$TARGET_OS] 的依赖包列表"
@@ -220,6 +221,27 @@ if [ ${#NPM_GLOBALS[@]} -gt 0 ]; then
     else
         log_warn "未检测到 npm 命令，跳过全局 npm 包安装。"
     fi
+fi
+
+# ------------------------------------------------------------------
+# 8. 安装第三方 Agent Skills (基于 skills_add)
+# ------------------------------------------------------------------
+if [ ${#SKILLS_ADD[@]} -gt 0 ]; then
+    log_info "正在安装第三方 Agent Skills (${#SKILLS_ADD[@]} 个)..."
+    for skill_item in "${SKILLS_ADD[@]}"; do
+        skill_item="$(echo "$skill_item" | xargs)"
+        [ -z "$skill_item" ] && continue
+
+        log_info "正在拉取技能: $skill_item ..."
+        if command -v skills &>/dev/null; then
+            skills add $skill_item -g -y || log_warn "技能拉取失败: $skill_item (已跳过)"
+        elif command -v npx &>/dev/null; then
+            npx --yes skills add $skill_item -g -y || log_warn "技能拉取失败: $skill_item (已跳过)"
+        else
+            log_warn "未检测到 skills 或 npx 命令，跳过技能安装: $skill_item"
+        fi
+    done
+    log_success "第三方 Agent Skills 安装处理完成。"
 fi
 
 log_success "所有系统依赖安装完成！接下来请运行 ./config.sh 部署配置文件。"

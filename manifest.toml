@@ -49,6 +49,7 @@ pi_packages = [
     "npm:@narumitw/pi-btw",
     "npm:pi-antigravity"
 ]
+skills_add = []
 
 [debian]
 package_manager = "apt"
@@ -64,7 +65,9 @@ packages = [
     # 监控与系统
     "fastfetch", "btop"
 ]
-npm_globals = []
+npm_globals = [
+    "skills"
+]
 configs = [
     "btop",
     "fastfetch",
@@ -87,6 +90,13 @@ pi_packages = [
     "npm:pi-memory",
     "npm:pi-antigravity",
     "npm:context-mode"
+]
+skills_add = [
+    "mvanhorn/last30days-skill",
+    "K-Dense-AI/scientific-agent-skills",
+    "https://github.com/WEIFENG2333/VideoCaptioner/",
+    "https://github.com/Leonxlnx/taste-skill",
+    "tt-a1i/archify"
 ]
 
 [termux]
@@ -132,3 +142,4 @@ pi_packages = [
     "npm:@narumitw/pi-btw",
     "npm:pi-antigravity"
 ]
+skills_add = []
