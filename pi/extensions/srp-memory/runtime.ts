@@ -9,7 +9,7 @@ export class Runtime {
   config: Config = { ...DEFAULTS };
   configLoaded = false;
 
-  /** The per-session on/off gate (default OFF). */
+  /** The per-session on/off gate (uses config.defaultEnabled when no ledger entry exists). */
   enabled = false;
 
   /**

@@ -38,7 +38,10 @@ srp-dotfiles/
 │       └── termux.zsh     # Android Termux 剪贴板
 ├── btop/                  # Btop 监控配置与 Catppuccin 主题
 ├── fastfetch/             # Fastfetch 现代系统信息展示配置
+├── scripts/                # 配置辅助脚本
+│   └── merge_pi_settings.js # 初始化并合并 Pi settings/packages
 ├── pi/                    # Pi Coding Agent 配置、Prompts、Extensions、Skills
+│   └── settings.json.example # 安全默认配置模板（不软链接）
 ├── yazi/                  # Yazi 现代终端文件管理器配置与插件
 └── zellij/                # Zellij 终端复用器布局与快捷键
 ```

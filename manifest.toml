@@ -31,6 +31,13 @@ configs = [
     "pi"
 ]
 zsh_module = "arch"
+pi_packages = [
+    "npm:@narumitw/pi-goal",
+    "npm:@ff-labs/pi-fff",
+    "npm:@upstash/context7-pi",
+    "npm:@narumitw/pi-btw",
+    "npm:pi-antigravity"
+]
 
 [debian]
 package_manager = "apt"
@@ -50,8 +57,18 @@ npm_globals = []
 configs = [
     "btop",
     "fastfetch",
+    "pi",
 ]
 zsh_module = "debian"
+pi_packages = [
+    "npm:pi-web-access",
+    "npm:pi-mcp-adapter",
+    "npm:pi-subagents",
+    "npm:pi-background-tasks",
+    "npm:@xjuai/pi-feishu-lark",
+    "npm:pi-memory",
+    "npm:pi-antigravity"
+]
 
 [termux]
 package_manager = "pkg"
@@ -81,3 +98,9 @@ configs = [
     "pi"
 ]
 zsh_module = "termux"
+pi_packages = [
+    "npm:@narumitw/pi-goal",
+    "npm:@upstash/context7-pi",
+    "npm:@narumitw/pi-btw",
+    "npm:pi-antigravity"
+]

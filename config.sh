@@ -186,6 +186,7 @@ link_file "$DOTFILES_DIR/.zshrc" "$HOME/.zshrc"
 # 6. 从 manifest.toml 读取并部署各软件配置
 # ------------------------------------------------------------------
 readarray -t CONFIG_APPS < <(parse_toml_array "$TARGET_OS" "configs" "$MANIFEST_FILE")
+readarray -t PI_PACKAGES < <(parse_toml_array "$TARGET_OS" "pi_packages" "$MANIFEST_FILE")
 
 log_info "为 [$TARGET_OS] 部署应用配置目录 (${#CONFIG_APPS[@]} 个)..."
 
@@ -196,10 +197,19 @@ for app in "${CONFIG_APPS[@]}"; do
         PI_AGENT_DIR="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
         mkdir -p "$PI_AGENT_DIR"
 
-        [ -f "$DOTFILES_DIR/pi/settings.json" ] && link_file "$DOTFILES_DIR/pi/settings.json" "$PI_AGENT_DIR/settings.json"
-        if [ -f "$DOTFILES_DIR/pi/AGENTS.md" ]; then
-            link_file "$DOTFILES_DIR/pi/AGENTS.md" "$PI_AGENT_DIR/AGENTS.md"
+        # settings.json 是 Pi 和用户的运行时配置，不由仓库软链接维护。
+        # 仅在缺失或 JSON 异常时使用模板；packages 始终追加合并并去重。
+        if ! command -v node &>/dev/null; then
+            log_error "部署 Pi 配置需要 node 命令来安全合并 JSON。"
+            exit 1
         fi
+        node "$DOTFILES_DIR/scripts/merge_pi_settings.js" \
+            "$PI_AGENT_DIR/settings.json" \
+            "$DOTFILES_DIR/pi/settings.json.example" \
+            "$BACKUP_DIR" \
+            "${PI_PACKAGES[@]}"
+
+        [ -f "$DOTFILES_DIR/pi/AGENTS.md" ] && link_file "$DOTFILES_DIR/pi/AGENTS.md" "$PI_AGENT_DIR/AGENTS.md"
 
         for res in extensions skills prompts themes agents; do
             if [ -d "$DOTFILES_DIR/pi/$res" ]; then

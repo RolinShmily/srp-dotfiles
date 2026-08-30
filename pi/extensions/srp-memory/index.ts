@@ -21,14 +21,14 @@ import { OM_ENABLED, type Entry } from "./ledger/index.ts";
 import { ensureSessionMemory } from "./memory/session.ts";
 import { Runtime } from "./runtime.ts";
 
-function readGateFromLedger(branch: Entry[]): boolean {
+function readGateFromLedger(branch: Entry[], defaultEnabled: boolean): boolean {
   for (let i = branch.length - 1; i >= 0; i--) {
     const entry = branch[i];
     if (entry.type === "custom" && entry.customType === OM_ENABLED) {
-      return (entry.data as { enabled?: boolean } | undefined)?.enabled ?? false;
+      return (entry.data as { enabled?: boolean } | undefined)?.enabled ?? defaultEnabled;
     }
   }
-  return false;
+  return defaultEnabled;
 }
 
 export default function observationalMemory(pi: ExtensionAPI): void {
@@ -46,7 +46,7 @@ export default function observationalMemory(pi: ExtensionAPI): void {
     runtime.ensureConfig(ctx.cwd);
     runtime.dispatchedCoversUpToId = undefined;
     const branch = ctx.sessionManager.getBranch() as Entry[];
-    runtime.enabled = readGateFromLedger(branch);
+    runtime.enabled = readGateFromLedger(branch, runtime.config.defaultEnabled);
     if (runtime.enabled) runtime.memoryRoot = ensureSessionMemory(ctx);
     attachIfEnabled(ctx);
     runtime.refreshFooterGauges(branch, ctx.getContextUsage?.()?.tokens ?? null);

@@ -12,6 +12,8 @@ export interface ConfiguredModel {
 }
 
 export interface Config {
+  /** Whether new sessions start with observational memory enabled. */
+  defaultEnabled: boolean;
   /** Raw-history token size of one observation chunk (fixed boundary). */
   chunkTokens: number;
   /** Overlap between adjacent chunks; default 0 in v1. */
@@ -44,6 +46,7 @@ export interface Config {
 }
 
 export const DEFAULTS: Config = {
+  defaultEnabled: false,
   chunkTokens: 10_000,
   chunkOverlapTokens: 0,
   poolTargetTokens: 10_000,
@@ -116,6 +119,9 @@ export function resolveEffectiveModel(
 
 function normalizeSettingsConfig(value: Record<string, unknown>, base: Config): Partial<Config> {
   const normalized: Partial<Config> = {};
+  if (typeof value.default_enabled === "boolean") {
+    normalized.defaultEnabled = value.default_enabled;
+  }
   const numberKeys = [
     "chunkTokens",
     "chunkOverlapTokens",
