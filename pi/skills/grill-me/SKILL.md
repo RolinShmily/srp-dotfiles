@@ -21,7 +21,7 @@ Format a round like so:
 ➡️ <your recommended answer>
 ```
 
-If you have the `ask_user_question` tool, you can just ask questions one by one untill users have gaven their answers.
+(Recommended) If you have the `ask_user_question` tool, you can just ask questions one by one untill users have gaven their answers.
 
 Each round the user answers reshapes the tree: settled decisions push the frontier outward and unblock questions that depended on them. Recompute the frontier and ask the next round. A question whose answer depends on another question still open in this round belongs to a _later_ round, not this one.
 
