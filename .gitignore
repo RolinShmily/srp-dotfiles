@@ -1,6 +1,7 @@
 # Pi 智能体会话记忆与 MCP 产物
 .memory/
 .playwright-mcp/
+pi/settings.json
 
 # 日志与临时文件
 *.log

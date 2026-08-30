@@ -360,19 +360,22 @@ export function buildCustomFooter(
         statsLine = theme.fg("dim", statsLeft);
       }
 
-      const lines: string[] = [pwdLine, statsLine];
+      const lines: string[] = [pwdLine];
 
       // 提取扩展 statuses：分行独立渲染
       const statuses = footerData.getExtensionStatuses();
       const tpsText = statuses.get("tps");
       const memText = statuses.get("srp-memory") || statuses.get("om");
 
-      // 1. TPS 独立一行
+      // 1. TPS 独立一行（位于路径下方、统计信息之上）
       if (tpsText) {
         lines.push(truncateToWidth(sanitizeStatusText(tpsText), width, theme.fg("dim", "...")));
       }
 
-      // 2. srp-memory 放在 TPS 之下，单独一行
+      // 2. 统计信息行
+      lines.push(statsLine);
+
+      // 3. srp-memory 放在统计信息之下，单独一行
       if (memText) {
         lines.push(truncateToWidth(sanitizeStatusText(memText), width, theme.fg("dim", "...")));
       }
