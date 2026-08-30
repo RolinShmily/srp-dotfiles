@@ -1,48 +1,36 @@
 ---
-description: Grill the user relentlessly about a plan, decision, or idea until reaching a shared understanding
-argument-hint: "[plan or topic]"
+description: 围绕当前方案、代码或设计决策展开深度压力质询（Grill），直至达成清晰共识
+argument-hint: "[补充说明/关注重点]"
 ---
-Grill me relentlessly about the following plan, decision, or idea until we reach a shared understanding:
+请针对我们**当前正在讨论的技术方案、代码设计或决策构想**，展开深度的压力质询与推演（Grill-me Mode）：
 
-${@:-"the current plan, architecture, or idea"}
-
----
-
-Interview me relentlessly until we reach a shared understanding. Map this as a **design tree**: every decision branches into the decisions that hang off it.
-
-### 1. Interactive Questioning (High Priority)
-
-- If the `ask_user_question` tool is available, **actively prioritize using it** to interview me step-by-step.
-- Drill down on the questions one by one:
-  - Set a concise core question in `question`.
-  - Provide background, tradeoffs, and impact analysis in `details`.
-  - Whenever applicable, provide candidate options in `options` with rich descriptions, placing your recommended option first and appending `"(Recommended)"` to its label.
-  - Wait for my answer after each question to reshape the tree and recalculate the next frontier.
-
-### 2. Rounds & Design Tree (Fallback / Batch mode)
-
-If interactive tools are unavailable, work the tree in **rounds**. The **frontier** is every decision whose prerequisites are already settled: the questions you can ask _now_ without guessing at answers you haven't heard yet. Ask the whole frontier in one round: number each question and give your recommended answer. Then wait for my answers before the next round.
-
-Format a round like so:
-
-```markdown
-❓ **Q1** - **<question title>**: <question body, including multiple choices>
-
-➡️ <your recommended answer>
+- **质询焦点/补充说明**: `${@:-"（请结合对话历史与当前工作区自动识别核心讨论对象）"}`
 
 ---
 
-❓ **Q2** - **<question title>**: <question body, including multiple choices>
+### 【核心前置】上下文锚定与目标消歧（Context Grounding）
 
-➡️ <your recommended answer>
-```
+1. **锁定真实讨论对象**：
+   - 优先审视最近几轮对话上下文、当前正在编辑的文件或刚提出的方案（例如刚才讨论的具体模块、功能实现、重构目标等）。
+   - **绝对不要将本 Prompt (`/grill-me`) 指令自身误当成质询或操作对象**。如果用户输入了类似 `/grill-me 怎么优化，改个名` 或简短动作，请将该动作作用于**上下文正在讨论的实际业务实体**，而不是针对当前 prompt。
+2. **构建决策树前沿（Design Tree & Frontier）**：
+   - 将方案解构为决策树：找出所有前置条件已满足、亟待确认的关键分歧、隐性假设与边界取舍。
 
-Each round reshapes the tree: settled decisions push the frontier outward and unblock questions that depended on them. Recompute the frontier and ask the next round. A question whose answer depends on another question still open in this round belongs to a _later_ round, not this one.
+---
 
-### 3. Facts vs Decisions
+### 执行规范
 
-Finding _facts_ is your job, never mine. When a frontier question needs a fact from the environment (filesystem, codebase, tools, etc.), look it up yourself or dispatch a sub-agent to find it; don't ask me for anything you could look up yourself. Don't block on it: a running exploration is an unsettled prerequisite, so only the questions downstream of it wait for the result; ask the rest of the frontier now. The _decisions_ are mine: put each to me and wait.
+#### 1. 优先使用交互式提问 (`ask_user_question`)
+- 只要 `ask_user_question` 工具可用，**必须优先、积极调用**它来进行单步或分阶段的结构化质询：
+  - `question`: 聚焦当前决策前沿中最关键的核心问题（一次一个或成组）。
+  - `details`: 阐明该决策的技术背景、利弊权衡与潜在影响。
+  - `options`: 提供清晰的结构化候选项，并在首项推荐方案后追加 `(Recommended)`。
+- 收到回答后动态更新决策树，推进至下一层待决问题。
 
-### 4. Completion
+#### 2. 事实自己查，决策交给我（Facts vs Decisions）
+- 涉及代码现状、环境配置、文件内容等**客观事实**，必须自行调用工具（如 `read`、`ffgrep`、`bash`）排查，严禁向用户提问你能自行查证的信息。
+- 只有**架构选型、业务边界、取舍偏好和关键决策**才向用户提问。
 
-The session is done when the frontier is empty: every branch of the design tree visited, nothing left silently assumed. Do not act on it until I confirm we have reached a shared understanding.
+#### 3. 终止与共识交付
+- 当决策树的所有分支均已探索完毕、无任何隐性假设遗漏时，质询结束。
+- 结构化汇总最终达成的明确方案与共识结论，在得到用户确认后再推进具体代码实现。
