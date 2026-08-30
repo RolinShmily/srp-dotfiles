@@ -263,6 +263,24 @@ export function formatCwdForFooter(cwd: string, home?: string): string {
   return rel === "" ? "~" : `~${sep}${rel}`;
 }
 
+const WEEK_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+export function formatFooterClock(d: Date, width: number): string {
+  if (width < 50) return "";
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  const year = d.getFullYear();
+  const month = pad(d.getMonth() + 1);
+  const date = pad(d.getDate());
+  const hours = pad(d.getHours());
+  const minutes = pad(d.getMinutes());
+  const day = WEEK_DAYS[d.getDay()];
+
+  if (width >= 80) {
+    return `[ ${year}-${month}-${date} ${day} ${hours}:${minutes} ]`;
+  }
+  return `[ ${month}-${date} ${hours}:${minutes} ]`;
+}
+
 export function buildCustomFooter(
   ctx: ExtensionContext,
   tui: any,
@@ -271,9 +289,27 @@ export function buildCustomFooter(
 ): Component {
   const unsub = footerData.onBranchChange(() => tui.requestRender());
 
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let interval: ReturnType<typeof setInterval> | null = null;
+
+  const scheduleTick = () => {
+    const now = Date.now();
+    const delay = Math.max(100, 60_000 - (now % 60_000));
+    timer = setTimeout(() => {
+      tui.requestRender();
+      interval = setInterval(() => {
+        tui.requestRender();
+      }, 60_000);
+    }, delay);
+  };
+
+  scheduleTick();
+
   return {
     dispose() {
       unsub();
+      if (timer) clearTimeout(timer);
+      if (interval) clearInterval(interval);
     },
     invalidate() {},
     render(width: number): string[] {
@@ -315,7 +351,25 @@ export function buildCustomFooter(
       if (sessionName) {
         pwd = `${pwd} • ${sessionName}`;
       }
-      const pwdLine = truncateToWidth(theme.fg("dim", pwd), width, theme.fg("dim", "..."));
+
+      const clockStr = formatFooterClock(new Date(), width);
+      let pwdLine: string;
+
+      if (clockStr) {
+        const clockWidth = visibleWidth(clockStr);
+        const minGap = 2;
+        const availableForPwd = width - clockWidth - minGap;
+
+        if (availableForPwd >= 8) {
+          const truncPwd = truncateToWidth(pwd, availableForPwd, "...");
+          const padSpaces = " ".repeat(Math.max(minGap, width - visibleWidth(truncPwd) - clockWidth));
+          pwdLine = theme.fg("dim", truncPwd) + padSpaces + theme.fg("dim", clockStr);
+        } else {
+          pwdLine = truncateToWidth(theme.fg("dim", pwd), width, theme.fg("dim", "..."));
+        }
+      } else {
+        pwdLine = truncateToWidth(theme.fg("dim", pwd), width, theme.fg("dim", "..."));
+      }
 
       const statsParts: string[] = [];
       if (input) statsParts.push(`↑${formatTokens(input)}`);
