@@ -233,8 +233,42 @@ class YouTubeExtractor(BasePlatformExtractor):
             },
         )
 
-        # 2. Download media streams to temp_dir
+        # 2. Download subtitles and media streams to temp_dir (Decoupled for robustness)
         raw_download_template = str(temp_dir / "download.%(ext)s")
+
+        # 2a. Attempt subtitle download independently per language
+        requested_subs: list[str] = []
+        if chosen_source_lang:
+            requested_subs.append(chosen_source_lang)
+        if chosen_zh_lang and chosen_zh_lang != chosen_source_lang:
+            requested_subs.append(chosen_zh_lang)
+
+        if requested_subs:
+            for sub_lang in requested_subs:
+                ydl_opts_sub: dict[str, Any] = {
+                    "skip_download": True,
+                    "writesubtitles": bool(official_source_lang or official_zh_lang),
+                    "writeautomaticsub": bool(auto_source_lang or auto_zh_lang),
+                    "subtitleslangs": [sub_lang],
+                    "subtitlesformat": "srt/vtt/best",
+                    "outtmpl": raw_download_template,
+                    "remote_components": {"ejs": "github"},
+                    "quiet": True,
+                    "no_warnings": True,
+                    "ignoreerrors": True,
+                    "extractor_args": {"youtube": {"player_client": player_clients}},
+                }
+                if cookies_file:
+                    ydl_opts_sub["cookiefile"] = cookies_file
+                if cookies_browser:
+                    ydl_opts_sub["cookiesfrombrowser"] = (cookies_browser,)
+                try:
+                    with yt_dlp.YoutubeDL(ydl_opts_sub) as ydl:
+                        ydl.download([url])
+                except Exception as e:  # noqa: BLE001
+                    print(f"  [WARN] Subtitle download for {sub_lang} failed: {e}")
+
+        # 2b. Download media streams independently
         ydl_opts_download: dict[str, Any] = {
             "format": "bestvideo+bestaudio/best",
             "outtmpl": raw_download_template,
@@ -243,7 +277,6 @@ class YouTubeExtractor(BasePlatformExtractor):
             "quiet": False,
             "no_warnings": True,
             "overwrites": True,
-            "ignoreerrors": "only_download",
             "extractor_args": {"youtube": {"player_client": player_clients}},
         }
         if cookies_file:
@@ -251,34 +284,14 @@ class YouTubeExtractor(BasePlatformExtractor):
         if cookies_browser:
             ydl_opts_download["cookiesfrombrowser"] = (cookies_browser,)
 
-        # Request source subtitles and Chinese subtitles if available
-        requested_subs: list[str] = []
-        if chosen_source_lang:
-            requested_subs.append(chosen_source_lang)
-        if chosen_zh_lang and chosen_zh_lang != chosen_source_lang:
-            requested_subs.append(chosen_zh_lang)
-
-        if requested_subs:
-            if official_source_lang or official_zh_lang:
-                ydl_opts_download["writesubtitles"] = True
-            if auto_source_lang or auto_zh_lang:
-                ydl_opts_download["writeautomaticsub"] = True
-            ydl_opts_download["subtitleslangs"] = requested_subs
-            ydl_opts_download["subtitlesformat"] = "srt/vtt/best"
-
         try:
             with yt_dlp.YoutubeDL(ydl_opts_download) as ydl:
                 ydl.download([url])
         except Exception as e:  # noqa: BLE001
-            print(f"  [WARN] Initial download with subtitles encountered issue: {e}")
-            print(
-                "  -> Retrying media download without subtitles (retaining any downloaded subtitles)..."
-            )
+            print(f"  [WARN] Standard media download encountered issue: {e}")
+            print("  -> Retrying media download with Android client...")
             ydl_opts_retry = dict(ydl_opts_download)
-            ydl_opts_retry.pop("writesubtitles", None)
-            ydl_opts_retry.pop("writeautomaticsub", None)
-            ydl_opts_retry.pop("subtitleslangs", None)
-            ydl_opts_retry.pop("subtitlesformat", None)
+            ydl_opts_retry["extractor_args"] = {"youtube": {"player_client": ["android"]}}
             with yt_dlp.YoutubeDL(ydl_opts_retry) as ydl:
                 ydl.download([url])
 
