@@ -182,11 +182,65 @@ log_info "部署 ~/.zshrc 与 ~/.vimrc 基础配置..."
 link_file "$DOTFILES_DIR/.zshrc" "$HOME/.zshrc"
 [ -f "$DOTFILES_DIR/.vimrc" ] && link_file "$DOTFILES_DIR/.vimrc" "$HOME/.vimrc"
 
+deploy_pi_extensions() {
+    local extensions_dir="$1"
+    local source_dir="$DOTFILES_DIR/pi/extensions"
+    local source_real
+    source_real="$(cd "$source_dir" 2>/dev/null && pwd -P)"
+
+    if [ -L "$extensions_dir" ]; then
+        local legacy_target
+        legacy_target="$(readlink -f "$extensions_dir" 2>/dev/null || true)"
+        if [ "$legacy_target" = "$source_real" ]; then
+            log_warn "移除旧版 Pi extensions 整体软链接，切换为按系统白名单部署。"
+            rm -f "$extensions_dir"
+            mkdir -p "$extensions_dir"
+        else
+            log_warn "Pi extensions 目录由其他来源管理，保留并跳过仓库扩展部署: $extensions_dir"
+            return 0
+        fi
+    elif [ -e "$extensions_dir" ] && [ ! -d "$extensions_dir" ]; then
+        log_warn "Pi extensions 目标不是目录，保留并跳过仓库扩展部署: $extensions_dir"
+        return 0
+    else
+        mkdir -p "$extensions_dir"
+    fi
+
+    # 仅移除之前由本仓库创建的扩展软链接，保留用户文件和其他来源的链接。
+    while IFS= read -r -d '' destination; do
+        local target
+        target="$(readlink -f "$destination" 2>/dev/null || true)"
+        case "$target" in
+            "$source_real"/*)
+                rm -f "$destination"
+                log_info "清理不适用于 [$TARGET_OS] 的仓库扩展: ${destination##*/}"
+                ;;
+        esac
+    done < <(find "$extensions_dir" -mindepth 1 -maxdepth 1 -type l -print0)
+
+    for extension in "${PI_EXTENSIONS[@]}"; do
+        local source="$source_dir/$extension"
+        local destination="$extensions_dir/$extension"
+        if [ ! -e "$source" ]; then
+            log_warn "Pi 扩展不存在，跳过: $extension"
+            continue
+        fi
+        if [ -L "$destination" ] || [ -e "$destination" ]; then
+            log_warn "目标扩展已由其他配置管理，保留并跳过: $destination"
+            continue
+        fi
+        mkdir -p "$(dirname "$destination")"
+        ln -s "$source" "$destination"
+        log_success "已部署 Pi 扩展: $destination -> $source"
+    done
+}
+
 # ------------------------------------------------------------------
 # 6. 从 manifest.toml 读取并部署各软件配置
 # ------------------------------------------------------------------
 readarray -t CONFIG_APPS < <(parse_toml_array "$TARGET_OS" "configs" "$MANIFEST_FILE")
 readarray -t PI_PACKAGES < <(parse_toml_array "$TARGET_OS" "pi_packages" "$MANIFEST_FILE")
+readarray -t PI_EXTENSIONS < <(parse_toml_array "$TARGET_OS" "pi_extensions" "$MANIFEST_FILE")
 
 log_info "为 [$TARGET_OS] 部署应用配置目录 (${#CONFIG_APPS[@]} 个)..."
 
@@ -210,8 +264,9 @@ for app in "${CONFIG_APPS[@]}"; do
             "${PI_PACKAGES[@]}"
 
         [ -f "$DOTFILES_DIR/pi/AGENTS.md" ] && link_file "$DOTFILES_DIR/pi/AGENTS.md" "$PI_AGENT_DIR/AGENTS.md"
+        deploy_pi_extensions "$PI_AGENT_DIR/extensions"
 
-        for res in extensions skills prompts themes agents; do
+        for res in skills prompts themes agents; do
             if [ -d "$DOTFILES_DIR/pi/$res" ]; then
                 link_file "$DOTFILES_DIR/pi/$res" "$PI_AGENT_DIR/$res"
             fi
