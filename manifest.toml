@@ -67,6 +67,7 @@ packages = [
 ]
 npm_globals = [
     "@earendil-works/pi-coding-agent",
+    "@agegr/pi-web@latest",
     "skills"
 ]
 configs = [
