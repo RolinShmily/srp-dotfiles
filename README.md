@@ -27,7 +27,7 @@ srp-dotfiles/
 ├── .zshrc                 # Zsh 配置入口 (软链至 ~/.zshrc)
 ├── .vimrc                 # 原生轻量 Vim 现代化配置 (软链至 ~/.vimrc)
 ├── zsh.d/                 # 模块化 Zsh 配置片段
-│   ├── env.zsh            # 环境变量、NVM、Bun、PATH、Locale
+│   ├── env.zsh            # 环境变量、NVM、PATH、Locale 与默认编辑器
 │   ├── omz.zsh            # Oh My Zsh 插件与 Spaceship 主题
 │   ├── git.zsh            # Git 别名、快捷函数与 GPG/SSH 签名配置
 │   ├── aliases.zsh        # 现代 CLI 增强 (eza, bat, fd) 与目录导航

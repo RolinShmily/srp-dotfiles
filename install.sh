@@ -206,22 +206,19 @@ if [ ! -d "$HOME/.oh-my-zsh" ]; then
 fi
 
 # ------------------------------------------------------------------
-# 7. 全局 npm / bun 包安装
+# 7. 全局 npm 包安装
 # ------------------------------------------------------------------
 if [ ${#NPM_GLOBALS[@]} -gt 0 ]; then
-    log_info "检查 Node.js / Bun 全局工具包依赖..."
-    if command -v bun &>/dev/null; then
-        log_info "使用 bun 安装全局依赖: ${NPM_GLOBALS[*]}"
-        bun add -g "${NPM_GLOBALS[@]}" || true
-        log_success "全局 npm 包 (bun) 安装完成。"
-    elif command -v npm &>/dev/null; then
-        log_info "使用 npm 安装全局依赖: ${NPM_GLOBALS[*]}"
+    log_info "正在使用 npm 安装全局依赖 (启用 --ignore-scripts 安全模式): ${NPM_GLOBALS[*]}"
+    if command -v npm &>/dev/null; then
         if [ "$TARGET_OS" = "termux" ]; then
-            npm install -g "${NPM_GLOBALS[@]}" || true
+            npm install -g --ignore-scripts "${NPM_GLOBALS[@]}" || true
         else
-            sudo npm install -g "${NPM_GLOBALS[@]}" 2>/dev/null || npm install -g "${NPM_GLOBALS[@]}" || true
+            sudo npm install -g --ignore-scripts "${NPM_GLOBALS[@]}" 2>/dev/null || npm install -g --ignore-scripts "${NPM_GLOBALS[@]}" || true
         fi
-        log_success "全局 npm 包 (npm) 安装完成。"
+        log_success "全局 npm 依赖包安装完成。"
+    else
+        log_warn "未检测到 npm 命令，跳过全局 npm 包安装。"
     fi
 fi
 

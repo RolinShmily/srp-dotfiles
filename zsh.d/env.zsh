@@ -28,24 +28,12 @@ if [ -s "$NVM_DIR/nvm.sh" ]; then
     . "$NVM_DIR/nvm.sh"
 elif [ -s "/usr/share/nvm/nvm.sh" ]; then
     . "/usr/share/nvm/nvm.sh"
-elif [ -s "/opt/homebrew/opt/nvm/nvm.sh" ]; then
-    . "/opt/homebrew/opt/nvm/nvm.sh"
-elif [ -s "/usr/local/opt/nvm/nvm.sh" ]; then
-    . "/usr/local/opt/nvm/nvm.sh"
 fi
 
 if [ -f "$NVM_DIR/bash_completion" ]; then
     . "$NVM_DIR/bash_completion"
 elif [ -f "/usr/share/nvm/bash_completion" ]; then
     . "/usr/share/nvm/bash_completion"
-fi
-
-# -------------------------------- #
-# Bun
-# -------------------------------- #
-export BUN_INSTALL="$HOME/.bun"
-if [ -d "$BUN_INSTALL/bin" ]; then
-    export PATH="$BUN_INSTALL/bin:$PATH"
 fi
 
 # -------------------------------- #

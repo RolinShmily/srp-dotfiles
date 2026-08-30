@@ -19,6 +19,7 @@ packages = [
     "fastfetch", "btop"
 ]
 npm_globals = [
+    "@earendil-works/pi-coding-agent",
     "@antfu/ni",
     "live-server"
 ]
@@ -69,6 +70,7 @@ packages = [
     "zellij", "fastfetch", "htop", "termux-api"
 ]
 npm_globals = [
+    "@earendil-works/pi-coding-agent",
     "@antfu/ni",
     "live-server"
 ]
