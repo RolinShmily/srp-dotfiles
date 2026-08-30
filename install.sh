@@ -232,11 +232,17 @@ if [ ${#SKILLS_ADD[@]} -gt 0 ]; then
         skill_item="$(echo "$skill_item" | xargs)"
         [ -z "$skill_item" ] && continue
 
+        # 若未显式包含 -a 或 --agent 参数，默认指定 -a pi 避免因不支持全局的 agent 导致报错
+        local agent_param=""
+        if [[ ! "$skill_item" =~ (-a|--agent) ]]; then
+            agent_param="-a pi"
+        fi
+
         log_info "正在拉取技能: $skill_item ..."
         if command -v skills &>/dev/null; then
-            skills add $skill_item -g -y || log_warn "技能拉取失败: $skill_item (已跳过)"
+            skills add $skill_item $agent_param -g -y || log_warn "技能拉取失败: $skill_item (已跳过)"
         elif command -v npx &>/dev/null; then
-            npx --yes skills add $skill_item -g -y || log_warn "技能拉取失败: $skill_item (已跳过)"
+            npx --yes skills add $skill_item $agent_param -g -y || log_warn "技能拉取失败: $skill_item (已跳过)"
         else
             log_warn "未检测到 skills 或 npx 命令，跳过技能安装: $skill_item"
         fi

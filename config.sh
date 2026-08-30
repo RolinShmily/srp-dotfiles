@@ -185,6 +185,9 @@ link_file "$DOTFILES_DIR/.zshrc" "$HOME/.zshrc"
 deploy_pi_extensions() {
     local extensions_dir="$1"
     local source_dir="$DOTFILES_DIR/pi/extensions"
+
+    [ -d "$source_dir" ] || return 0
+
     local source_real
     source_real="$(cd "$source_dir" 2>/dev/null && pwd -P)"
 
@@ -206,14 +209,23 @@ deploy_pi_extensions() {
         mkdir -p "$extensions_dir"
     fi
 
-    # 仅移除之前由本仓库创建的扩展软链接，保留用户文件和其他来源的链接。
+    # 建立当前系统所需扩展的白名单集合
+    declare -A wanted_extensions=()
+    for ext in "${PI_EXTENSIONS[@]}"; do
+        wanted_extensions["$ext"]=1
+    done
+
+    # 仅清理已存在、属于本仓库、但当前系统白名单中不需要的扩展软链接
     while IFS= read -r -d '' destination; do
         local target
         target="$(readlink -f "$destination" 2>/dev/null || true)"
         case "$target" in
             "$source_real"/*)
-                rm -f "$destination"
-                log_info "清理不适用于 [$TARGET_OS] 的仓库扩展: ${destination##*/}"
+                local ext_name="${destination##*/}"
+                if [ -z "${wanted_extensions[$ext_name]}" ]; then
+                    rm -f "$destination"
+                    log_info "清理不适用于 [$TARGET_OS] 的仓库扩展: $ext_name"
+                fi
                 ;;
         esac
     done < <(find "$extensions_dir" -mindepth 1 -maxdepth 1 -type l -print0)
@@ -225,13 +237,88 @@ deploy_pi_extensions() {
             log_warn "Pi 扩展不存在，跳过: $extension"
             continue
         fi
-        if [ -L "$destination" ] || [ -e "$destination" ]; then
+        if [ -L "$destination" ]; then
+            local current_target
+            current_target="$(readlink "$destination" 2>/dev/null || true)"
+            if [ "$current_target" = "$source" ]; then
+                log_info "软链接已正确指向: $destination"
+                continue
+            else
+                rm -f "$destination"
+            fi
+        elif [ -e "$destination" ]; then
             log_warn "目标扩展已由其他配置管理，保留并跳过: $destination"
             continue
         fi
         mkdir -p "$(dirname "$destination")"
         ln -s "$source" "$destination"
         log_success "已部署 Pi 扩展: $destination -> $source"
+    done
+}
+
+deploy_pi_resources() {
+    local res_type="$1"
+    local res_label="$2"
+    local dest_dir="$3"
+    local source_dir="$DOTFILES_DIR/pi/$res_type"
+
+    [ -d "$source_dir" ] || return 0
+
+    local source_real
+    source_real="$(cd "$source_dir" 2>/dev/null && pwd -P)"
+
+    if [ -L "$dest_dir" ]; then
+        local legacy_target
+        legacy_target="$(readlink -f "$dest_dir" 2>/dev/null || true)"
+        if [ "$legacy_target" = "$source_real" ]; then
+            log_warn "移除旧版 Pi $res_type 整体软链接，切换为独立目录部署。"
+            rm -f "$dest_dir"
+            mkdir -p "$dest_dir"
+        else
+            log_warn "Pi $res_type 目录由其他来源管理，保留并跳过: $dest_dir"
+            return 0
+        fi
+    elif [ -e "$dest_dir" ] && [ ! -d "$dest_dir" ]; then
+        log_warn "Pi $res_type 目标不是目录，保留并跳过: $dest_dir"
+        return 0
+    else
+        mkdir -p "$dest_dir"
+    fi
+
+    # 清理已从仓库中删除的无效仓库软链接
+    while IFS= read -r -d '' destination; do
+        local target
+        target="$(readlink -f "$destination" 2>/dev/null || true)"
+        case "$target" in
+            "$source_real"/*)
+                if [ ! -e "$target" ]; then
+                    rm -f "$destination"
+                    log_info "清理已废弃的 Pi $res_label 软链接: ${destination##*/}"
+                fi
+                ;;
+        esac
+    done < <(find "$dest_dir" -mindepth 1 -maxdepth 1 -type l -print0)
+
+    # 部署仓库内置子项
+    for item in "$source_dir"/*; do
+        [ -e "$item" ] || continue
+        local item_name="${item##*/}"
+        local destination="$dest_dir/$item_name"
+        if [ -L "$destination" ]; then
+            local current_target
+            current_target="$(readlink "$destination" 2>/dev/null || true)"
+            if [ "$current_target" = "$item" ]; then
+                log_info "软链接已正确指向: $destination"
+                continue
+            else
+                rm -f "$destination"
+            fi
+        elif [ -e "$destination" ]; then
+            log_warn "目标 $res_label 已由其他配置管理，保留并跳过: $destination"
+            continue
+        fi
+        ln -s "$item" "$destination"
+        log_success "已部署内置 Pi $res_label: $destination -> $item"
     done
 }
 
@@ -265,12 +352,9 @@ for app in "${CONFIG_APPS[@]}"; do
 
         [ -f "$DOTFILES_DIR/pi/AGENTS.md" ] && link_file "$DOTFILES_DIR/pi/AGENTS.md" "$PI_AGENT_DIR/AGENTS.md"
         deploy_pi_extensions "$PI_AGENT_DIR/extensions"
-
-        for res in skills prompts themes agents; do
-            if [ -d "$DOTFILES_DIR/pi/$res" ]; then
-                link_file "$DOTFILES_DIR/pi/$res" "$PI_AGENT_DIR/$res"
-            fi
-        done
+        deploy_pi_resources "skills" "技能" "$PI_AGENT_DIR/skills"
+        deploy_pi_resources "prompts" "提示词" "$PI_AGENT_DIR/prompts"
+        deploy_pi_resources "agents" "智能体" "$PI_AGENT_DIR/agents"
     else
         # 部署普通 ~/.config/<app>
         if [ -d "$DOTFILES_DIR/$app" ]; then
