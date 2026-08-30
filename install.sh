@@ -226,7 +226,11 @@ fi
 # ------------------------------------------------------------------
 # 8. 安装第三方 Agent Skills (基于 skills_add)
 # ------------------------------------------------------------------
-if [ ${#SKILLS_ADD[@]} -gt 0 ]; then
+install_agent_skills() {
+    if [ ${#SKILLS_ADD[@]} -eq 0 ]; then
+        return 0
+    fi
+
     log_info "正在安装第三方 Agent Skills (${#SKILLS_ADD[@]} 个)..."
     for skill_item in "${SKILLS_ADD[@]}"; do
         skill_item="$(echo "$skill_item" | xargs)"
@@ -248,6 +252,8 @@ if [ ${#SKILLS_ADD[@]} -gt 0 ]; then
         fi
     done
     log_success "第三方 Agent Skills 安装处理完成。"
-fi
+}
+
+install_agent_skills
 
 log_success "所有系统依赖安装完成！接下来请运行 ./config.sh 部署配置文件。"
