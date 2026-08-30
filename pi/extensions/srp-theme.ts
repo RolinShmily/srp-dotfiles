@@ -350,37 +350,66 @@ export function buildCustomFooter(
         rightSide = `(${ctx.model.provider}) ${rightSide}`;
       }
 
+      // 提取扩展 statuses
+      const statuses = footerData.getExtensionStatuses();
+      const tpsRaw = statuses.get("tps");
+      const tpsText = tpsRaw ? sanitizeStatusText(tpsRaw) : "";
+      const tpsWidth = tpsText ? visibleWidth(tpsText) : 0;
+      const memText = statuses.get("srp-memory") || statuses.get("om");
+
       const minPadding = 2;
       const rightWidth = visibleWidth(rightSide);
       let statsLine: string;
-      if (statsLeftWidth + minPadding + rightWidth <= width) {
-        const padding = " ".repeat(Math.max(1, width - statsLeftWidth - rightWidth));
-        statsLine = theme.fg("dim", statsLeft) + padding + theme.fg("dim", rightSide);
-      } else {
-        statsLine = theme.fg("dim", statsLeft);
-      }
 
-      const lines: string[] = [pwdLine];
-
-      // 提取扩展 statuses：分行独立渲染
-      const statuses = footerData.getExtensionStatuses();
-      const tpsText = statuses.get("tps");
-      const memText = statuses.get("srp-memory") || statuses.get("om");
-
-      // 1. TPS 独立一行（位于路径下方、统计信息之上）
       if (tpsText) {
-        lines.push(truncateToWidth(sanitizeStatusText(tpsText), width, theme.fg("dim", "...")));
+        const totalNeeded = statsLeftWidth + minPadding + tpsWidth + minPadding + rightWidth;
+        if (totalNeeded <= width) {
+          // 空间充裕：statsLeft 居左，tpsText 居中，rightSide 居右
+          const remaining = width - statsLeftWidth - tpsWidth - rightWidth;
+          const padLeft = " ".repeat(Math.max(minPadding, Math.floor(remaining / 2)));
+          const padRight = " ".repeat(Math.max(minPadding, remaining - Math.floor(remaining / 2)));
+          statsLine = theme.fg("dim", statsLeft) + padLeft + tpsText + padRight + theme.fg("dim", rightSide);
+        } else {
+          // 空间较紧凑：尝试截断 rightSide 或降级
+          const availableForRight = width - statsLeftWidth - minPadding - tpsWidth - 1;
+          if (availableForRight >= 8) {
+            const truncRight = truncateToWidth(rightSide, availableForRight, "");
+            const padRight = " ".repeat(Math.max(1, width - statsLeftWidth - minPadding - tpsWidth - visibleWidth(truncRight)));
+            statsLine = theme.fg("dim", statsLeft) + " ".repeat(minPadding) + tpsText + padRight + theme.fg("dim", truncRight);
+          } else if (statsLeftWidth + minPadding + tpsWidth <= width) {
+            const padding = " ".repeat(Math.max(minPadding, width - statsLeftWidth - tpsWidth));
+            statsLine = theme.fg("dim", statsLeft) + padding + tpsText;
+          } else if (statsLeftWidth + minPadding + rightWidth <= width) {
+            const padding = " ".repeat(Math.max(minPadding, width - statsLeftWidth - rightWidth));
+            statsLine = theme.fg("dim", statsLeft) + padding + theme.fg("dim", rightSide);
+          } else {
+            statsLine = theme.fg("dim", statsLeft);
+          }
+        }
+      } else {
+        if (statsLeftWidth + minPadding + rightWidth <= width) {
+          const padding = " ".repeat(Math.max(minPadding, width - statsLeftWidth - rightWidth));
+          statsLine = theme.fg("dim", statsLeft) + padding + theme.fg("dim", rightSide);
+        } else {
+          const availableForRight = width - statsLeftWidth - minPadding;
+          if (availableForRight > 0) {
+            const truncRight = truncateToWidth(rightSide, availableForRight, "");
+            const padding = " ".repeat(Math.max(1, width - statsLeftWidth - visibleWidth(truncRight)));
+            statsLine = theme.fg("dim", statsLeft) + padding + theme.fg("dim", truncRight);
+          } else {
+            statsLine = theme.fg("dim", statsLeft);
+          }
+        }
       }
 
-      // 2. 统计信息行
-      lines.push(statsLine);
+      const lines: string[] = [pwdLine, statsLine];
 
-      // 3. srp-memory 放在统计信息之下，单独一行
+      // 1. srp-memory 放在统计信息之下，单独一行
       if (memText) {
         lines.push(truncateToWidth(sanitizeStatusText(memText), width, theme.fg("dim", "...")));
       }
 
-      // 3. 其他非 TPS / srp-memory 的 status
+      // 2. 其他非 TPS / srp-memory 的 status
       const otherStatuses: string[] = [];
       for (const [k, v] of statuses.entries()) {
         if (k !== "tps" && k !== "srp-memory" && k !== "om") {

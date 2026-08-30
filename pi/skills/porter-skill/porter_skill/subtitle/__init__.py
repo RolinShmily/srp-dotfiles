@@ -8,6 +8,7 @@ from porter_skill.subtitle.controller import (
 )
 from porter_skill.subtitle.formatter import (
     SubtitleItem,
+    TranscriptSentence,
     align_bilingual_items,
     generate_bilingual_ass,
     generate_bilingual_srt,
@@ -16,8 +17,16 @@ from porter_skill.subtitle.formatter import (
     is_cjk,
     merge_short_fragments,
     parse_srt,
+    reconstruct_sentences_from_fragments,
+    save_transcript_json,
+    save_transcript_txt,
+    split_chinese_sentence_into_cues,
+    split_chinese_text_by_phrase,
 )
 from porter_skill.subtitle.translator import (
+    translate_sentences_with_direct_llm,
+    translate_sentences_with_google_http,
+    translate_sentences_with_mymemory_http,
     translate_with_direct_llm,
     translate_with_google_http,
     translate_with_mymemory_http,
@@ -27,6 +36,7 @@ from porter_skill.subtitle.translator import (
 __all__ = [
     "SubtitleItem",
     "SubtitleResult",
+    "TranscriptSentence",
     "align_bilingual_items",
     "generate_bilingual_ass",
     "generate_bilingual_srt",
@@ -37,7 +47,15 @@ __all__ = [
     "is_cjk",
     "merge_short_fragments",
     "parse_srt",
+    "reconstruct_sentences_from_fragments",
     "run_asr_transcription",
+    "save_transcript_json",
+    "save_transcript_txt",
+    "split_chinese_sentence_into_cues",
+    "split_chinese_text_by_phrase",
+    "translate_sentences_with_direct_llm",
+    "translate_sentences_with_google_http",
+    "translate_sentences_with_mymemory_http",
     "translate_with_direct_llm",
     "translate_with_google_http",
     "translate_with_mymemory_http",

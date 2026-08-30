@@ -18,6 +18,15 @@
   "srpVision": {
     "enabled": false
   },
+  "srpVoice": {
+    "enabled": false,
+    "provider": "auto",
+    "model": "",
+    "apiKey": "",
+    "language": "zh",
+    "shortcuts": ["alt+m"],
+    "cancelShortcuts": ["alt+n"]
+  },
   "wslScreenshot": {
     "enabled": false
   },

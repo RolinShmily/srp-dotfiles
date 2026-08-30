@@ -9,8 +9,8 @@ packages = [
     "eza", "zoxide", "fzf", "bat", "fd", "ripgrep", "diff-so-fancy", "github-cli", "lazygit", "jq", "tldr",
     # 语言与运行时
     "nodejs", "npm", "python", "uv",
-    # 文件管理 (Yazi 及其预览插件依赖)
-    "yazi", "file", "chafa", "imagemagick", "poppler", "ffmpeg", "7zip", "unarchiver", "perl-image-exiftool", "mediainfo", "zathura", "zathura-pdf-poppler", "miller", "resvg", "xdg-utils", "xclip", "wl-clipboard",
+    # 文件管理 (Yazi 及其预览插件依赖) 与音频录制
+    "yazi", "file", "chafa", "imagemagick", "poppler", "ffmpeg", "sox", "7zip", "unarchiver", "perl-image-exiftool", "mediainfo", "zathura", "zathura-pdf-poppler", "miller", "resvg", "xdg-utils", "xclip", "wl-clipboard",
     # 编辑器与编译基础
     "vim", "git", "base-devel", "gcc", "unzip",
     # 终端复用
@@ -36,6 +36,7 @@ pi_extensions = [
     "srp-providers.ts",
     "srp-theme.ts",
     "srp-vision.ts",
+    "srp-voice.ts",
     "srp-web.ts",
     "wsl-screenshot.ts",
     "srp-memory",
@@ -84,7 +85,8 @@ pi_packages = [
     "npm:pi-background-tasks",
     "npm:@xjuai/pi-feishu-lark",
     "npm:pi-memory",
-    "npm:pi-antigravity"
+    "npm:pi-antigravity",
+    "npm:context-mode"
 ]
 
 [termux]
