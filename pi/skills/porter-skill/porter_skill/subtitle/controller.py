@@ -16,6 +16,7 @@ from porter_skill.subtitle.formatter import (
     generate_bilingual_srt,
     generate_zh_ass,
     generate_zh_srt,
+    is_cjk,
     merge_short_fragments,
     parse_srt,
 )
@@ -23,6 +24,7 @@ from porter_skill.subtitle.translator import (
     _get_videocaptioner_bin,
     translate_with_direct_llm,
     translate_with_google_http,
+    translate_with_mymemory_http,
     translate_with_videocaptioner_cli,
     translate_with_videocaptioner_free,
 )
@@ -132,6 +134,11 @@ def run_asr_transcription(
     if not output_srt.exists():
         output_srt.write_text("", encoding="utf-8")
     return False
+
+
+def has_chinese_translation(items: list[SubtitleItem]) -> bool:
+    """Check if translated subtitle items actually contain Chinese (CJK) characters."""
+    return any(is_cjk(it.target_text) for it in items if it.target_text)
 
 
 def generate_subtitles(
@@ -252,9 +259,7 @@ def generate_subtitles(
                     translated_items = cand_items
 
         # 3. Free Translation: Try Google Translator fallback (VideoCaptioner / Pure Python HTTP)
-        if not translated_items or all(
-            not it.target_text or it.target_text == it.source_text for it in translated_items
-        ):
+        if not translated_items or not has_chinese_translation(translated_items):
             print("  -> Falling back to Google Translator...")
             success_google = translate_with_videocaptioner_free(
                 raw_srt_path, temp_translated_srt, engine="google"
@@ -269,9 +274,20 @@ def generate_subtitles(
                 # Built-in Pure Python Google HTTP Translator
                 translated_items = translate_with_google_http(base_items, target_lang="zh-CN")
 
-        # 4. Final safety check
+        # 4. Free Translation: Try MyMemory API fallback if still lacking Chinese characters
+        if not translated_items or not has_chinese_translation(translated_items):
+            print("  -> Falling back to MyMemory API Translator...")
+            translated_items = translate_with_mymemory_http(base_items, target_lang="zh-CN")
+
+        # 5. Final safety check & Quality Diagnostic
         if not translated_items:
             translated_items = base_items
+
+        if base_items and not has_chinese_translation(translated_items):
+            print(
+                "  [WARN] Quality Check Warning: Subtitles contain 0 Chinese (CJK) characters.\n"
+                "         Output will retain source subtitles. (Tip: Configure LLM API Key for guaranteed translation)"
+            )
 
     # Step 3: Generate 4 cooked subtitle files
     bilingual_srt_path = cooked_dir / "subtitle_bilingual.srt"

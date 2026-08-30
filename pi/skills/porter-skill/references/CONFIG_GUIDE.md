@@ -74,5 +74,7 @@ Configurations are resolved using cascading priority (highest to lowest):
 
 1. **Pre-extracted Chinese Subtitles (Zero-Cost Fast Path)**: If the streaming platform provides a Chinese translation or auto-caption track (`zh-Hans`/`zh`), it is downloaded into `raw/subtitle_zh.srt` and aligned directly with `raw/subtitle.srt` with zero latency and zero API cost.
 2. **LLM Translation**: When `llm.api_key` or `OPENAI_API_KEY` is present, performs contextual semantic translation and subtitle optimization.
-3. **Bing Translator**: Free translation fallback.
-4. **Google Translator**: Free translation fallback (VideoCaptioner + Pure Python HTTP fallback).
+3. **Bing Translator**: Free translation fallback via VideoCaptioner.
+4. **Google Translator**: Free translation fallback (VideoCaptioner + Pure Python HTTP fallback with multi-client rotation and browser User-Agent headers).
+5. **MyMemory API**: Pure Python HTTP fallback using MyMemory API.
+6. **CJK Quality Assurance**: Built-in automated CJK detection checks if generated subtitles contain valid Chinese characters, automatically retrying fallbacks if untranslated.

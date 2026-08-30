@@ -243,6 +243,7 @@ class YouTubeExtractor(BasePlatformExtractor):
             "quiet": False,
             "no_warnings": True,
             "overwrites": True,
+            "ignoreerrors": "only_download",
             "extractor_args": {"youtube": {"player_client": player_clients}},
         }
         if cookies_file:
@@ -270,7 +271,9 @@ class YouTubeExtractor(BasePlatformExtractor):
                 ydl.download([url])
         except Exception as e:  # noqa: BLE001
             print(f"  [WARN] Initial download with subtitles encountered issue: {e}")
-            print("  -> Retrying download without subtitles (will use ASR fallback)...")
+            print(
+                "  -> Retrying media download without subtitles (retaining any downloaded subtitles)..."
+            )
             ydl_opts_retry = dict(ydl_opts_download)
             ydl_opts_retry.pop("writesubtitles", None)
             ydl_opts_retry.pop("writeautomaticsub", None)
@@ -384,6 +387,24 @@ class YouTubeExtractor(BasePlatformExtractor):
 
         if chosen_zh_lang:
             subtitle_zh_path = _save_sub(chosen_zh_lang, "subtitle_zh.srt")
+
+        # Rescue any downloaded subtitle file if exact language tag match missed
+        if not subtitle_path:
+            for sf in temp_dir.glob("download*.*"):
+                if sf.suffix.lower() in [".srt", ".vtt"] and not any(
+                    zh_code in sf.name.lower()
+                    for zh_code in ["zh-hans", "zh-hant", "zh-cn", "zh-tw"]
+                ):
+                    dest = raw_dir / "subtitle.srt"
+                    if sf.suffix.lower() == ".srt":
+                        dest.write_text(
+                            sf.read_text(encoding="utf-8", errors="replace"), encoding="utf-8"
+                        )
+                    else:
+                        vtt_text = sf.read_text(encoding="utf-8", errors="replace")
+                        dest.write_text(_convert_vtt_to_srt(vtt_text), encoding="utf-8")
+                    subtitle_path = dest
+                    break
 
         # 7. Save metadata JSON
         metadata_path = raw_dir / "metadata.json"

@@ -32,10 +32,13 @@ git clone https://github.com/RolinShmily/porter-skill.git ~/.pi/agent/skills/por
    - 当视频无原生字幕需 ASR 时，自动按顺序逐个尝试：
      $$\text{bijian (必剪免费)} \longrightarrow \text{jianying (剪映免费)} \longrightarrow \text{whisper-api} \longrightarrow \text{whisper-cpp}$$
    - 任何一个引擎因网络或格式失败，立即无缝尝试下一个，确保转录必定成功。
-3. **分层翻译与优化策略（Bing 优先于 Google）**：
+3. **分层翻译与高可用容灾（LLM ➔ Bing ➔ Google ➔ MyMemory）**：
    - **大模型增强（配置 LLM 时）**：优先使用 DeepSeek / GPT 上下文语义纠错与优化；
-   - **免费双引擎兜底（未配 LLM 时）**：
-     $$\text{Bing 翻译 (优先)} \longrightarrow \text{Google 翻译 (回退)}$$
+   - **免配置多级容灾（未配 LLM 时）**：
+     $$\text{Bing 翻译} \longrightarrow \text{Google HTTP (多端轮换/反爬伪装)} \longrightarrow \text{MyMemory 免费 API 兜底}$$
+   - **汉化质量自检（CJK 校验）**：流水线内置中文字符自动检测与自愈机制，杜绝未翻译假熟肉。
+4. **解耦字幕下载与反爬容错**：
+   - 字幕与音视频流下载解耦，若单一语言轨遭遇 429 不会丢弃已成功下载的源文字幕，避免误回退到慢速 ASR。
 4. **两级规范输出目录**：
    - 一级目录 `raw/`：标准化母版视频 (`video.mp4`)、基准音轨 (`audio.wav`)、封面 (`cover.jpg`)、元数据 (`metadata.json`)、字幕源 (`subtitle.srt`)；
    - 二级目录 `cooked/`：双语/纯中文字幕 (`.srt`, `.ass`)、双语硬字幕熟肉 (`video_bilingual.mp4`)、纯中文硬字幕熟肉 (`video_zh.mp4`)。
@@ -133,3 +136,19 @@ python -m porter_skill "<YOUTUBE_URL>" -o "./output"
 - `--only-bilingual`：仅压制双语版本熟肉
 - `--only-zh`：仅压制纯中文版本熟肉
 - `--cookies <file>` / `--cookies-from-browser <browser>`：携带 Cookie 下载受限视频
+
+---
+
+## 智能体最佳实践与验证工作流 (Agent Best Practices)
+
+当 AI 智能体（Agent）调用本 Skill 执行视频搬运任务时，应遵循以下闭环工作流：
+
+1. **绝对路径调用**：
+   - 若在项目工作区外，使用绝对路径调用 runner 脚本：
+     `python <SKILL_DIR>/scripts/run_porter.py "<URL>" -o "./output"`
+2. **反爬与限流自愈**：
+   - 若遇到 YouTube 登录验证或 429 报错，主动携带浏览器 Cookie 参数重试：
+     `python <SKILL_DIR>/scripts/run_porter.py "<URL>" -o "./output" --cookies-from-browser chrome`
+3. **闭环质检验收 (Verification)**：
+   - 执行完成后，智能体应主动使用 `read` 工具抽检 `cooked/subtitle_bilingual.srt` 前 10 行；
+   - 确认中文字幕行包含正常中文字符（CJK），核验无误后再输出交付总结报告。

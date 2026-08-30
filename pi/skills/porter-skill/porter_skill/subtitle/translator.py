@@ -13,6 +13,12 @@ from openai import OpenAI
 from porter_skill.config import PorterConfig
 from porter_skill.subtitle.formatter import SubtitleItem
 
+DEFAULT_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/124.0.0.0 Safari/537.36"
+)
+
 
 def _get_videocaptioner_bin() -> str | None:
     """Resolve path to videocaptioner binary if available."""
@@ -31,86 +37,148 @@ def translate_with_google_http(
 ) -> list[SubtitleItem]:
     """
     Pure Python translation using Google Translate HTTP API (zero external CLI dependencies).
-    Batches texts to reduce HTTP round-trips.
+    Uses browser User-Agent headers, rotating client IDs, and robust fallback.
     """
     if not items:
         return []
 
     url = "https://translate.googleapis.com/translate_a/single"
+    headers = {"User-Agent": DEFAULT_USER_AGENT}
     translated_items: list[SubtitleItem] = []
 
-    # Batch lines with a unique delimiter to translate in fewer HTTP requests
-    batch_size = 20
+    # Strategy 1: Batch translation with newline delimiter
+    batch_size = 15
     delimiter = "\n=====\n"
 
     for i in range(0, len(items), batch_size):
         batch = items[i : i + batch_size]
         combined_text = delimiter.join(it.source_text for it in batch)
 
-        params = {
-            "client": "gtx",
-            "sl": "auto",
-            "tl": target_lang,
-            "dt": "t",
-            "q": combined_text,
-        }
-
-        try:
-            resp = requests.get(url, params=params, timeout=15)
-            if resp.status_code == 200:
-                data = resp.json()
-                translated_full = "".join([part[0] for part in data[0] if part[0]])
-                translated_lines = [line.strip() for line in translated_full.split("=====")]
-
-                for idx, it in enumerate(batch):
-                    zh_text = (
-                        translated_lines[idx].strip()
-                        if idx < len(translated_lines) and translated_lines[idx].strip()
-                        else it.source_text
-                    )
-                    translated_items.append(
-                        SubtitleItem(
-                            index=it.index,
-                            start_ms=it.start_ms,
-                            end_ms=it.end_ms,
-                            source_text=it.source_text,
-                            target_text=zh_text,
-                        )
-                    )
-                continue
-        except Exception as e:  # noqa: BLE001
-            print(f"  [WARN] Google HTTP batch translation warning: {e}")
-
-        # Individual fallback if batch failed
-        for it in batch:
+        batch_success = False
+        for client_id in ["gtx", "dict-chrome-ex"]:
+            params = {
+                "client": client_id,
+                "sl": "auto",
+                "tl": target_lang,
+                "dt": "t",
+                "q": combined_text,
+            }
             try:
-                resp = requests.get(
-                    url,
-                    params={
-                        "client": "gtx",
-                        "sl": "auto",
-                        "tl": target_lang,
-                        "dt": "t",
-                        "q": it.source_text,
-                    },
-                    timeout=10,
-                )
+                resp = requests.get(url, params=params, headers=headers, timeout=12)
                 if resp.status_code == 200:
                     data = resp.json()
-                    zh_text = "".join([part[0] for part in data[0] if part[0]])
-                    translated_items.append(
-                        SubtitleItem(
-                            index=it.index,
-                            start_ms=it.start_ms,
-                            end_ms=it.end_ms,
-                            source_text=it.source_text,
-                            target_text=zh_text.strip() or it.source_text,
-                        )
+                    translated_full = "".join([part[0] for part in data[0] if part and part[0]])
+                    translated_lines = [line.strip() for line in translated_full.split("=====")]
+
+                    if len(translated_lines) == len(batch):
+                        for idx, it in enumerate(batch):
+                            zh_text = (
+                                translated_lines[idx].strip()
+                                if translated_lines[idx].strip()
+                                else it.source_text
+                            )
+                            translated_items.append(
+                                SubtitleItem(
+                                    index=it.index,
+                                    start_ms=it.start_ms,
+                                    end_ms=it.end_ms,
+                                    source_text=it.source_text,
+                                    target_text=zh_text,
+                                )
+                            )
+                        batch_success = True
+                        break
+            except Exception:  # noqa: BLE001, S110
+                pass
+
+        if batch_success:
+            continue
+
+        # Strategy 2: Individual line-by-line fallback
+        for it in batch:
+            line_translated = ""
+            for client_id in ["dict-chrome-ex", "gtx"]:
+                try:
+                    resp = requests.get(
+                        url,
+                        params={
+                            "client": client_id,
+                            "sl": "auto",
+                            "tl": target_lang,
+                            "dt": "t",
+                            "q": it.source_text,
+                        },
+                        headers=headers,
+                        timeout=8,
                     )
-                else:
-                    translated_items.append(it)
-            except Exception:  # noqa: BLE001
-                translated_items.append(it)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        line_translated = "".join(
+                            [part[0] for part in data[0] if part and part[0]]
+                        ).strip()
+                        if line_translated:
+                            break
+                except Exception:  # noqa: BLE001, S110
+                    pass
+
+            translated_items.append(
+                SubtitleItem(
+                    index=it.index,
+                    start_ms=it.start_ms,
+                    end_ms=it.end_ms,
+                    source_text=it.source_text,
+                    target_text=line_translated or it.source_text,
+                )
+            )
+
+    return translated_items
+
+
+def translate_with_mymemory_http(
+    items: list[SubtitleItem],
+    target_lang: str = "zh-CN",
+) -> list[SubtitleItem]:
+    """
+    Pure Python translation fallback using MyMemory Translated API.
+    Zero-config, free alternative translation API.
+    """
+    if not items:
+        return []
+
+    url = "https://api.mymemory.translated.net/get"
+    headers = {"User-Agent": DEFAULT_USER_AGENT}
+    translated_items: list[SubtitleItem] = []
+
+    for it in items:
+        if not it.source_text.strip():
+            translated_items.append(it)
+            continue
+
+        zh_text = ""
+        try:
+            params = {
+                "q": it.source_text,
+                "langpair": f"en|{target_lang}",
+            }
+            resp = requests.get(url, params=params, headers=headers, timeout=8)
+            if resp.status_code == 200:
+                data = resp.json()
+                response_data = data.get("responseData", {})
+                translated = response_data.get("translatedText", "")
+                if translated and not translated.startswith("MYMEMORY WARNING"):
+                    zh_text = translated.strip()
+        except Exception:  # noqa: BLE001, S110
+            pass
+
+        translated_items.append(
+            SubtitleItem(
+                index=it.index,
+                start_ms=it.start_ms,
+                end_ms=it.end_ms,
+                source_text=it.source_text,
+                target_text=zh_text or it.target_text or it.source_text,
+            )
+        )
 
     return translated_items
 
