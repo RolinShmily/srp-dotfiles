@@ -29,6 +29,7 @@ import {
 import {
   Editor,
   type EditorTheme,
+  type Focusable,
   Key,
   Text,
   matchesKey,
@@ -299,6 +300,7 @@ async function askSingleChoice(
       let editMode = false;
       let cachedLines: string[] | undefined;
       let cachedWidth = -1;
+      let componentFocused = false;
       const editor = new Editor(tui, createEditorTheme(theme));
 
       editor.onSubmit = (value) => {
@@ -316,6 +318,7 @@ async function askSingleChoice(
         if (editMode) {
           if (matchesKey(data, Key.escape)) {
             editMode = false;
+            editor.focused = false;
             editor.setText("");
             refresh();
             return;
@@ -339,6 +342,7 @@ async function askSingleChoice(
           const selected = allOptions[optionIndex];
           if (selected.isOther) {
             editMode = true;
+            editor.focused = componentFocused;
             editor.setText("");
             refresh();
             return;
@@ -407,6 +411,13 @@ async function askSingleChoice(
           cachedLines = undefined;
         },
         handleInput,
+        get focused(): boolean {
+          return componentFocused;
+        },
+        set focused(value: boolean) {
+          componentFocused = value;
+          editor.focused = editMode && componentFocused;
+        },
       };
     },
   );
@@ -442,6 +453,7 @@ async function askMultiChoice(
       let editMode = false;
       let cachedLines: string[] | undefined;
       let cachedWidth = -1;
+      let componentFocused = false;
       const selected = new Map<string, AskAnswer>();
       const editor = new Editor(tui, createEditorTheme(theme));
 
@@ -450,6 +462,7 @@ async function askMultiChoice(
         if (!trimmed) return;
         selected.set("other", { type: "other", label: trimmed, value: trimmed });
         editMode = false;
+        editor.focused = false;
         refresh();
       };
 
@@ -476,6 +489,7 @@ async function askMultiChoice(
         if (editMode) {
           if (matchesKey(data, Key.escape)) {
             editMode = false;
+            editor.focused = false;
             editor.setText(selected.get("other")?.label || "");
             refresh();
             return;
@@ -505,6 +519,7 @@ async function askMultiChoice(
               refresh();
             } else {
               editMode = true;
+              editor.focused = componentFocused;
               editor.setText("");
               refresh();
             }
@@ -523,6 +538,7 @@ async function askMultiChoice(
           }
           if (current.isOther) {
             editMode = true;
+            editor.focused = componentFocused;
             editor.setText(selected.get("other")?.label || "");
             refresh();
             return;
@@ -618,6 +634,13 @@ async function askMultiChoice(
           cachedLines = undefined;
         },
         handleInput,
+        get focused(): boolean {
+          return componentFocused;
+        },
+        set focused(value: boolean) {
+          componentFocused = value;
+          editor.focused = editMode && componentFocused;
+        },
       };
     },
   );

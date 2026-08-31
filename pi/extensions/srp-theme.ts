@@ -286,6 +286,7 @@ export function buildCustomFooter(
   tui: any,
   theme: Theme,
   footerData: ReadonlyFooterDataProvider,
+  tpsMeter?: TpsMeter,
 ): Component {
   const unsub = footerData.onBranchChange(() => tui.requestRender());
 
@@ -406,45 +407,46 @@ export function buildCustomFooter(
 
       // 提取扩展 statuses
       const statuses = footerData.getExtensionStatuses();
-      const tpsRaw = statuses.get("tps");
-      const tpsText = tpsRaw ? sanitizeStatusText(tpsRaw) : "";
-      const tpsWidth = tpsText ? visibleWidth(tpsText) : 0;
       const memText = statuses.get("srp-memory") || statuses.get("om");
 
       const minPadding = 2;
       const rightWidth = visibleWidth(rightSide);
-      let statsLine: string;
 
-      if (tpsText) {
-        const totalNeeded = statsLeftWidth + minPadding + tpsWidth + minPadding + rightWidth;
-        if (totalNeeded <= width) {
-          // 空间充裕：statsLeft 居左，tpsText 居中，rightSide 居右
-          const remaining = width - statsLeftWidth - tpsWidth - rightWidth;
-          const padLeft = " ".repeat(Math.max(minPadding, Math.floor(remaining / 2)));
-          const padRight = " ".repeat(Math.max(minPadding, remaining - Math.floor(remaining / 2)));
-          statsLine = theme.fg("dim", statsLeft) + padLeft + tpsText + padRight + theme.fg("dim", rightSide);
-        } else {
-          // 空间较紧凑：尝试截断 rightSide 或降级
-          const availableForRight = width - statsLeftWidth - minPadding - tpsWidth - 1;
-          if (availableForRight >= 8) {
-            const truncRight = truncateToWidth(rightSide, availableForRight, "");
-            const padRight = " ".repeat(Math.max(1, width - statsLeftWidth - minPadding - tpsWidth - visibleWidth(truncRight)));
-            statsLine = theme.fg("dim", statsLeft) + " ".repeat(minPadding) + tpsText + padRight + theme.fg("dim", truncRight);
-          } else if (statsLeftWidth + minPadding + tpsWidth <= width) {
-            const padding = " ".repeat(Math.max(minPadding, width - statsLeftWidth - tpsWidth));
-            statsLine = theme.fg("dim", statsLeft) + padding + tpsText;
-          } else if (statsLeftWidth + minPadding + rightWidth <= width) {
-            const padding = " ".repeat(Math.max(minPadding, width - statsLeftWidth - rightWidth));
-            statsLine = theme.fg("dim", statsLeft) + padding + theme.fg("dim", rightSide);
-          } else {
-            statsLine = theme.fg("dim", statsLeft);
+      let tpsText = "";
+      let tpsWidth = 0;
+
+      if (tpsMeter && tpsMeter.enabled) {
+        // 严格遵循优先级：优先保障右侧模型/Provider完整显示，根据剩余空间自适应折叠 TPS（优先隐藏 μ/p95，空间不足再隐藏走势图/隐藏TPS）
+        const availableForTps = width - statsLeftWidth - minPadding - rightWidth - minPadding;
+        tpsText = tpsMeter.renderAdaptive(theme, availableForTps);
+        tpsWidth = tpsText ? visibleWidth(tpsText) : 0;
+      } else {
+        const tpsRaw = statuses.get("tps");
+        if (tpsRaw) {
+          const rawSanitized = sanitizeStatusText(tpsRaw);
+          const rawWidth = visibleWidth(rawSanitized);
+          if (statsLeftWidth + minPadding + rawWidth + minPadding + rightWidth <= width) {
+            tpsText = rawSanitized;
+            tpsWidth = rawWidth;
           }
         }
+      }
+
+      let statsLine: string;
+
+      if (tpsText && tpsWidth > 0) {
+        // 空间充裕：statsLeft 居左，tpsText 居中，rightSide 居右
+        const remaining = width - statsLeftWidth - tpsWidth - rightWidth;
+        const padLeft = " ".repeat(Math.max(minPadding, Math.floor(remaining / 2)));
+        const padRight = " ".repeat(Math.max(minPadding, remaining - Math.floor(remaining / 2)));
+        statsLine = theme.fg("dim", statsLeft) + padLeft + tpsText + padRight + theme.fg("dim", rightSide);
       } else {
+        // 无 TPS 或空间不足已被优雅折叠：优先完整展示 statsLeft 与 rightSide
         if (statsLeftWidth + minPadding + rightWidth <= width) {
           const padding = " ".repeat(Math.max(minPadding, width - statsLeftWidth - rightWidth));
           statsLine = theme.fg("dim", statsLeft) + padding + theme.fg("dim", rightSide);
         } else {
+          // 极端超窄屏（连 Token 统计 + 模型名都放不下）时，才做末尾截断
           const availableForRight = width - statsLeftWidth - minPadding;
           if (availableForRight > 0) {
             const truncRight = truncateToWidth(rightSide, availableForRight, "");
@@ -720,7 +722,11 @@ export class TpsMeter {
     );
   }
 
-  renderLive(theme: Theme): string {
+  isStreaming(): boolean {
+    return this.streaming;
+  }
+
+  renderLive(theme: Theme, maxBudget?: number): string {
     const ref = this.firstTokenMs > 0 ? this.firstTokenMs : this.streamStartMs;
     const elapsed = (this.now() - ref) / 1000;
     const tps = elapsed > 0.3 ? this.streamTokens / elapsed : 0;
@@ -729,10 +735,17 @@ export class TpsMeter {
     const g = this.gauge(tps, theme);
     const num = this.speedColor(tps, this.fmt(tps), theme);
     const unit = theme.fg("dim", "tps");
-    return `${s} ${g} ${num} ${unit}`;
+
+    const fullStr = `${s} ${g} ${num} ${unit}`;
+    const compactStr = `${s} ${num} ${unit}`;
+
+    if (maxBudget == null) return fullStr;
+    if (maxBudget >= visibleWidth(fullStr)) return fullStr;
+    if (maxBudget >= visibleWidth(compactStr)) return compactStr;
+    return "";
   }
 
-  renderFinal(theme: Theme): string {
+  renderFinal(theme: Theme, maxBudget?: number): string {
     const avg = this.winAvg();
     const mu = this.atMean();
     const p95 = this.atP95();
@@ -744,7 +757,23 @@ export class TpsMeter {
     const p = `${theme.fg("dim", "p95")} ${this.speedColor(p95, this.fmt(p95), theme)}`;
     const label = theme.fg("dim", "tps");
 
-    return `${sp} ${a} ${label} ${sep} ${m} ${sep} ${p}`;
+    const l3 = `${sp} ${a} ${label} ${sep} ${m} ${sep} ${p}`;
+    const l2 = `${sp} ${a} ${label}`;
+    const l1 = `${a} ${label}`;
+
+    if (maxBudget == null) return l3;
+    if (maxBudget >= visibleWidth(l3)) return l3;
+    if (maxBudget >= visibleWidth(l2)) return l2;
+    if (maxBudget >= visibleWidth(l1)) return l1;
+    return "";
+  }
+
+  renderAdaptive(theme: Theme, maxBudget: number): string {
+    if (!this.enabled) return "";
+    if (this.streaming) {
+      return this.renderLive(theme, maxBudget);
+    }
+    return this.renderFinal(theme, maxBudget);
   }
 
   private startTick(ctx: ExtensionContext): void {
@@ -855,7 +884,7 @@ export default function (pi: ExtensionAPI) {
       }),
       { placement: "belowEditor" },
     );
-    ctx.ui.setFooter((tui, theme, footerData) => buildCustomFooter(ctx, tui, theme, footerData));
+    ctx.ui.setFooter((tui, theme, footerData) => buildCustomFooter(ctx, tui, theme, footerData, tpsMeter));
   };
 
   const removeFooter = (ctx: ExtensionContext): void => {
