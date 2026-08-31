@@ -3,7 +3,7 @@
  *
  * 功能特性：
  * 1. Header: 启动/会话重置时展示 135° 紫粉渐变赛博朋克图形 Logo 与 srprolin 终端身份签名；
- * 2. Footer: 在编辑器下方（belowEditor widget）显示最近一次用户提交的消息提示（↳ <prompt>），状态栏第一行自适应展示 PWD、最后一轮 Agent-Loop 结束时间胶囊（{ finished HH:mm }）与当前时间胶囊；
+ * 2. Footer: 在编辑器下方（belowEditor widget）显示最近一次用户提交的消息提示（↳ <prompt>），状态栏第一行自适应展示 PWD、最后一轮 Agent-Loop 结束时间胶囊（{ finished at HH:mm } / { finished on MM-DD } / { finished in YYYY }）与当前时间胶囊；
  * 3. TPS Meter: 实时测量 Tokens Per Second (TPS) 并在状态栏显示流式平滑槽位条与历史 Sparkline 趋势指标；
  * 4. 单一主控制命令：`/srp-theme [header|footer|tps] [on|off]` 或 `/srp-theme status`。
  *
@@ -265,11 +265,28 @@ export function formatCwdForFooter(cwd: string, home?: string): string {
 
 const WEEK_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-export function formatLoopEndTime(d: Date): string {
+export function formatLoopEndTime(finished: Date, now: Date = new Date()): string {
   const pad = (n: number) => n.toString().padStart(2, "0");
-  const hours = pad(d.getHours());
-  const minutes = pad(d.getMinutes());
-  return `{ finished ${hours}:${minutes} }`;
+
+  // 1. 跨年：显示 in YYYY
+  if (finished.getFullYear() !== now.getFullYear()) {
+    return `{ finished in ${finished.getFullYear()} }`;
+  }
+
+  // 2. 同一年、不同天：显示 on MM-DD
+  if (
+    finished.getMonth() !== now.getMonth() ||
+    finished.getDate() !== now.getDate()
+  ) {
+    const month = pad(finished.getMonth() + 1);
+    const date = pad(finished.getDate());
+    return `{ finished on ${month}-${date} }`;
+  }
+
+  // 3. 同一天：显示 at HH:mm
+  const hours = pad(finished.getHours());
+  const minutes = pad(finished.getMinutes());
+  return `{ finished at ${hours}:${minutes} }`;
 }
 
 export function getLastLoopEndTimeFromSession(ctx: ExtensionContext): Date | null {
@@ -379,9 +396,10 @@ export function buildCustomFooter(
         pwd = `${pwd} • ${sessionName}`;
       }
 
-      const clockStr = formatFooterClock(new Date(), width);
+      const now = new Date();
+      const clockStr = formatFooterClock(now, width);
       const lastLoopEnd = getLastLoopEndTime?.() ?? null;
-      const loopEndStr = clockStr && lastLoopEnd ? formatLoopEndTime(lastLoopEnd) : "";
+      const loopEndStr = clockStr && lastLoopEnd ? formatLoopEndTime(lastLoopEnd, now) : "";
       let pwdLine: string;
 
       if (clockStr) {
