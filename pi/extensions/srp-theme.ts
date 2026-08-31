@@ -529,8 +529,17 @@ export class TpsMeter {
   private sparkDirty = true;
   private sparkTheme: Theme | null = null;
   private spinI = 0;
+  private lastStatusText: string | undefined = undefined;
 
   public enabled = true;
+
+  private applyStatus(ctx: ExtensionContext, text: string | undefined): void {
+    if (this.lastStatusText === text) return;
+    this.lastStatusText = text;
+    if (ctx.ui?.setStatus) {
+      ctx.ui.setStatus("tps", text);
+    }
+  }
 
   reset(ctx?: ExtensionContext): void {
     this.streaming = false;
@@ -551,12 +560,13 @@ export class TpsMeter {
     this.sparkDirty = true;
     this.sparkTheme = null;
     this.spinI = 0;
+    this.lastStatusText = undefined;
     if (ctx) {
       if (this.enabled) {
         const theme = ctx.ui?.theme ?? safeFallbackTheme;
-        ctx.ui.setStatus("tps", this.renderFinal(theme));
+        this.applyStatus(ctx, this.renderFinal(theme));
       } else {
-        ctx.ui.setStatus("tps", undefined);
+        this.applyStatus(ctx, undefined);
       }
     }
   }
@@ -780,18 +790,24 @@ export class TpsMeter {
     if (this.tickTimer) return;
     this.tickTimer = setInterval(() => {
       if (!this.streaming || !this.enabled) {
-        this.stopTick();
+        this.stopTick(ctx);
         return;
       }
       const theme = ctx.ui?.theme ?? safeFallbackTheme;
-      ctx.ui.setStatus("tps", this.renderLive(theme));
+      this.applyStatus(ctx, this.renderLive(theme));
     }, TpsMeter.STREAM_INTERVAL_MS);
+    (this.tickTimer as any)?.unref?.();
   }
 
-  stopTick(): void {
+  stopTick(ctx?: ExtensionContext): void {
+    this.streaming = false;
     if (this.tickTimer) {
       clearInterval(this.tickTimer);
       this.tickTimer = null;
+    }
+    if (ctx && this.enabled) {
+      const theme = ctx.ui?.theme ?? safeFallbackTheme;
+      this.applyStatus(ctx, this.renderFinal(theme));
     }
   }
 
@@ -828,21 +844,32 @@ export class TpsMeter {
 
     const ref = this.firstTokenMs > 0 ? this.firstTokenMs : this.streamStartMs;
     const elapsed = (this.now() - ref) / 1000;
-    if (elapsed < 0.1 || tokens === 0) return;
-
-    const tps = tokens / elapsed;
-    this.winPush(tps, this.now());
-    this.atPush(tps);
-    this.sparkPush(tps);
+    if (elapsed >= 0.1 && tokens > 0) {
+      const tps = tokens / elapsed;
+      this.winPush(tps, this.now());
+      this.atPush(tps);
+      this.sparkPush(tps);
+    }
 
     const theme = ctx.ui?.theme ?? safeFallbackTheme;
     const txt = this.renderFinal(theme);
-    if (txt) ctx.ui.setStatus("tps", txt);
+    this.applyStatus(ctx, txt || undefined);
   }
 
-  onAgentEnd(): void {
-    this.streaming = false;
-    this.stopTick();
+  onToolStart(ctx: ExtensionContext): void {
+    this.stopTick(ctx);
+  }
+
+  onTurnEnd(ctx?: ExtensionContext): void {
+    this.stopTick(ctx);
+  }
+
+  onAgentEnd(ctx?: ExtensionContext): void {
+    this.stopTick(ctx);
+  }
+
+  onAgentSettled(ctx?: ExtensionContext): void {
+    this.stopTick(ctx);
   }
 }
 
@@ -927,7 +954,7 @@ export default function (pi: ExtensionAPI) {
     lastUserPrompt = event.prompt;
   });
 
-  // TPS 监控事件
+  // TPS 监控与生命周期防御
   pi.on("message_start", (event, ctx) => {
     if (event.message.role !== "assistant") return;
     tpsMeter.onMessageStart(ctx);
@@ -944,8 +971,24 @@ export default function (pi: ExtensionAPI) {
     tpsMeter.onMessageEnd(realOut, ctx);
   });
 
-  pi.on("agent_end", () => {
-    tpsMeter.onAgentEnd();
+  pi.on("tool_execution_start", (_event, ctx) => {
+    tpsMeter.onToolStart(ctx);
+  });
+
+  pi.on("tool_call", (_event, ctx) => {
+    tpsMeter.onToolStart(ctx);
+  });
+
+  pi.on("turn_end", (_event, ctx) => {
+    tpsMeter.onTurnEnd(ctx);
+  });
+
+  pi.on("agent_end", (_event, ctx) => {
+    tpsMeter.onAgentEnd(ctx);
+  });
+
+  pi.on("agent_settled", (_event, ctx) => {
+    tpsMeter.onAgentSettled(ctx);
   });
 
   // 注册统一主题管理主命令
