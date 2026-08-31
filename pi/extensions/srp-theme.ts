@@ -3,7 +3,7 @@
  *
  * 功能特性：
  * 1. Header: 启动/会话重置时展示 135° 紫粉渐变赛博朋克图形 Logo 与 srprolin 终端身份签名；
- * 2. Footer: 在编辑器下方（belowEditor widget）显示最近一次用户提交的消息提示（↳ <prompt>），状态栏第一行自适应展示 PWD、最后一轮 Agent-Loop 结束时间胶囊（{ finished at HH:mm } / { finished on MM-DD } / { finished in YYYY }）与当前时间胶囊；
+ * 2. Footer: 在编辑器下方（belowEditor widget）显示最近一次用户提交的消息提示（↳ <prompt>），状态栏第一行自适应展示 PWD、最后一轮 Agent-Loop 结束时间与用时胶囊（{ finished at HH:mm · 4.2s }）与当前时间胶囊；
  * 3. TPS Meter: 实时测量 Tokens Per Second (TPS) 并在状态栏显示流式平滑槽位条与历史 Sparkline 趋势指标；
  * 4. 单一主控制命令：`/srp-theme [header|footer|tps] [on|off]` 或 `/srp-theme status`。
  *
@@ -265,12 +265,37 @@ export function formatCwdForFooter(cwd: string, home?: string): string {
 
 const WEEK_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-export function formatLoopEndTime(finished: Date, now: Date = new Date()): string {
+export function formatDuration(ms: number): string {
+  if (ms < 0) return "0.0s";
+  if (ms < 60_000) {
+    return `${(ms / 1000).toFixed(1)}s`;
+  }
+  if (ms < 3600_000) {
+    const totalSecs = Math.round(ms / 1000);
+    const mins = Math.floor(totalSecs / 60);
+    const secs = totalSecs % 60;
+    return `${mins}m${secs < 10 ? "0" : ""}${secs}s`;
+  }
+  const totalMins = Math.round(ms / 60000);
+  const hours = Math.floor(totalMins / 60);
+  const mins = totalMins % 60;
+  return `${hours}h${mins < 10 ? "0" : ""}${mins}m`;
+}
+
+export function formatLoopEndTime(
+  finished: Date,
+  now: Date = new Date(),
+  durationMs?: number | null,
+): string {
   const pad = (n: number) => n.toString().padStart(2, "0");
+  const durationSuffix =
+    typeof durationMs === "number" && durationMs >= 0
+      ? ` · ${formatDuration(durationMs)}`
+      : "";
 
   // 1. 跨年：显示 in YYYY
   if (finished.getFullYear() !== now.getFullYear()) {
-    return `{ finished in ${finished.getFullYear()} }`;
+    return `{ finished in ${finished.getFullYear()}${durationSuffix} }`;
   }
 
   // 2. 同一年、不同天：显示 on MM-DD
@@ -280,31 +305,67 @@ export function formatLoopEndTime(finished: Date, now: Date = new Date()): strin
   ) {
     const month = pad(finished.getMonth() + 1);
     const date = pad(finished.getDate());
-    return `{ finished on ${month}-${date} }`;
+    return `{ finished on ${month}-${date}${durationSuffix} }`;
   }
 
   // 3. 同一天：显示 at HH:mm
   const hours = pad(finished.getHours());
   const minutes = pad(finished.getMinutes());
-  return `{ finished at ${hours}:${minutes} }`;
+  return `{ finished at ${hours}:${minutes}${durationSuffix} }`;
 }
 
-export function getLastLoopEndTimeFromSession(ctx: ExtensionContext): Date | null {
+export function getLastLoopInfoFromSession(ctx: ExtensionContext): {
+  endTime: Date;
+  durationMs: number | null;
+} | null {
   try {
     const entries = ctx.sessionManager?.getEntries?.() ?? [];
+    let lastAssistantIdx = -1;
+    let lastAssistantDate: Date | null = null;
+
     for (let i = entries.length - 1; i >= 0; i--) {
       const entry = entries[i] as any;
       if (entry?.type === "message" && entry?.message?.role === "assistant" && entry?.timestamp) {
         const d = new Date(entry.timestamp);
         if (!isNaN(d.getTime())) {
-          return d;
+          lastAssistantIdx = i;
+          lastAssistantDate = d;
+          break;
         }
       }
     }
+
+    if (!lastAssistantDate || lastAssistantIdx === -1) {
+      return null;
+    }
+
+    // 从 lastAssistantIdx 往前找距离其最近的一条 user 消息
+    let durationMs: number | null = null;
+    for (let i = lastAssistantIdx - 1; i >= 0; i--) {
+      const entry = entries[i] as any;
+      if (entry?.type === "message" && entry?.message?.role === "user" && entry?.timestamp) {
+        const startDate = new Date(entry.timestamp);
+        if (!isNaN(startDate.getTime())) {
+          const diff = lastAssistantDate.getTime() - startDate.getTime();
+          if (diff >= 0) {
+            durationMs = diff;
+          }
+          break;
+        }
+      }
+    }
+
+    return {
+      endTime: lastAssistantDate,
+      durationMs,
+    };
   } catch {
-    // ignore
+    return null;
   }
-  return null;
+}
+
+export function getLastLoopEndTimeFromSession(ctx: ExtensionContext): Date | null {
+  return getLastLoopInfoFromSession(ctx)?.endTime ?? null;
 }
 
 export function formatFooterClock(d: Date, width: number): string {
@@ -330,6 +391,7 @@ export function buildCustomFooter(
   footerData: ReadonlyFooterDataProvider,
   tpsMeter?: TpsMeter,
   getLastLoopEndTime?: () => Date | null,
+  getLastLoopDuration?: () => number | null,
 ): Component {
   const unsub = footerData.onBranchChange(() => tui.requestRender());
 
@@ -399,7 +461,11 @@ export function buildCustomFooter(
       const now = new Date();
       const clockStr = formatFooterClock(now, width);
       const lastLoopEnd = getLastLoopEndTime?.() ?? null;
-      const loopEndStr = clockStr && lastLoopEnd ? formatLoopEndTime(lastLoopEnd, now) : "";
+      const lastLoopDuration = getLastLoopDuration?.() ?? null;
+      const loopEndStr =
+        clockStr && lastLoopEnd
+          ? formatLoopEndTime(lastLoopEnd, now, lastLoopDuration)
+          : "";
       let pwdLine: string;
 
       if (clockStr) {
@@ -937,6 +1003,8 @@ export default function (pi: ExtensionAPI) {
   let headerEnabled = true;
   let footerEnabled = true;
   let lastLoopEndTime: Date | null = null;
+  let lastLoopDurationMs: number | null = null;
+  let currentLoopStartMs = 0;
   const tpsMeter = new TpsMeter();
 
   const installHeader = (ctx: ExtensionContext): void => {
@@ -964,7 +1032,15 @@ export default function (pi: ExtensionAPI) {
       { placement: "belowEditor" },
     );
     ctx.ui.setFooter((tui, theme, footerData) =>
-      buildCustomFooter(ctx, tui, theme, footerData, tpsMeter, () => lastLoopEndTime),
+      buildCustomFooter(
+        ctx,
+        tui,
+        theme,
+        footerData,
+        tpsMeter,
+        () => lastLoopEndTime,
+        () => lastLoopDurationMs,
+      ),
     );
   };
 
@@ -975,7 +1051,10 @@ export default function (pi: ExtensionAPI) {
 
   pi.on("session_start", (_event, ctx) => {
     lastUserPrompt = "";
-    lastLoopEndTime = getLastLoopEndTimeFromSession(ctx);
+    currentLoopStartMs = 0;
+    const info = getLastLoopInfoFromSession(ctx);
+    lastLoopEndTime = info?.endTime ?? null;
+    lastLoopDurationMs = info?.durationMs ?? null;
     const cfg = readConfig(ctx.cwd);
     headerEnabled = cfg.header;
     footerEnabled = cfg.footer;
@@ -1007,6 +1086,7 @@ export default function (pi: ExtensionAPI) {
   // event.prompt 是 pi 接受并展开后的实际用户输入
   pi.on("before_agent_start", (event) => {
     lastUserPrompt = event.prompt;
+    currentLoopStartMs = Date.now();
   });
 
   // TPS 监控与生命周期防御
@@ -1040,11 +1120,17 @@ export default function (pi: ExtensionAPI) {
 
   pi.on("agent_end", (_event, ctx) => {
     lastLoopEndTime = new Date();
+    if (currentLoopStartMs > 0) {
+      lastLoopDurationMs = Math.max(0, Date.now() - currentLoopStartMs);
+    }
     tpsMeter.onAgentEnd(ctx);
   });
 
   pi.on("agent_settled", (_event, ctx) => {
     lastLoopEndTime = new Date();
+    if (currentLoopStartMs > 0) {
+      lastLoopDurationMs = Math.max(0, Date.now() - currentLoopStartMs);
+    }
     tpsMeter.onAgentSettled(ctx);
   });
 
