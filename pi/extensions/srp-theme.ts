@@ -3,7 +3,7 @@
  *
  * 功能特性：
  * 1. Header: 启动/会话重置时展示 135° 紫粉渐变赛博朋克图形 Logo 与 srprolin 终端身份签名；
- * 2. Footer: 在编辑器下方（belowEditor widget）显示最近一次用户提交的消息提示（↳ <prompt>）；
+ * 2. Footer: 在编辑器下方（belowEditor widget）显示最近一次用户提交的消息提示（↳ <prompt>），状态栏第一行自适应展示 PWD、最后一轮 Agent-Loop 结束时间胶囊（{ finished HH:mm }）与当前时间胶囊；
  * 3. TPS Meter: 实时测量 Tokens Per Second (TPS) 并在状态栏显示流式平滑槽位条与历史 Sparkline 趋势指标；
  * 4. 单一主控制命令：`/srp-theme [header|footer|tps] [on|off]` 或 `/srp-theme status`。
  *
@@ -265,6 +265,31 @@ export function formatCwdForFooter(cwd: string, home?: string): string {
 
 const WEEK_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+export function formatLoopEndTime(d: Date): string {
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  const hours = pad(d.getHours());
+  const minutes = pad(d.getMinutes());
+  return `{ finished ${hours}:${minutes} }`;
+}
+
+export function getLastLoopEndTimeFromSession(ctx: ExtensionContext): Date | null {
+  try {
+    const entries = ctx.sessionManager?.getEntries?.() ?? [];
+    for (let i = entries.length - 1; i >= 0; i--) {
+      const entry = entries[i] as any;
+      if (entry?.type === "message" && entry?.message?.role === "assistant" && entry?.timestamp) {
+        const d = new Date(entry.timestamp);
+        if (!isNaN(d.getTime())) {
+          return d;
+        }
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
 export function formatFooterClock(d: Date, width: number): string {
   if (width < 50) return "";
   const pad = (n: number) => n.toString().padStart(2, "0");
@@ -287,6 +312,7 @@ export function buildCustomFooter(
   theme: Theme,
   footerData: ReadonlyFooterDataProvider,
   tpsMeter?: TpsMeter,
+  getLastLoopEndTime?: () => Date | null,
 ): Component {
   const unsub = footerData.onBranchChange(() => tui.requestRender());
 
@@ -354,15 +380,22 @@ export function buildCustomFooter(
       }
 
       const clockStr = formatFooterClock(new Date(), width);
+      const lastLoopEnd = getLastLoopEndTime?.() ?? null;
+      const loopEndStr = clockStr && lastLoopEnd ? formatLoopEndTime(lastLoopEnd) : "";
       let pwdLine: string;
 
       if (clockStr) {
-        const clockWidth = visibleWidth(clockStr);
         const minGap = 2;
-        const availableForPwd = width - clockWidth - minGap;
+        const fullRightStr = loopEndStr ? `${loopEndStr} ${clockStr}` : clockStr;
+        const fullRightWidth = visibleWidth(fullRightStr);
+        const clockWidth = visibleWidth(clockStr);
 
-        if (availableForPwd >= 8) {
-          const truncPwd = truncateToWidth(pwd, availableForPwd, "...");
+        if (width - fullRightWidth - minGap >= 8) {
+          const truncPwd = truncateToWidth(pwd, width - fullRightWidth - minGap, "...");
+          const padSpaces = " ".repeat(Math.max(minGap, width - visibleWidth(truncPwd) - fullRightWidth));
+          pwdLine = theme.fg("dim", truncPwd) + padSpaces + theme.fg("dim", fullRightStr);
+        } else if (width - clockWidth - minGap >= 8) {
+          const truncPwd = truncateToWidth(pwd, width - clockWidth - minGap, "...");
           const padSpaces = " ".repeat(Math.max(minGap, width - visibleWidth(truncPwd) - clockWidth));
           pwdLine = theme.fg("dim", truncPwd) + padSpaces + theme.fg("dim", clockStr);
         } else {
@@ -885,6 +918,7 @@ export default function (pi: ExtensionAPI) {
   let lastUserPrompt = "";
   let headerEnabled = true;
   let footerEnabled = true;
+  let lastLoopEndTime: Date | null = null;
   const tpsMeter = new TpsMeter();
 
   const installHeader = (ctx: ExtensionContext): void => {
@@ -911,7 +945,9 @@ export default function (pi: ExtensionAPI) {
       }),
       { placement: "belowEditor" },
     );
-    ctx.ui.setFooter((tui, theme, footerData) => buildCustomFooter(ctx, tui, theme, footerData, tpsMeter));
+    ctx.ui.setFooter((tui, theme, footerData) =>
+      buildCustomFooter(ctx, tui, theme, footerData, tpsMeter, () => lastLoopEndTime),
+    );
   };
 
   const removeFooter = (ctx: ExtensionContext): void => {
@@ -921,6 +957,7 @@ export default function (pi: ExtensionAPI) {
 
   pi.on("session_start", (_event, ctx) => {
     lastUserPrompt = "";
+    lastLoopEndTime = getLastLoopEndTimeFromSession(ctx);
     const cfg = readConfig(ctx.cwd);
     headerEnabled = cfg.header;
     footerEnabled = cfg.footer;
@@ -984,10 +1021,12 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.on("agent_end", (_event, ctx) => {
+    lastLoopEndTime = new Date();
     tpsMeter.onAgentEnd(ctx);
   });
 
   pi.on("agent_settled", (_event, ctx) => {
+    lastLoopEndTime = new Date();
     tpsMeter.onAgentSettled(ctx);
   });
 
