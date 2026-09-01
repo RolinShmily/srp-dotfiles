@@ -11,6 +11,10 @@
   "srpAsk": {
     "enabled": false
   },
+  "srpPrompt": {
+    "enabled": false,
+    "shortcuts": ["alt+s"]
+  },
   "srpWeb": {
     "search": false,
     "fetch": false

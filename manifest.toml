@@ -33,6 +33,8 @@ configs = [
 zsh_module = "arch"
 pi_extensions = [
     "srp-ask.ts",
+    "srp-continue.ts",
+    "srp-prompt.ts",
     "srp-providers.ts",
     "srp-theme.ts",
     "srp-vision.ts",
@@ -79,6 +81,8 @@ configs = [
 zsh_module = "debian"
 pi_extensions = [
     "srp-ask.ts",
+    "srp-continue.ts",
+    "srp-prompt.ts",
     "srp-providers.ts",
     "srp-theme.ts",
     "srp-vision.ts",
@@ -133,6 +137,8 @@ configs = [
 zsh_module = "termux"
 pi_extensions = [
     "srp-ask.ts",
+    "srp-continue.ts",
+    "srp-prompt.ts",
     "srp-providers.ts",
     "srp-theme.ts",
     "srp-vision.ts",
