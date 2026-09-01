@@ -121,7 +121,7 @@ export interface ZellijPaneSnapshot {
   is_focused?: boolean;
 }
 
-export type ZellijSplitDirection = "down" | "right";
+export type ZellijSplitDirection = "right";
 
 export type ZellijPlacementPlan =
   | {
@@ -151,20 +151,9 @@ function isUsableZellijTiledPane(pane: ZellijPaneSnapshot): boolean {
 export function predictZellijSplitDirection(pane: ZellijPaneSnapshot): ZellijSplitDirection | null {
   const columns = pane.pane_columns ?? 0;
   const rows = pane.pane_rows ?? 0;
-  if (columns < ZELLIJ_MIN_TERMINAL_WIDTH || rows < ZELLIJ_MIN_TERMINAL_HEIGHT) return null;
+  if (columns < ZELLIJ_MIN_TERMINAL_WIDTH * 2 || rows < ZELLIJ_MIN_TERMINAL_HEIGHT) return null;
 
-  if (
-    rows * ZELLIJ_CURSOR_HEIGHT_WIDTH_RATIO > columns &&
-    rows > ZELLIJ_MIN_TERMINAL_HEIGHT * 2
-  ) {
-    return "down";
-  }
-
-  if (columns > ZELLIJ_MIN_TERMINAL_WIDTH * 2) {
-    return "right";
-  }
-
-  return null;
+  return "right";
 }
 
 export function canSplitZellijPane(
@@ -174,13 +163,6 @@ export function canSplitZellijPane(
 ): boolean {
   const columns = pane.pane_columns ?? 0;
   const rows = pane.pane_rows ?? 0;
-  const direction = predictZellijSplitDirection(pane);
-  if (!direction) return false;
-
-  if (direction === "down") {
-    return columns >= minColumns && Math.floor(rows / 2) >= minRows;
-  }
-
   return rows >= minRows && Math.floor(columns / 2) >= minColumns;
 }
 
@@ -207,47 +189,44 @@ export function selectZellijPlacement(
   const tabInfo = zellijTabPanesForParent(panes, parentPaneId);
   if (!tabInfo) return null;
 
-  const zellijSplitCandidates = tabInfo.tabPanes
-    .map((pane) => ({ pane, splitDirection: predictZellijSplitDirection(pane) }))
-    .filter(
-      (candidate): candidate is { pane: ZellijPaneSnapshot; splitDirection: ZellijSplitDirection } =>
-        candidate.splitDirection !== null &&
-        canSplitZellijPane(candidate.pane, ZELLIJ_MIN_TERMINAL_WIDTH, ZELLIJ_MIN_TERMINAL_HEIGHT),
-    );
-
-  const safeSplitCandidates = zellijSplitCandidates.filter((candidate) =>
-    canSplitZellijPane(candidate.pane, minColumns, minRows),
-  );
-
-  if (
-    zellijSplitCandidates.length > 0 &&
-    safeSplitCandidates.length === zellijSplitCandidates.length
-  ) {
-    const splitTarget = safeSplitCandidates.sort((a, b) => paneArea(b.pane) - paneArea(a.pane))[0];
+  // 优先检查主会话 Pane 是否可向右分屏
+  if (canSplitZellijPane(tabInfo.parentPane, minColumns, minRows)) {
     return {
       mode: "split",
-      anchorPaneId: splitTarget.pane.id,
-      targetPaneId: splitTarget.pane.id,
+      anchorPaneId: tabInfo.parentPane.id,
+      targetPaneId: tabInfo.parentPane.id,
       tabId: tabInfo.parentPane.tab_id!,
-      splitDirection: splitTarget.splitDirection,
+      splitDirection: "right",
     };
   }
 
-  // 空间不够平铺分屏时，选择堆叠 (Stack) 到最大非父 Pane 上
-  const stackTarget = tabInfo.tabPanes
-    .filter((pane) => pane.id !== parentPaneId)
-    .sort((a, b) => paneArea(b) - paneArea(a))[0];
+  // 其次检查同 Tab 下是否有其它非主会话 Pane（如已有的 Subagent）有足够宽度继续向右分屏
+  const otherSplitCandidate = tabInfo.tabPanes
+    .filter((pane) => pane.id !== parentPaneId && canSplitZellijPane(pane, minColumns, minRows))
+    .sort((a, b) => (b.pane_columns ?? 0) - (a.pane_columns ?? 0))[0];
 
-  if (stackTarget) {
+  if (otherSplitCandidate) {
     return {
-      mode: "stack",
-      anchorPaneId: stackTarget.id,
-      targetPaneId: stackTarget.id,
+      mode: "split",
+      anchorPaneId: otherSplitCandidate.id,
+      targetPaneId: otherSplitCandidate.id,
       tabId: tabInfo.parentPane.tab_id!,
+      splitDirection: "right",
     };
   }
 
-  return null;
+  // 水平可用宽度达到瓶颈时，降级为堆叠 (Stack) 模式，优先堆叠在非主会话 Pane（已有 Subagent）上
+  const stackTarget =
+    tabInfo.tabPanes
+      .filter((pane) => pane.id !== parentPaneId)
+      .sort((a, b) => paneArea(b) - paneArea(a))[0] ?? tabInfo.parentPane;
+
+  return {
+    mode: "stack",
+    anchorPaneId: stackTarget.id,
+    targetPaneId: stackTarget.id,
+    tabId: tabInfo.parentPane.tab_id!,
+  };
 }
 
 // ============================ Zellij CLI 交互 ============================
@@ -356,8 +335,18 @@ function createZellijSurface(name: string): string {
       : null;
 
     if (plan?.mode === "split") {
-      const args = ["new-pane", "--tab-id", String(plan.tabId), "--name", name, "--cwd", process.cwd()];
-      return parseZellijPaneSurface(zellijActionSync(args).trim(), "new-pane");
+      const args = [
+        "new-pane",
+        "--direction",
+        "right",
+        "--near-current-pane",
+        "--no-focus",
+        "--name",
+        name,
+        "--cwd",
+        process.cwd(),
+      ];
+      return parseZellijPaneSurface(zellijActionSync(args).trim(), "new-pane --direction right");
     }
 
     if (plan?.mode === "stack") {
@@ -365,6 +354,7 @@ function createZellijSurface(name: string): string {
         "new-pane",
         "--stacked",
         "--near-current-pane",
+        "--no-focus",
         "--name",
         name,
         "--cwd",
@@ -375,7 +365,17 @@ function createZellijSurface(name: string): string {
 
     // 默认分屏或创建新 Tab
     try {
-      const args = ["new-pane", "--direction", "right", "--name", name, "--cwd", process.cwd()];
+      const args = [
+        "new-pane",
+        "--direction",
+        "right",
+        "--near-current-pane",
+        "--no-focus",
+        "--name",
+        name,
+        "--cwd",
+        process.cwd(),
+      ];
       return parseZellijPaneSurface(zellijActionSync(args).trim(), "new-pane --direction right");
     } catch {
       // 降级为创建新 Tab

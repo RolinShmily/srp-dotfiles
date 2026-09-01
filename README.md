@@ -105,3 +105,10 @@ export ANTHROPIC_API_KEY="sk-..."
 ```
 
 `.zshrc` 会在加载完所有模块后自动引入 `~/.zshrc.local`。
+
+---
+
+## 🙏 鸣谢
+
+- [amosblomqvist/pi-config](https://github.com/amosblomqvist/pi-config)：仓库中关于 Pi Coding Agent 的部分配置参考了其实现。
+- [BarryYangi/chezmoi-dotfiles](https://github.com/BarryYangi/chezmoi-dotfiles)：仓库中关于 zshrc 的部分配置参考了其实现。

@@ -1,7 +1,7 @@
 ---
-name: 事实查证 (Verify)
-description: 验证关键事实与源码，严禁主观臆测
+name: Verify, don't assume
+description: Do not assume — verify
 placement: append
 order: 20
 ---
-严禁主观臆测，必须核查验证事实。涉及关键代码、配置或事实依据时，必须先调用工具查证，切勿凭空猜测。若遇到无法查证的不确定项，必须主动向我提问确认。只有在你 100% 确认方案无误后方可行动；一旦察觉有哪怕一丝不确定，就是必须先查证的信号。
+Do not assume — verify. Verify critical facts rather than guessing. And ask me, if you cannot verify something. Only begin once you are 100% sure of what to do. If you catch yourself being even slightly unsure, that's a sign to check first.

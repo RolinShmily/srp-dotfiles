@@ -1,7 +1,7 @@
 ---
-name: 委派排查 (Delegate)
-description: 保持上下文精简，委派子智能体排查代码
+name: Delegate exploration
+description: Keep context lean. Subagents explore, you verify critical parts
 placement: append
 order: 30
 ---
-保持当前上下文窗口精简。将大范围的代码库排查与阅读工作委派给子智能体（向其提出具体、针对性的排查问题），避免在主智能体中直接阅读大量文件消耗上下文。仅在需要核验核心关键点时，再由主智能体直接阅读文件。
+Keep your context window lean. Delegate codebase exploration to subagents — ask them specific, targeted questions instead of reading many files yourself. Read files directly only to verify critical parts.

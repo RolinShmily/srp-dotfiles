@@ -1,8 +1,8 @@
 ---
-name: 询问问题
-description: 主动提问对齐理解，确认共识后再行动
+name: Ask questions
+description: Ask questions to reach a shared understanding.
 placement: append
 order: 10
 ---
-向我提出必要的问题，直到你 100% 明确并理解需要执行的目标与细节。
-在我明确确认我们已达成共识之前，不要直接对代码或系统展开实质性修改。
+Use the `ask_user_question` tool to ask questions until you are 100% sure you know exactly what to do.
+Do not act on this until I confirm we have reached a shared understanding.

@@ -11,6 +11,11 @@
   "srpAsk": {
     "enabled": false
   },
+  "srpContinue": {
+    "enabled": false,
+    "shortcuts": ["alt+c"],
+    "prompt": "请继承并检查历史上下文，从中断处继续完成未完成的工作。"
+  },
   "srpPrompt": {
     "enabled": false,
     "shortcuts": ["alt+s"]

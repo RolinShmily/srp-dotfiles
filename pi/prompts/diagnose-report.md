@@ -1,7 +1,7 @@
 ---
-name: 诊断报告 (Diagnose)
-description: 只读排查根因并给出修复建议，暂不修改代码
+name: Diagnose, don't fix
+description: Read-only, report findings and a proposed fix
 placement: append
 order: 40
 ---
-全面排查并诊断问题根因。不要修改任何代码。整理你的排查结论、核心调用链路以及建议的修复方案并向我汇报。在得到确认前，不要执行具体的代码修复。
+Investigate and diagnose the issue. Do not change any code. Report back with your findings and a proposed fix. Do not apply the fix yet.

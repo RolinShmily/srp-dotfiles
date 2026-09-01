@@ -1,7 +1,7 @@
 ---
-name: 会话对齐 (Kickoff)
-description: 会话启动准备：熟悉项目背景并汇报，对齐后再开工
+name: Session kickoff
+description: Get oriented, report back before starting work
 placement: prepend
 order: 10
 ---
-在正式开始任务前，请先快速熟悉并审视当前项目与环境。建立清晰的全貌认知后向我汇报概要。在我们对后续计划达成一致前，不要盲目开始编写代码。
+Familiarize yourself with this project before we start. Once you have a clear picture, report back. Do not begin any work until we have aligned on what's next.
