@@ -24,7 +24,11 @@ interface Theme {
 
 export interface StatusUI {
   setStatus(key: string, text: string | undefined): void;
-  setWidget(key: string, content: string[] | undefined): void;
+  setWidget(
+    key: string,
+    content: string[] | undefined,
+    options?: { placement?: "aboveEditor" | "belowEditor" },
+  ): void;
   theme: Theme;
 }
 
@@ -33,8 +37,9 @@ type WorkerState =
   | { kind: "done"; delta?: number }
   | { kind: "error" };
 
-const FOOTER_KEY = "srp-memory";
-const WORKERS_WIDGET_KEY = "srp-memory-workers";
+const WIDGET_KEY = "srp-memory";
+const LEGACY_WORKERS_WIDGET_KEY = "srp-memory-workers";
+const LEGACY_STATUS_KEY = "srp-memory";
 const SPINNER_FRAMES = ["◐", "◓", "◑", "◒"] as const;
 const WORKER_SEP = "   ";
 
@@ -66,7 +71,9 @@ export class StatusController {
 
   attach(ui: StatusUI): void {
     this.ui = ui;
-    this.ui.setStatus(FOOTER_KEY, this.renderFooter());
+    this.ui.setStatus(LEGACY_STATUS_KEY, undefined);
+    this.ui.setWidget(LEGACY_WORKERS_WIDGET_KEY, undefined);
+    this.renderWidget();
   }
 
   detach(): void {
@@ -77,19 +84,20 @@ export class StatusController {
     this.workers.clear();
     this.gauges = undefined;
     this.cost = undefined;
-    this.ui?.setWidget(WORKERS_WIDGET_KEY, undefined);
-    if (this.ui) this.ui.setStatus(FOOTER_KEY, undefined);
+    this.ui?.setWidget(WIDGET_KEY, undefined);
+    this.ui?.setWidget(LEGACY_WORKERS_WIDGET_KEY, undefined);
+    if (this.ui) this.ui.setStatus(LEGACY_STATUS_KEY, undefined);
     this.ui = undefined;
   }
 
   setGauges(gauges: FooterGauges | undefined): void {
     this.gauges = gauges;
-    if (this.ui) this.ui.setStatus(FOOTER_KEY, this.renderFooter());
+    this.renderWidget();
   }
 
   setCost(costUsd: number, runs: number): void {
     this.cost = { costUsd, runs };
-    if (this.ui) this.ui.setStatus(FOOTER_KEY, this.renderFooter());
+    this.renderWidget();
   }
 
   workerStart(type: WorkerType, runId: string): void {
@@ -98,7 +106,7 @@ export class StatusController {
     if (existing?.settleTimer) clearTimeout(existing.settleTimer);
     this.workers.set(runId, { type, state: { kind: "running" } });
     this.startSpinner();
-    this.renderWorkersWidget();
+    this.renderWidget();
   }
 
   workerDone(runId: string, delta?: number): void {
@@ -115,10 +123,10 @@ export class StatusController {
     if (!entry) return;
     if (entry.settleTimer) clearTimeout(entry.settleTimer);
     entry.state = state;
-    this.renderWorkersWidget();
+    this.renderWidget();
     entry.settleTimer = setTimeout(() => {
       this.workers.delete(runId);
-      this.renderWorkersWidget();
+      this.renderWidget();
       if (!this.hasRunningWorker()) this.stopSpinner();
     }, this.settleMs);
     (entry.settleTimer as any)?.unref?.();
@@ -136,7 +144,7 @@ export class StatusController {
     if (this.spinnerTimer) return;
     this.spinnerTimer = setInterval(() => {
       this.frame = (this.frame + 1) % SPINNER_FRAMES.length;
-      if (this.hasRunningWorker()) this.renderWorkersWidget();
+      if (this.hasRunningWorker()) this.renderWidget();
     }, this.spinnerIntervalMs);
     (this.spinnerTimer as any)?.unref?.();
   }
@@ -160,27 +168,9 @@ export class StatusController {
     );
   }
 
-  private renderFooter(): string {
-    const theme = this.ui?.theme;
-    if (!theme) return "srp-memory";
-    const base = `${theme.fg("success", "● mem")}`;
-    const g = this.gauges;
-    if (!g) return base;
-    const next = `${theme.fg("muted", "O")}${this.gaugeBar(g.nextValue, g.nextMax)}`;
-    const pool = `${theme.fg("muted", "C")}${this.gaugeBar(g.poolValue, g.poolMax)}`;
-    const ctx = `${theme.fg("muted", "X")}${this.gaugeBar(g.ctxValue, g.ctxMax)}`;
-    const cost = this.cost && this.cost.costUsd > 0 ? ` ${theme.fg("dim", `$${this.cost.costUsd.toFixed(3)}`)}` : "";
-    return `${base} ${next} ${pool} ${ctx}${cost}`;
-  }
-
-  private renderWorkersWidget(): void {
-    const ui = this.ui;
-    if (!ui) return;
-    if (this.workers.size === 0) {
-      ui.setWidget(WORKERS_WIDGET_KEY, undefined);
-      return;
-    }
-    const theme = ui.theme;
+  private renderWorkersLine(): string | undefined {
+    if (this.workers.size === 0) return undefined;
+    const theme = this.ui!.theme;
     const parts: string[] = [];
     for (const entry of this.workers.values()) {
       if (entry.state.kind === "running") {
@@ -195,6 +185,36 @@ export class StatusController {
         parts.push(`${theme.fg("success", "✓")} ${theme.fg("muted", `[${entry.type}]`)}${delta}`);
       }
     }
-    ui.setWidget(WORKERS_WIDGET_KEY, [parts.join(WORKER_SEP)]);
+    return parts.length > 0 ? parts.join(WORKER_SEP) : undefined;
+  }
+
+  private renderMemLine(): string {
+    const theme = this.ui?.theme;
+    if (!theme) return "srp-memory";
+    const base = `${theme.fg("success", "● mem")}`;
+    const g = this.gauges;
+    if (!g) return base;
+    const next = `${theme.fg("muted", "O")}${this.gaugeBar(g.nextValue, g.nextMax)}`;
+    const pool = `${theme.fg("muted", "C")}${this.gaugeBar(g.poolValue, g.poolMax)}`;
+    const ctx = `${theme.fg("muted", "X")}${this.gaugeBar(g.ctxValue, g.ctxMax)}`;
+    const cost = this.cost && this.cost.costUsd > 0 ? ` ${theme.fg("dim", `$${this.cost.costUsd.toFixed(3)}`)}` : "";
+    return `${base} ${next} ${pool} ${ctx}${cost}`;
+  }
+
+  private renderWidget(): void {
+    const ui = this.ui;
+    if (!ui) return;
+
+    const lines: string[] = [];
+    const workersLine = this.renderWorkersLine();
+    if (workersLine) {
+      lines.push(workersLine);
+    }
+    const memLine = this.renderMemLine();
+    if (memLine) {
+      lines.push(memLine);
+    }
+
+    ui.setWidget(WIDGET_KEY, lines.length > 0 ? lines : undefined, { placement: "aboveEditor" });
   }
 }

@@ -778,37 +778,34 @@ export class TpsMeter {
     return s;
   }
 
-  sparkline(theme: Theme): string {
-    if (theme !== this.sparkTheme) {
-      this.sparkDirty = true;
-      this.sparkTheme = theme;
-    }
-    if (!this.sparkDirty) return this.sparkCache;
+  sparkline(theme: Theme, len = TpsMeter.SPARK_LEN): string {
+    len = Math.max(1, Math.min(TpsMeter.SPARK_LEN, Math.floor(len)));
 
     if (this.sparkLen === 0) {
-      this.sparkCache = theme.fg("dim", TpsMeter.TRACK.repeat(TpsMeter.SPARK_LEN));
-      this.sparkDirty = false;
-      return this.sparkCache;
+      return theme.fg("dim", TpsMeter.TRACK.repeat(len));
     }
 
-    const vals = new Float64Array(TpsMeter.SPARK_LEN);
-    const oldest = this.sparkLen < TpsMeter.SPARK_LEN ? 0 : this.sparkHead;
-    for (let i = 0; i < this.sparkLen; i++) {
-      vals[i] = this.sparkBuf[(oldest + i) % TpsMeter.SPARK_LEN];
+    const available = Math.min(this.sparkLen, len);
+    const vals = new Float64Array(available);
+    for (let i = 0; i < available; i++) {
+      const idx =
+        (this.sparkHead - available + i + TpsMeter.SPARK_LEN) %
+        TpsMeter.SPARK_LEN;
+      vals[i] = this.sparkBuf[idx];
     }
 
     let mn = Infinity;
     let mx = 0;
-    for (let i = 0; i < this.sparkLen; i++) {
+    for (let i = 0; i < available; i++) {
       const v = vals[i];
       if (v < mn) mn = v;
       if (v > mx) mx = v;
     }
     const range = mx - mn;
-    const pad = TpsMeter.SPARK_LEN - this.sparkLen;
+    const pad = len - available;
     let result = pad > 0 ? theme.fg("dim", TpsMeter.TRACK.repeat(pad)) : "";
 
-    for (let i = 0; i < this.sparkLen; i++) {
+    for (let i = 0; i < available; i++) {
       const v = vals[i];
       const norm =
         range < 1e-6
@@ -819,28 +816,27 @@ export class TpsMeter {
       const ch = TpsMeter.BLOCKS[norm];
       result += this.speedColor(v, ch, theme);
     }
-    this.sparkCache = result;
-    this.sparkDirty = false;
     return result;
   }
 
-  gauge(tps: number, theme: Theme): string {
+  gauge(tps: number, theme: Theme, gaugeLen = TpsMeter.GAUGE_LEN): string {
+    gaugeLen = Math.max(1, Math.floor(gaugeLen));
     const scale = Math.max(this.sparkMax, TpsMeter.GAUGE_FLOOR);
     let frac = scale > 0 ? tps / scale : 0;
     if (frac < 0) frac = 0;
     if (frac > 1) frac = 1;
 
-    const eighths = Math.round(frac * TpsMeter.GAUGE_LEN * 8);
+    const eighths = Math.round(frac * gaugeLen * 8);
     const full = (eighths / 8) | 0;
     const rem = eighths % 8;
 
-    let fill = "█".repeat(full);
-    let used = full;
-    if (full < TpsMeter.GAUGE_LEN && rem > 0) {
+    let fill = "█".repeat(Math.min(gaugeLen, full));
+    let used = Math.min(gaugeLen, full);
+    if (full < gaugeLen && rem > 0) {
       fill += TpsMeter.HBLOCKS[rem];
       used++;
     }
-    const track = TpsMeter.TRACK.repeat(TpsMeter.GAUGE_LEN - used);
+    const track = TpsMeter.TRACK.repeat(Math.max(0, gaugeLen - used));
 
     return (
       theme.fg("dim", "▕") +
@@ -859,17 +855,39 @@ export class TpsMeter {
     const tps = elapsed > 0.3 ? this.streamTokens / elapsed : 0;
 
     const s = theme.fg("accent", this.spin());
-    const g = this.gauge(tps, theme);
     const num = this.speedColor(tps, this.fmt(tps), theme);
     const unit = theme.fg("dim", "tps");
+    const numUnit = `${num} ${unit}`;
+    const minCompact = `${s} ${numUnit}`;
+    const bareNumUnit = numUnit;
 
-    const fullStr = `${s} ${g} ${num} ${unit}`;
-    const compactStr = `${s} ${num} ${unit}`;
+    if (maxBudget == null) {
+      const g = this.gauge(tps, theme, TpsMeter.GAUGE_LEN);
+      return `${s} ${g} ${numUnit}`;
+    }
 
-    if (maxBudget == null) return fullStr;
-    if (maxBudget >= visibleWidth(fullStr)) return fullStr;
-    if (maxBudget >= visibleWidth(compactStr)) return compactStr;
-    return "";
+    if (maxBudget < visibleWidth(bareNumUnit)) {
+      return "";
+    }
+
+    // 尝试带 gauge 的完整模式（根据 maxBudget 动态调整 gauge 长度）
+    const fixedOverhead = visibleWidth(s) + 1 + 2 + 1 + visibleWidth(numUnit);
+    const availableGaugeLen = maxBudget - fixedOverhead;
+
+    if (availableGaugeLen >= 3) {
+      const targetGaugeLen = Math.min(TpsMeter.GAUGE_LEN, availableGaugeLen);
+      const g = this.gauge(tps, theme, targetGaugeLen);
+      const fullStr = `${s} ${g} ${numUnit}`;
+      if (visibleWidth(fullStr) <= maxBudget) {
+        return fullStr;
+      }
+    }
+
+    if (maxBudget >= visibleWidth(minCompact)) {
+      return minCompact;
+    }
+
+    return bareNumUnit;
   }
 
   renderFinal(theme: Theme, maxBudget?: number): string {
@@ -877,22 +895,47 @@ export class TpsMeter {
     const mu = this.atMean();
     const p95 = this.atP95();
 
-    const sp = this.sparkline(theme);
     const a = this.speedColor(avg, this.fmt(avg), theme);
+    const label = theme.fg("dim", "tps");
+    const numUnit = `${a} ${label}`;
+
+    if (maxBudget == null) {
+      const sp = this.sparkline(theme, TpsMeter.SPARK_LEN);
+      const sep = theme.fg("dim", "·");
+      const m = `${theme.fg("dim", "μ")} ${this.speedColor(mu, this.fmt(mu), theme)}`;
+      const p = `${theme.fg("dim", "p95")} ${this.speedColor(p95, this.fmt(p95), theme)}`;
+      return `${sp} ${numUnit} ${sep} ${m} ${sep} ${p}`;
+    }
+
+    if (maxBudget < visibleWidth(numUnit)) {
+      return "";
+    }
+
+    // 1. 尝试完整模式 (l3: sparkline 12 + numUnit + μ + p95)
+    const spFull = this.sparkline(theme, TpsMeter.SPARK_LEN);
     const sep = theme.fg("dim", "·");
     const m = `${theme.fg("dim", "μ")} ${this.speedColor(mu, this.fmt(mu), theme)}`;
     const p = `${theme.fg("dim", "p95")} ${this.speedColor(p95, this.fmt(p95), theme)}`;
-    const label = theme.fg("dim", "tps");
+    const l3 = `${spFull} ${numUnit} ${sep} ${m} ${sep} ${p}`;
+    if (visibleWidth(l3) <= maxBudget) {
+      return l3;
+    }
 
-    const l3 = `${sp} ${a} ${label} ${sep} ${m} ${sep} ${p}`;
-    const l2 = `${sp} ${a} ${label}`;
-    const l1 = `${a} ${label}`;
+    // 2. 尝试动态 sparkline (长度从 12 逐渐减少到 2)
+    const fixedOverhead = 1 + visibleWidth(numUnit);
+    const availableSparkLen = maxBudget - fixedOverhead;
 
-    if (maxBudget == null) return l3;
-    if (maxBudget >= visibleWidth(l3)) return l3;
-    if (maxBudget >= visibleWidth(l2)) return l2;
-    if (maxBudget >= visibleWidth(l1)) return l1;
-    return "";
+    if (availableSparkLen >= 2) {
+      const targetSparkLen = Math.min(TpsMeter.SPARK_LEN, availableSparkLen);
+      const sp = this.sparkline(theme, targetSparkLen);
+      const l2 = `${sp} ${numUnit}`;
+      if (visibleWidth(l2) <= maxBudget) {
+        return l2;
+      }
+    }
+
+    // 3. 实在不够时只剩下 "数字 tps"
+    return numUnit;
   }
 
   renderAdaptive(theme: Theme, maxBudget: number): string {
