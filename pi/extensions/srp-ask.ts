@@ -276,6 +276,55 @@ function buildResult(
   };
 }
 
+// ============================ UI 弹窗辅助函数与滑动窗口 ============================
+
+function getTerminalRows(tui: any): number {
+  return tui?.terminal?.rows || tui?.rows || process.stdout.rows || 24;
+}
+
+interface WindowedSlice<T> {
+  visibleItems: { item: T; index: number }[];
+  hasAbove: boolean;
+  hasBelow: boolean;
+  aboveCount: number;
+  belowCount: number;
+}
+
+function getWindowedSlice<T>(
+  items: T[],
+  selectedIndex: number,
+  maxVisible: number,
+): WindowedSlice<T> {
+  const total = items.length;
+  if (total <= maxVisible) {
+    return {
+      visibleItems: items.map((item, index) => ({ item, index })),
+      hasAbove: false,
+      hasBelow: false,
+      aboveCount: 0,
+      belowCount: 0,
+    };
+  }
+
+  const half = Math.floor(maxVisible / 2);
+  let start = selectedIndex - half;
+  if (start < 0) {
+    start = 0;
+  }
+  if (start + maxVisible > total) {
+    start = total - maxVisible;
+  }
+  const end = start + maxVisible;
+
+  return {
+    visibleItems: items.slice(start, end).map((item, i) => ({ item, index: start + i })),
+    hasAbove: start > 0,
+    hasBelow: end < total,
+    aboveCount: start,
+    belowCount: total - end,
+  };
+}
+
 // ============================ UI 弹窗组件 ============================
 
 async function askSingleChoice(
@@ -365,41 +414,63 @@ async function askSingleChoice(
 
         const lines: string[] = [];
         const add = (text: string) => lines.push(truncateToWidth(text, width));
+        const termRows = getTerminalRows(tui);
 
         add(theme.fg("accent", "─".repeat(width)));
-        addWrapped(lines, theme.fg("text", ` ${question}`), width);
-        if (context) {
-          lines.push("");
-          addWrapped(lines, theme.fg("muted", ` ${context}`), width);
-        }
-        lines.push("");
-
-        for (let i = 0; i < allOptions.length; i++) {
-          const option = allOptions[i];
-          const selected = i === optionIndex;
-          const prefix = selected ? theme.fg("accent", "> ") : "  ";
-          const label = option.isOther ? option.label : `${option.index}. ${option.label}`;
-          const styled = selected ? theme.fg("accent", label) : theme.fg("text", label);
-          add(`${prefix}${styled}`);
-          if (option.description) {
-            addWrapped(lines, theme.fg("muted", option.description), width, "     ");
-          }
-        }
 
         if (editMode) {
+          // 自定义输入模式：紧凑布局，防止行数撑爆终端触发滚动
+          add(theme.fg("text", theme.bold(` ${question}`)));
           lines.push("");
-          add(theme.fg("muted", " 请输入您的自定义回答:"));
-          for (const line of editor.render(Math.max(1, width - 2))) {
-            add(` ${line}`);
+          add(theme.fg("accent", ` > ${allOptions[optionIndex]?.label || "Other (自定义输入)"}:`));
+          for (const line of editor.render(Math.max(1, width - 4))) {
+            add(`   ${line}`);
           }
           lines.push("");
           add(theme.fg("dim", " Enter 提交 • Esc 返回选项"));
-        } else {
-          lines.push("");
-          add(theme.fg("dim", " ↑↓ 选择 • Enter 确定 • Esc 取消"));
+          add(theme.fg("accent", "─".repeat(width)));
+          cachedLines = lines;
+          cachedWidth = width;
+          return lines;
         }
 
+        // 选项模式：根据终端可用行数计算安全预算与滑动窗口
+        add(theme.fg("text", theme.bold(` ${question}`)));
+        if (context) {
+          add(theme.fg("muted", ` ${truncateToWidth(context.replace(/[\r\n]+/g, " "), width - 2)}`));
+        }
+        lines.push("");
+
+        // 动态窗口：视口通常展示 3~5 项，选中的项目单独展开描述
+        const maxVisibleItems = termRows <= 22 ? 3 : termRows <= 28 ? 4 : 5;
+        const slice = getWindowedSlice(allOptions, optionIndex, maxVisibleItems);
+
+        if (slice.hasAbove) {
+          add(theme.fg("dim", `   ▲ 还有 ${slice.aboveCount} 项...`));
+        }
+
+        for (const { item, index: i } of slice.visibleItems) {
+          const selected = i === optionIndex;
+          const prefix = selected ? theme.fg("accent", " > ") : "   ";
+          const label = item.isOther ? item.label : `${item.index}. ${item.label}`;
+          const styled = selected ? theme.bold(theme.fg("accent", label)) : theme.fg("text", label);
+          add(`${prefix}${styled}`);
+
+          // 关键优化：仅对当前高亮项展开描述，其余项保持 1 行紧凑，彻底消除行数激增与跳动
+          if (selected && item.description) {
+            const desc = truncateToWidth(item.description.replace(/[\r\n]+/g, " "), width - 6);
+            add(theme.fg("muted", `     ${desc}`));
+          }
+        }
+
+        if (slice.hasBelow) {
+          add(theme.fg("dim", `   ▼ 还有 ${slice.belowCount} 项...`));
+        }
+
+        lines.push("");
+        add(theme.fg("dim", " ↑↓ 选择 • Enter 确定 • Esc 取消"));
         add(theme.fg("accent", "─".repeat(width)));
+
         cachedLines = lines;
         cachedWidth = width;
         return lines;
@@ -557,19 +628,43 @@ async function askMultiChoice(
 
         const lines: string[] = [];
         const add = (text: string) => lines.push(truncateToWidth(text, width));
+        const termRows = getTerminalRows(tui);
 
         add(theme.fg("accent", "─".repeat(width)));
-        addWrapped(lines, theme.fg("text", ` ${question}`), width);
-        if (context) {
+
+        if (editMode) {
+          // 自定义输入模式：紧凑布局
+          add(theme.fg("text", theme.bold(` ${question}`)));
           lines.push("");
-          addWrapped(lines, theme.fg("muted", ` ${context}`), width);
+          add(theme.fg("accent", ` > ${allItems[optionIndex]?.label || "Other (自定义输入)"}:`));
+          for (const line of editor.render(Math.max(1, width - 4))) {
+            add(`   ${line}`);
+          }
+          lines.push("");
+          add(theme.fg("dim", " Enter 保存 • Esc 返回多选"));
+          add(theme.fg("accent", "─".repeat(width)));
+          cachedLines = lines;
+          cachedWidth = width;
+          return lines;
+        }
+
+        // 多选选项模式：滑动窗口与安全行数预算
+        add(theme.fg("text", theme.bold(` ${question}`)));
+        if (context) {
+          add(theme.fg("muted", ` ${truncateToWidth(context.replace(/[\r\n]+/g, " "), width - 2)}`));
         }
         lines.push("");
 
-        for (let i = 0; i < allItems.length; i++) {
-          const item = allItems[i];
+        const maxVisibleItems = termRows <= 22 ? 3 : termRows <= 28 ? 4 : 5;
+        const slice = getWindowedSlice(allItems, optionIndex, maxVisibleItems);
+
+        if (slice.hasAbove) {
+          add(theme.fg("dim", `   ▲ 还有 ${slice.aboveCount} 项...`));
+        }
+
+        for (const { item, index: i } of slice.visibleItems) {
           const isFocused = i === optionIndex;
-          const prefix = isFocused ? theme.fg("accent", "> ") : "  ";
+          const prefix = isFocused ? theme.fg("accent", " > ") : "   ";
 
           if (item.isSubmit) {
             const label =
@@ -577,7 +672,7 @@ async function askMultiChoice(
                 ? `✓ ${item.label} (已选 ${selected.size} 项)`
                 : `○ ${item.label}`;
             const styled = isFocused
-              ? theme.fg("accent", label)
+              ? theme.bold(theme.fg("accent", label))
               : theme.fg(selected.size > 0 ? "success" : "dim", label);
             add(`${prefix}${styled}`);
             continue;
@@ -588,7 +683,7 @@ async function askMultiChoice(
             const marker = other ? "[x]" : "[ ]";
             const suffix = other ? ` — ${other.label}` : "";
             const styled = isFocused
-              ? theme.fg("accent", `${marker} ${item.label}${suffix}`)
+              ? theme.bold(theme.fg("accent", `${marker} ${item.label}${suffix}`))
               : theme.fg(other ? "success" : "text", `${marker} ${item.label}${suffix}`);
             add(`${prefix}${styled}`);
             continue;
@@ -598,31 +693,28 @@ async function askMultiChoice(
           const marker = checked ? "[x]" : "[ ]";
           const label = `${marker} ${item.index}. ${item.label}`;
           const styled = isFocused
-            ? theme.fg("accent", label)
+            ? theme.bold(theme.fg("accent", label))
             : theme.fg(checked ? "success" : "text", label);
           add(`${prefix}${styled}`);
-          if (item.description) {
-            addWrapped(lines, theme.fg("muted", item.description), width, "     ");
+
+          // 仅在当前高亮聚焦项展示其描述
+          if (isFocused && item.description) {
+            const desc = truncateToWidth(item.description.replace(/[\r\n]+/g, " "), width - 6);
+            add(theme.fg("muted", `     ${desc}`));
           }
         }
 
-        if (editMode) {
-          lines.push("");
-          add(theme.fg("muted", " 请输入您的自定义回答:"));
-          for (const line of editor.render(Math.max(1, width - 2))) {
-            add(` ${line}`);
-          }
-          lines.push("");
-          add(theme.fg("dim", " Enter 保存 • Esc 返回多选"));
-        } else {
-          lines.push("");
-          if (selected.size === 0) {
-            add(theme.fg("warning", " 请至少选择一项回答后再提交。"));
-          }
-          add(theme.fg("dim", " ↑↓ 切换 • 空格 勾选 • Enter 编辑/提交 • Esc 取消"));
+        if (slice.hasBelow) {
+          add(theme.fg("dim", `   ▼ 还有 ${slice.belowCount} 项...`));
         }
 
+        lines.push("");
+        if (selected.size === 0) {
+          add(theme.fg("warning", " 请至少选择一项回答后再提交。"));
+        }
+        add(theme.fg("dim", " ↑↓ 切换 • 空格 勾选 • Enter 编辑/提交 • Esc 取消"));
         add(theme.fg("accent", "─".repeat(width)));
+
         cachedLines = lines;
         cachedWidth = width;
         return lines;
