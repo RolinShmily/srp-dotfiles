@@ -282,36 +282,89 @@ export function formatDuration(ms: number): string {
   return `${hours}h${mins < 10 ? "0" : ""}${mins}m`;
 }
 
+export type ClockVariant = "full" | "month_day" | "time_only";
+export type FinishedVariant = "full" | "compact" | "duration_only";
+
+export function formatFooterClockVariant(d: Date, variant: ClockVariant): string {
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  const hours = pad(d.getHours());
+  const minutes = pad(d.getMinutes());
+
+  if (variant === "time_only") {
+    return `[ ${hours}:${minutes} ]`;
+  }
+
+  const month = pad(d.getMonth() + 1);
+  const date = pad(d.getDate());
+
+  if (variant === "month_day") {
+    return `[ ${month}-${date} ${hours}:${minutes} ]`;
+  }
+
+  const year = d.getFullYear();
+  const day = WEEK_DAYS[d.getDay()];
+  return `[ ${year}-${month}-${date} ${day} ${hours}:${minutes} ]`;
+}
+
+export function formatFooterClock(d: Date, width: number): string {
+  if (width < 50) return formatFooterClockVariant(d, "time_only");
+  if (width >= 80) return formatFooterClockVariant(d, "full");
+  return formatFooterClockVariant(d, "month_day");
+}
+
+export function formatLoopEndVariant(
+  finished: Date,
+  now: Date = new Date(),
+  durationMs?: number | null,
+  variant: FinishedVariant = "full",
+): string {
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  const hasDuration = typeof durationMs === "number" && durationMs >= 0;
+  const durationStr = hasDuration ? formatDuration(durationMs!) : "";
+
+  // 1. 纯用时精简态
+  if (variant === "duration_only") {
+    return hasDuration ? `{ ${durationStr} }` : "";
+  }
+
+  const isCrossYear = finished.getFullYear() !== now.getFullYear();
+  const isCrossDay =
+    finished.getMonth() !== now.getMonth() ||
+    finished.getDate() !== now.getDate();
+
+  let dateOrTime = "";
+  if (isCrossYear) {
+    dateOrTime = `${finished.getFullYear()}`;
+  } else if (isCrossDay) {
+    dateOrTime = `${pad(finished.getMonth() + 1)}-${pad(finished.getDate())}`;
+  } else {
+    dateOrTime = `${pad(finished.getHours())}:${pad(finished.getMinutes())}`;
+  }
+
+  const durationSuffix = hasDuration ? ` · ${durationStr}` : "";
+
+  // 2. 去词精简态 (省略 finished at / finished on / finished in)
+  if (variant === "compact") {
+    return `{ ${dateOrTime}${durationSuffix} }`;
+  }
+
+  // 3. 完整态 (保留英文介词)
+  let prefix = "at";
+  if (isCrossYear) {
+    prefix = "in";
+  } else if (isCrossDay) {
+    prefix = "on";
+  }
+
+  return `{ finished ${prefix} ${dateOrTime}${durationSuffix} }`;
+}
+
 export function formatLoopEndTime(
   finished: Date,
   now: Date = new Date(),
   durationMs?: number | null,
 ): string {
-  const pad = (n: number) => n.toString().padStart(2, "0");
-  const durationSuffix =
-    typeof durationMs === "number" && durationMs >= 0
-      ? ` · ${formatDuration(durationMs)}`
-      : "";
-
-  // 1. 跨年：显示 in YYYY
-  if (finished.getFullYear() !== now.getFullYear()) {
-    return `{ finished in ${finished.getFullYear()}${durationSuffix} }`;
-  }
-
-  // 2. 同一年、不同天：显示 on MM-DD
-  if (
-    finished.getMonth() !== now.getMonth() ||
-    finished.getDate() !== now.getDate()
-  ) {
-    const month = pad(finished.getMonth() + 1);
-    const date = pad(finished.getDate());
-    return `{ finished on ${month}-${date}${durationSuffix} }`;
-  }
-
-  // 3. 同一天：显示 at HH:mm
-  const hours = pad(finished.getHours());
-  const minutes = pad(finished.getMinutes());
-  return `{ finished at ${hours}:${minutes}${durationSuffix} }`;
+  return formatLoopEndVariant(finished, now, durationMs, "full");
 }
 
 export function getLastLoopInfoFromSession(ctx: ExtensionContext): {
@@ -366,22 +419,6 @@ export function getLastLoopInfoFromSession(ctx: ExtensionContext): {
 
 export function getLastLoopEndTimeFromSession(ctx: ExtensionContext): Date | null {
   return getLastLoopInfoFromSession(ctx)?.endTime ?? null;
-}
-
-export function formatFooterClock(d: Date, width: number): string {
-  if (width < 50) return "";
-  const pad = (n: number) => n.toString().padStart(2, "0");
-  const year = d.getFullYear();
-  const month = pad(d.getMonth() + 1);
-  const date = pad(d.getDate());
-  const hours = pad(d.getHours());
-  const minutes = pad(d.getMinutes());
-  const day = WEEK_DAYS[d.getDay()];
-
-  if (width >= 80) {
-    return `[ ${year}-${month}-${date} ${day} ${hours}:${minutes} ]`;
-  }
-  return `[ ${month}-${date} ${hours}:${minutes} ]`;
 }
 
 export function buildCustomFooter(
@@ -459,34 +496,58 @@ export function buildCustomFooter(
       }
 
       const now = new Date();
-      const clockStr = formatFooterClock(now, width);
       const lastLoopEnd = getLastLoopEndTime?.() ?? null;
       const lastLoopDuration = getLastLoopDuration?.() ?? null;
-      const loopEndStr =
-        clockStr && lastLoopEnd
-          ? formatLoopEndTime(lastLoopEnd, now, lastLoopDuration)
-          : "";
+      const pwdWidth = visibleWidth(pwd);
+      const minGap = 2;
+
+      const clockVariants: ClockVariant[] = ["full", "month_day", "time_only"];
+      const finishedVariants: FinishedVariant[] = ["full", "compact", "duration_only"];
+
+      let selectedRight = "";
+      let matched = false;
+
+      // 1. 如果存在 lastLoopEnd，尝试 [clock] + [finished] 的组合（优先保证 PWD 完整显示）
+      if (lastLoopEnd) {
+        for (const clockVar of clockVariants) {
+          const clockStr = formatFooterClockVariant(now, clockVar);
+          for (const finishedVar of finishedVariants) {
+            const finishedStr = formatLoopEndVariant(lastLoopEnd, now, lastLoopDuration, finishedVar);
+            if (!finishedStr) continue;
+            const candidate = `${finishedStr} ${clockStr}`;
+            if (pwdWidth + minGap + visibleWidth(candidate) <= width) {
+              selectedRight = candidate;
+              matched = true;
+              break;
+            }
+          }
+          if (matched) break;
+        }
+      }
+
+      // 2. 如果未能搭配 finished 胶囊（或不存在 lastLoopEnd），尝试仅有时钟胶囊
+      if (!matched) {
+        for (const clockVar of clockVariants) {
+          const candidate = formatFooterClockVariant(now, clockVar);
+          if (pwdWidth + minGap + visibleWidth(candidate) <= width) {
+            selectedRight = candidate;
+            matched = true;
+            break;
+          }
+        }
+      }
+
       let pwdLine: string;
-
-      if (clockStr) {
-        const minGap = 2;
-        const fullRightStr = loopEndStr ? `${loopEndStr} ${clockStr}` : clockStr;
-        const fullRightWidth = visibleWidth(fullRightStr);
-        const clockWidth = visibleWidth(clockStr);
-
-        if (width - fullRightWidth - minGap >= 8) {
-          const truncPwd = truncateToWidth(pwd, width - fullRightWidth - minGap, "...");
-          const padSpaces = " ".repeat(Math.max(minGap, width - visibleWidth(truncPwd) - fullRightWidth));
-          pwdLine = theme.fg("dim", truncPwd) + padSpaces + theme.fg("dim", fullRightStr);
-        } else if (width - clockWidth - minGap >= 8) {
-          const truncPwd = truncateToWidth(pwd, width - clockWidth - minGap, "...");
-          const padSpaces = " ".repeat(Math.max(minGap, width - visibleWidth(truncPwd) - clockWidth));
-          pwdLine = theme.fg("dim", truncPwd) + padSpaces + theme.fg("dim", clockStr);
+      if (matched && selectedRight) {
+        const rightWidth = visibleWidth(selectedRight);
+        const padSpaces = " ".repeat(Math.max(minGap, width - pwdWidth - rightWidth));
+        pwdLine = theme.fg("dim", pwd) + padSpaces + theme.fg("dim", selectedRight);
+      } else {
+        if (pwdWidth <= width) {
+          pwdLine = theme.fg("dim", pwd);
         } else {
           pwdLine = truncateToWidth(theme.fg("dim", pwd), width, theme.fg("dim", "..."));
         }
-      } else {
-        pwdLine = truncateToWidth(theme.fg("dim", pwd), width, theme.fg("dim", "..."));
       }
 
       const statsParts: string[] = [];
