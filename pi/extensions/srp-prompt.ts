@@ -32,7 +32,14 @@ import {
   type ExtensionAPI,
   type ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
-import { Key, matchesKey, truncateToWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
+import {
+  Key,
+  matchesKey,
+  isKeyRelease,
+  isKeyRepeat,
+  truncateToWidth,
+  wrapTextWithAnsi,
+} from "@earendil-works/pi-tui";
 
 // ============================ 接口定义 ============================
 
@@ -61,12 +68,12 @@ const WIDGET_ID = "srp-prompt";
 
 const BUILTIN_SNIPPETS: Snippet[] = [
   {
-    id: "grill-me",
-    name: "深度质询 (Grill-me)",
-    description: "深度压力质询与推演：主动提问对齐共识，确认后再行动",
+    id: "ask-questions",
+    name: "询问问题",
+    description: "主动提问对齐理解，确认共识后再行动",
     placement: "append",
     order: 10,
-    body: "请针对我们当前正在讨论的技术方案、代码设计或决策构想，展开深度的压力质询与推演（Grill-me Mode）。\n优先使用 ask_user_question 工具主动向我提出关键决策问题，在得到我明确确认达成共识前，严禁直接修改代码。",
+    body: "向我提出必要的问题，直到你 100% 明确并理解需要执行的目标与细节。\n在我明确确认我们已达成共识之前，不要直接对代码或系统展开实质性修改。",
     source: "builtin",
   },
   {
@@ -319,6 +326,51 @@ function getSrpPromptConfig(cwd?: string): SrpPromptConfig {
 export default function (pi: ExtensionAPI) {
   let snippets: Snippet[] = [];
   let enabled = new Set<string>();
+  let lastCtx: ExtensionContext | null = null;
+  let removeInputListener: (() => void) | null = null;
+
+  // 匹配热键（兼容 KeyId 与 WSL/Zellij 下未转义的 Raw ANSI 序列）
+  const isShortcutKey = (data: string): boolean => {
+    const config = getSrpPromptConfig(lastCtx?.cwd);
+    if (!config.enabled) return false;
+    for (const sc of config.shortcuts) {
+      try {
+        if (matchesKey(data, sc as any)) return true;
+      } catch {}
+      const norm = sc.toLowerCase().trim();
+      if (norm === "alt+s" && (data === "\x1bs" || data === "\x1bS")) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  // 全局底层 TUI 按键拦截器
+  const onGlobalInput = (data: string) => {
+    if (isKeyRelease(data) || isKeyRepeat(data)) return undefined;
+
+    if (isShortcutKey(data)) {
+      if (lastCtx) {
+        void openMenu(lastCtx);
+      }
+      return { consume: true };
+    }
+    return undefined;
+  };
+
+  // 动态挂载 TUI 底层按键监听器
+  const ensureTuiAttached = (ctx: ExtensionContext) => {
+    lastCtx = ctx;
+    if (ctx.mode !== "tui") return;
+    try {
+      ctx.ui.setWidget("srp-prompt-tui-handle", (tui: any) => {
+        if (!removeInputListener && tui?.addInputListener) {
+          removeInputListener = tui.addInputListener(onGlobalInput);
+        }
+        return { render: () => [], invalidate: () => {} };
+      });
+    } catch {}
+  };
 
   function updateWidget(ctx: ExtensionContext) {
     if (!ctx.hasUI || ctx.mode !== "tui") return;
@@ -347,6 +399,7 @@ export default function (pi: ExtensionAPI) {
   }
 
   async function openMenu(ctx: ExtensionContext) {
+    ensureTuiAttached(ctx);
     if (ctx.mode !== "tui") {
       ctx.ui.notify("Prompt snippets 菜单仅在交互式 TUI 模式下可用", "warning");
       return;
@@ -573,7 +626,17 @@ export default function (pi: ExtensionAPI) {
   pi.on("session_start", (_event, ctx) => {
     enabled = new Set();
     snippets = loadAllSnippets(ctx.cwd);
+    ensureTuiAttached(ctx);
     updateWidget(ctx);
+  });
+
+  pi.on("agent_start", (_event, ctx) => {
+    ensureTuiAttached(ctx);
+  });
+
+  pi.on("session_shutdown", () => {
+    removeInputListener?.();
+    removeInputListener = null;
   });
 
   pi.on("input", async (event, ctx) => {
