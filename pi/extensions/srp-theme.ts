@@ -501,39 +501,45 @@ export function buildCustomFooter(
       const pwdWidth = visibleWidth(pwd);
       const minGap = 2;
 
-      const clockVariants: ClockVariant[] = ["full", "month_day", "time_only"];
-      const finishedVariants: FinishedVariant[] = ["full", "compact", "duration_only"];
+      const candidates: string[] = [];
+
+      if (lastLoopEnd) {
+        // 1. 优先调整时间胶囊（全量 -> 月日 -> 仅时分），此时 finished 胶囊保持全量态
+        const fullFinished = formatLoopEndVariant(lastLoopEnd, now, lastLoopDuration, "full");
+        if (fullFinished) {
+          candidates.push(`${fullFinished} ${formatFooterClockVariant(now, "full")}`);
+          candidates.push(`${fullFinished} ${formatFooterClockVariant(now, "month_day")}`);
+          candidates.push(`${fullFinished} ${formatFooterClockVariant(now, "time_only")}`);
+        }
+
+        // 2. 时间胶囊已降级至仅显示时间（time_only: [ 11:11 ]），开始调整 finished 胶囊（去词精简 -> 纯用时）
+        const compactFinished = formatLoopEndVariant(lastLoopEnd, now, lastLoopDuration, "compact");
+        if (compactFinished && compactFinished !== fullFinished) {
+          candidates.push(`${compactFinished} ${formatFooterClockVariant(now, "time_only")}`);
+        }
+
+        const durationFinished = formatLoopEndVariant(lastLoopEnd, now, lastLoopDuration, "duration_only");
+        if (durationFinished && durationFinished !== compactFinished && durationFinished !== fullFinished) {
+          candidates.push(`${durationFinished} ${formatFooterClockVariant(now, "time_only")}`);
+        }
+
+        // 3. 实在放不下 finished 胶囊时，仅保留极简时分时钟 [ 11:11 ]
+        candidates.push(formatFooterClockVariant(now, "time_only"));
+      } else {
+        // 无 finished 记录时，时间胶囊平滑降级（全量 -> 月日 -> 仅时分）
+        candidates.push(formatFooterClockVariant(now, "full"));
+        candidates.push(formatFooterClockVariant(now, "month_day"));
+        candidates.push(formatFooterClockVariant(now, "time_only"));
+      }
 
       let selectedRight = "";
       let matched = false;
 
-      // 1. 如果存在 lastLoopEnd，尝试 [clock] + [finished] 的组合（优先保证 PWD 完整显示）
-      if (lastLoopEnd) {
-        for (const clockVar of clockVariants) {
-          const clockStr = formatFooterClockVariant(now, clockVar);
-          for (const finishedVar of finishedVariants) {
-            const finishedStr = formatLoopEndVariant(lastLoopEnd, now, lastLoopDuration, finishedVar);
-            if (!finishedStr) continue;
-            const candidate = `${finishedStr} ${clockStr}`;
-            if (pwdWidth + minGap + visibleWidth(candidate) <= width) {
-              selectedRight = candidate;
-              matched = true;
-              break;
-            }
-          }
-          if (matched) break;
-        }
-      }
-
-      // 2. 如果未能搭配 finished 胶囊（或不存在 lastLoopEnd），尝试仅有时钟胶囊
-      if (!matched) {
-        for (const clockVar of clockVariants) {
-          const candidate = formatFooterClockVariant(now, clockVar);
-          if (pwdWidth + minGap + visibleWidth(candidate) <= width) {
-            selectedRight = candidate;
-            matched = true;
-            break;
-          }
+      for (const candidate of candidates) {
+        if (pwdWidth + minGap + visibleWidth(candidate) <= width) {
+          selectedRight = candidate;
+          matched = true;
+          break;
         }
       }
 
