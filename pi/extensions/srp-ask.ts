@@ -34,6 +34,7 @@ import {
   Text,
   matchesKey,
   truncateToWidth,
+  visibleWidth,
   wrapTextWithAnsi,
   type AutocompleteItem,
 } from "@earendil-works/pi-tui";
@@ -186,10 +187,44 @@ function createEditorTheme(theme: Theme): EditorTheme {
   };
 }
 
-function addWrapped(lines: string[], text: string, width: number, indent = ""): void {
-  const contentWidth = Math.max(1, width - indent.length);
-  for (const line of wrapTextWithAnsi(text, contentWidth)) {
-    lines.push(truncateToWidth(`${indent}${line}`, width));
+function addWrapped(
+  lines: string[],
+  text: string,
+  width: number,
+  firstIndent = " ",
+  restIndent = firstIndent,
+  styleFn?: (line: string) => string,
+): void {
+  if (!text) return;
+  const paragraphs = text.split(/\r?\n/);
+  for (let pIdx = 0; pIdx < paragraphs.length; pIdx++) {
+    const paragraph = paragraphs[pIdx];
+    if (paragraph.length === 0) {
+      lines.push("");
+      continue;
+    }
+    const isFirstParagraph = pIdx === 0;
+    const currentFirstIndent = isFirstParagraph ? firstIndent : restIndent;
+    const firstWidth = Math.max(1, width - visibleWidth(currentFirstIndent));
+    const restWidth = Math.max(1, width - visibleWidth(restIndent));
+
+    if (firstWidth === restWidth) {
+      const wrapped = wrapTextWithAnsi(paragraph, firstWidth);
+      for (let i = 0; i < wrapped.length; i++) {
+        const indent = isFirstParagraph && i === 0 ? firstIndent : restIndent;
+        const rawLine = wrapped[i];
+        const styled = styleFn ? styleFn(rawLine) : rawLine;
+        lines.push(truncateToWidth(`${indent}${styled}`, width));
+      }
+    } else {
+      const wrapped = wrapTextWithAnsi(paragraph, Math.min(firstWidth, restWidth));
+      for (let i = 0; i < wrapped.length; i++) {
+        const indent = isFirstParagraph && i === 0 ? firstIndent : restIndent;
+        const rawLine = wrapped[i];
+        const styled = styleFn ? styleFn(rawLine) : rawLine;
+        lines.push(truncateToWidth(`${indent}${styled}`, width));
+      }
+    }
   }
 }
 
@@ -273,55 +308,6 @@ function buildResult(
   return {
     content: [{ type: "text" as const, text }],
     details: buildStructuredResult("answered", question, mode, answers, context),
-  };
-}
-
-// ============================ UI 弹窗辅助函数与滑动窗口 ============================
-
-function getTerminalRows(tui: any): number {
-  return tui?.terminal?.rows || tui?.rows || process.stdout.rows || 24;
-}
-
-interface WindowedSlice<T> {
-  visibleItems: { item: T; index: number }[];
-  hasAbove: boolean;
-  hasBelow: boolean;
-  aboveCount: number;
-  belowCount: number;
-}
-
-function getWindowedSlice<T>(
-  items: T[],
-  selectedIndex: number,
-  maxVisible: number,
-): WindowedSlice<T> {
-  const total = items.length;
-  if (total <= maxVisible) {
-    return {
-      visibleItems: items.map((item, index) => ({ item, index })),
-      hasAbove: false,
-      hasBelow: false,
-      aboveCount: 0,
-      belowCount: 0,
-    };
-  }
-
-  const half = Math.floor(maxVisible / 2);
-  let start = selectedIndex - half;
-  if (start < 0) {
-    start = 0;
-  }
-  if (start + maxVisible > total) {
-    start = total - maxVisible;
-  }
-  const end = start + maxVisible;
-
-  return {
-    visibleItems: items.slice(start, end).map((item, i) => ({ item, index: start + i })),
-    hasAbove: start > 0,
-    hasBelow: end < total,
-    aboveCount: start,
-    belowCount: total - end,
   };
 }
 
@@ -414,13 +400,15 @@ async function askSingleChoice(
 
         const lines: string[] = [];
         const add = (text: string) => lines.push(truncateToWidth(text, width));
-        const termRows = getTerminalRows(tui);
 
         add(theme.fg("accent", "─".repeat(width)));
 
         if (editMode) {
-          // 自定义输入模式：紧凑布局，防止行数撑爆终端触发滚动
-          add(theme.fg("text", theme.bold(` ${question}`)));
+          // 自定义输入模式：全量展示标题与副标题
+          addWrapped(lines, question, width, " ", " ", (l) => theme.fg("text", theme.bold(l)));
+          if (context) {
+            addWrapped(lines, context, width, " ", " ", (l) => theme.fg("muted", l));
+          }
           lines.push("");
           add(theme.fg("accent", ` > ${allOptions[optionIndex]?.label || "Other (自定义输入)"}:`));
           for (const line of editor.render(Math.max(1, width - 4))) {
@@ -434,37 +422,39 @@ async function askSingleChoice(
           return lines;
         }
 
-        // 选项模式：根据终端可用行数计算安全预算与滑动窗口
-        add(theme.fg("text", theme.bold(` ${question}`)));
+        // 标题与副标题（全量展开展示，支持多行与段落）
+        addWrapped(lines, question, width, " ", " ", (l) => theme.fg("text", theme.bold(l)));
         if (context) {
-          add(theme.fg("muted", ` ${truncateToWidth(context.replace(/[\r\n]+/g, " "), width - 2)}`));
+          addWrapped(lines, context, width, " ", " ", (l) => theme.fg("muted", l));
         }
         lines.push("");
 
-        // 动态窗口：视口通常展示 3~5 项，选中的项目单独展开描述
-        const maxVisibleItems = termRows <= 22 ? 3 : termRows <= 28 ? 4 : 5;
-        const slice = getWindowedSlice(allOptions, optionIndex, maxVisibleItems);
-
-        if (slice.hasAbove) {
-          add(theme.fg("dim", `   ▲ 还有 ${slice.aboveCount} 项...`));
-        }
-
-        for (const { item, index: i } of slice.visibleItems) {
+        // 选项列表（全量展开所有选项及其详细说明）
+        for (let i = 0; i < allOptions.length; i++) {
+          const item = allOptions[i];
           const selected = i === optionIndex;
           const prefix = selected ? theme.fg("accent", " > ") : "   ";
-          const label = item.isOther ? item.label : `${item.index}. ${item.label}`;
-          const styled = selected ? theme.bold(theme.fg("accent", label)) : theme.fg("text", label);
-          add(`${prefix}${styled}`);
 
-          // 关键优化：仅对当前高亮项展开描述，其余项保持 1 行紧凑，彻底消除行数激增与跳动
-          if (selected && item.description) {
-            const desc = truncateToWidth(item.description.replace(/[\r\n]+/g, " "), width - 6);
-            add(theme.fg("muted", `     ${desc}`));
+          if (item.isOther) {
+            const styledLabel = selected
+              ? theme.bold(theme.fg("accent", item.label))
+              : theme.fg("text", item.label);
+            lines.push(truncateToWidth(`${prefix}${styledLabel}`, width));
+          } else {
+            const numPrefix = `${item.index}. `;
+            const firstIndent = `${prefix}${selected ? theme.fg("accent", numPrefix) : numPrefix}`;
+            const restIndent = " ".repeat(visibleWidth(firstIndent));
+            const styleLabel = (l: string) =>
+              selected ? theme.bold(theme.fg("accent", l)) : theme.fg("text", l);
+
+            addWrapped(lines, item.label, width, firstIndent, restIndent, styleLabel);
+
+            if (item.description) {
+              const descIndent = " ".repeat(visibleWidth(firstIndent));
+              const descStyle = (l: string) => theme.fg("muted", l);
+              addWrapped(lines, item.description, width, descIndent, descIndent, descStyle);
+            }
           }
-        }
-
-        if (slice.hasBelow) {
-          add(theme.fg("dim", `   ▼ 还有 ${slice.belowCount} 项...`));
         }
 
         lines.push("");
@@ -628,13 +618,15 @@ async function askMultiChoice(
 
         const lines: string[] = [];
         const add = (text: string) => lines.push(truncateToWidth(text, width));
-        const termRows = getTerminalRows(tui);
 
         add(theme.fg("accent", "─".repeat(width)));
 
         if (editMode) {
-          // 自定义输入模式：紧凑布局
-          add(theme.fg("text", theme.bold(` ${question}`)));
+          // 自定义输入模式：全量展示标题与副标题
+          addWrapped(lines, question, width, " ", " ", (l) => theme.fg("text", theme.bold(l)));
+          if (context) {
+            addWrapped(lines, context, width, " ", " ", (l) => theme.fg("muted", l));
+          }
           lines.push("");
           add(theme.fg("accent", ` > ${allItems[optionIndex]?.label || "Other (自定义输入)"}:`));
           for (const line of editor.render(Math.max(1, width - 4))) {
@@ -648,33 +640,28 @@ async function askMultiChoice(
           return lines;
         }
 
-        // 多选选项模式：滑动窗口与安全行数预算
-        add(theme.fg("text", theme.bold(` ${question}`)));
+        // 标题与副标题（全量展开展示，支持多行与段落）
+        addWrapped(lines, question, width, " ", " ", (l) => theme.fg("text", theme.bold(l)));
         if (context) {
-          add(theme.fg("muted", ` ${truncateToWidth(context.replace(/[\r\n]+/g, " "), width - 2)}`));
+          addWrapped(lines, context, width, " ", " ", (l) => theme.fg("muted", l));
         }
         lines.push("");
 
-        const maxVisibleItems = termRows <= 22 ? 3 : termRows <= 28 ? 4 : 5;
-        const slice = getWindowedSlice(allItems, optionIndex, maxVisibleItems);
-
-        if (slice.hasAbove) {
-          add(theme.fg("dim", `   ▲ 还有 ${slice.aboveCount} 项...`));
-        }
-
-        for (const { item, index: i } of slice.visibleItems) {
+        // 多选选项列表（全量展开所有选项及其详细说明）
+        for (let i = 0; i < allItems.length; i++) {
+          const item = allItems[i];
           const isFocused = i === optionIndex;
           const prefix = isFocused ? theme.fg("accent", " > ") : "   ";
 
           if (item.isSubmit) {
-            const label =
-              selected.size > 0
-                ? `✓ ${item.label} (已选 ${selected.size} 项)`
-                : `○ ${item.label}`;
+            const hasSelected = selected.size > 0;
+            const label = hasSelected
+              ? `✓ ${item.label} (已选 ${selected.size} 项)`
+              : `○ ${item.label}`;
             const styled = isFocused
               ? theme.bold(theme.fg("accent", label))
-              : theme.fg(selected.size > 0 ? "success" : "dim", label);
-            add(`${prefix}${styled}`);
+              : theme.fg(hasSelected ? "success" : "dim", label);
+            lines.push(truncateToWidth(`${prefix}${styled}`, width));
             continue;
           }
 
@@ -682,30 +669,32 @@ async function askMultiChoice(
             const other = selected.get("other");
             const marker = other ? "[x]" : "[ ]";
             const suffix = other ? ` — ${other.label}` : "";
+            const label = `${marker} ${item.label}${suffix}`;
             const styled = isFocused
-              ? theme.bold(theme.fg("accent", `${marker} ${item.label}${suffix}`))
-              : theme.fg(other ? "success" : "text", `${marker} ${item.label}${suffix}`);
-            add(`${prefix}${styled}`);
+              ? theme.bold(theme.fg("accent", label))
+              : theme.fg(other ? "success" : "text", label);
+            lines.push(truncateToWidth(`${prefix}${styled}`, width));
             continue;
           }
 
           const checked = selected.has(item.id);
-          const marker = checked ? "[x]" : "[ ]";
-          const label = `${marker} ${item.index}. ${item.label}`;
-          const styled = isFocused
-            ? theme.bold(theme.fg("accent", label))
-            : theme.fg(checked ? "success" : "text", label);
-          add(`${prefix}${styled}`);
+          const marker = checked ? "[x] " : "[ ] ";
+          const numPrefix = `${item.index}. `;
+          const firstIndent = `${prefix}${checked ? theme.fg("success", marker) : marker}${numPrefix}`;
+          const restIndent = " ".repeat(visibleWidth(firstIndent));
+          const styleLabel = (l: string) => {
+            if (isFocused) return theme.bold(theme.fg("accent", l));
+            if (checked) return theme.fg("success", l);
+            return theme.fg("text", l);
+          };
 
-          // 仅在当前高亮聚焦项展示其描述
-          if (isFocused && item.description) {
-            const desc = truncateToWidth(item.description.replace(/[\r\n]+/g, " "), width - 6);
-            add(theme.fg("muted", `     ${desc}`));
+          addWrapped(lines, item.label, width, firstIndent, restIndent, styleLabel);
+
+          if (item.description) {
+            const descIndent = " ".repeat(visibleWidth(firstIndent));
+            const descStyle = (l: string) => theme.fg("muted", l);
+            addWrapped(lines, item.description, width, descIndent, descIndent, descStyle);
           }
-        }
-
-        if (slice.hasBelow) {
-          add(theme.fg("dim", `   ▼ 还有 ${slice.belowCount} 项...`));
         }
 
         lines.push("");
@@ -833,10 +822,18 @@ export default function (pi: ExtensionAPI) {
             return await askSingleChoice(
               ctx,
               "【测试】请选择您偏好的 UI 交互模式：",
-              "这是 /srp-ask test 发起的演示弹窗，用于验证主题色彩与键盘交互。",
+              "这是 /srp-ask test 发起的演示弹窗，用于验证主题色彩与全量展开渲染效果。\n包含多行副标题支持、选项说明全量展开与长文本自动折行。",
               [
-                { label: "极简纯文本模式 (Recommended)", description: "紧凑整洁，适合快速响应" },
-                { label: "丰富卡片模式", description: "展示更多元数据与装饰边框" },
+                {
+                  label: "全量展开模式 (Recommended)",
+                  description:
+                    "标题、副标题与所有选项的详细解释均支持自动折行与全量展示，不再强行单行截断省略。",
+                },
+                {
+                  label: "紧凑展示模式",
+                  description:
+                    "展示所有备选方案及其详细技术说明，方便用户在决策前全面了解各个选项差异。",
+                },
               ],
             );
           });
