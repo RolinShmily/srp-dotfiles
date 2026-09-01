@@ -11,7 +11,7 @@ fi
 # Yazi (终端文件管理器 & cwd 同步函数)
 # -------------------------------- #
 if command -v yazi &>/dev/null; then
-    function yaz() {
+    function yz() {
         local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
         yazi "$@" --cwd-file="$tmp"
         if cwd="$(command cat -- "$tmp")" && [ -n "$cwd" ] && [ "$cwd" != "$PWD" ]; then
