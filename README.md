@@ -108,6 +108,12 @@ export ANTHROPIC_API_KEY="sk-..."
 
 ---
 
+## 🔤 字体 (Fonts)
+
+推荐搭配 [subframe7536/maple-font](https://github.com/subframe7536/maple-font) 中的 **`Maple Mono NF CN`**（Maple Mono 包含 Nerd Fonts 图标与中文字符集）使用，以获得最佳的终端图标渲染与排版对齐体验。
+
+---
+
 ## 🙏 鸣谢
 
 - [amosblomqvist/pi-config](https://github.com/amosblomqvist/pi-config)：仓库中关于 Pi Coding Agent 的部分配置参考了其实现。
