@@ -50,7 +50,8 @@ pi_packages = [
     "npm:@upstash/context7-pi",
     "npm:@narumitw/pi-btw",
     "npm:pi-antigravity",
-    "npm:pi-autoresearch"
+    "npm:pi-autoresearch",
+    "npm:pi-wakatime"
 ]
 skills_add = []
 
@@ -96,7 +97,8 @@ pi_packages = [
     "npm:@xjuai/pi-feishu-lark",
     "npm:pi-memory",
     "npm:pi-antigravity",
-    "npm:context-mode"
+    "npm:context-mode",
+    "npm:pi-wakatime"
 ]
 skills_add = [
     "mvanhorn/last30days-skill",
@@ -151,6 +153,7 @@ pi_packages = [
     "npm:@upstash/context7-pi",
     "npm:@narumitw/pi-btw",
     "npm:pi-antigravity",
-    "npm:pi-autoresearch"
+    "npm:pi-autoresearch",
+    "npm:pi-wakatime"
 ]
 skills_add = []
