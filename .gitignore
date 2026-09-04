@@ -10,3 +10,6 @@ pi/settings.json
 # 本地私有 Zsh 配置 (若放置在 zsh.d 中)
 zsh.d/local.zsh
 zsh.d/*.local.zsh
+
+# skill
+pi/skills/browser-tools/package-lock.json

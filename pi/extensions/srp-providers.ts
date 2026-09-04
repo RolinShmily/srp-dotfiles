@@ -8,12 +8,14 @@
  *
  *        /login omniroute
  *        /login shuaiapi
+ *        /login bigmodel
  *
  *   2. 手动：直接编辑 auth.json（条目 key 是 provider id，不是显示名）：
  *
  *        {
  *          "omniroute": { "type": "api_key", "key": "sk-..." },
- *          "shuaiapi":  { "type": "api_key", "key": "sk-..." }
+ *          "shuaiapi":  { "type": "api_key", "key": "sk-..." },
+ *          "bigmodel":  { "type": "api_key", "key": "..." }
  *        }
  *
  *      key 还支持命令（"!cmd"）与环境变量插值（"$VAR"），见 providers.md。
@@ -178,9 +180,74 @@ function registerShuaiapi(pi: ExtensionAPI): void {
   });
 }
 
+// ============================ bigmodel ============================
+// 智谱 AI 开放平台：https://open.bigmodel.cn
+// 接口文档：https://docs.bigmodel.cn/api-reference/模型-api/对话补全
+// 模型指南：https://docs.bigmodel.cn/cn/guide/models/vlm/glm-5.3-flash
+
+const BIGMODEL_BASE_URL = "https://open.bigmodel.cn/api/paas/v4";
+const BIGMODEL_COST = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
+const BIGMODEL_COMPAT = {
+  supportsUsageInStreaming: true,
+  supportsDeveloperRole: false,
+  supportsReasoningEffort: true,
+  thinkingFormat: "zai" as const,
+  maxTokensField: "max_tokens" as const,
+};
+
+const GLM_5_3_THINKING_LEVELS = {
+  minimal: null,
+  low: "low",
+  medium: null,
+  high: "high",
+  xhigh: null,
+  max: "max",
+};
+
+/**
+ * 智谱官方模型。
+ * 认证走 /login bigmodel（auth.json），不设 apiKey 字段。
+ */
+const BIGMODEL_MODELS: Record<string, unknown>[] = [
+  {
+    id: "glm-5.3-flash",
+    name: "GLM-5.3 Flash",
+    reasoning: true,
+    input: ["text", "image"],
+    contextWindow: 1_000_000,
+    maxTokens: 128_000,
+    thinkingLevelMap: GLM_5_3_THINKING_LEVELS,
+    cost: BIGMODEL_COST,
+    compat: BIGMODEL_COMPAT,
+  },
+  {
+    id: "glm-5.3",
+    name: "GLM-5.3",
+    reasoning: true,
+    input: ["text"],
+    contextWindow: 1_000_000,
+    maxTokens: 128_000,
+    thinkingLevelMap: GLM_5_3_THINKING_LEVELS,
+    cost: BIGMODEL_COST,
+    compat: BIGMODEL_COMPAT,
+  },
+];
+
+function registerBigmodel(pi: ExtensionAPI): void {
+  pi.registerProvider("bigmodel", {
+    name: "BigModel (智谱)",
+    baseUrl: BIGMODEL_BASE_URL,
+    api: "openai-completions",
+    // 认证走 /login bigmodel（auth.json），不设 apiKey 字段
+    compat: { supportsUsageInStreaming: true },
+    models: BIGMODEL_MODELS,
+  });
+}
+
 function registerAll(pi: ExtensionAPI): void {
   registerOmniroute(pi);
   registerShuaiapi(pi);
+  registerBigmodel(pi);
 }
 
 export default registerAll;

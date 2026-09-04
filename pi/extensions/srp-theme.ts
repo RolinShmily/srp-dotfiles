@@ -582,8 +582,9 @@ export function buildCustomFooter(
       const modelId = ctx.model?.id || "no-model";
       let rightSide = modelId;
       if (ctx.model?.reasoning) {
-        const thinkingLevel = (ctx as any).sessionManager?.getThinkingLevel?.() || "high";
-        rightSide = `${modelId} • ${thinkingLevel}`;
+        // ctx.thinkingLevel 是实时 getter（shift+tab 切换后立即生效），与原生 footer 的 state.thinkingLevel 一致
+        const thinkingLevel = ctx.thinkingLevel || "off";
+        rightSide = thinkingLevel === "off" ? `${modelId} • thinking off` : `${modelId} • ${thinkingLevel}`;
       }
       if (footerData.getAvailableProviderCount() > 1 && ctx.model?.provider) {
         rightSide = `(${ctx.model.provider}) ${rightSide}`;

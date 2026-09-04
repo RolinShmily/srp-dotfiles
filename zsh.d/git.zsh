@@ -15,6 +15,7 @@ alias gpl='git pull --rebase'
 alias gcl='git clone'
 alias gst='git stash'
 alias grm='git rm'
+alias grmc='git rm --cached'
 alias gmv='git mv'
 alias lg='lazygit'
 
