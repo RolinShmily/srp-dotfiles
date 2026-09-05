@@ -193,9 +193,10 @@ scoop_buckets = [
     "dorado = https://github.com/chawyehsu/dorado"
 ]
 
-# 3. Scoop 软件包清单 (字体、终端监控、复用器、轻量与主流编辑器)
+# 3. Scoop 软件包清单 (Node.js/npm运行时、字体、终端监控、复用器、编辑器)
 scoop_packages = [
     "aria2",
+    "nodejs-lts",
     "Maple-Mono-NF-CN",
     "btop-lhm",
     "zellij",
@@ -203,15 +204,50 @@ scoop_packages = [
     "vscode"
 ]
 
-# 4. 现代 Python 管理器
+# 4. 全局 npm 常用开发工具
+npm_globals = [
+    "@earendil-works/pi-coding-agent",
+    "@antfu/ni",
+    "live-server"
+]
+
+# 5. 现代 Python 管理器
 python_manager = "uv"
 
-# 5. 符号链接配置同步清单
+# 6. 符号链接配置同步清单
 configs = [
     "wezterm",
     "powershell",
     "fastfetch",
     "zellij",
     "yazi",
-    "btop"
+    "btop",
+    "pi"
 ]
+
+# 7. Pi Coding Agent 扩展套件 (仅剔除 WSL 专用的 wsl-screenshot.ts)
+pi_extensions = [
+    "srp-ask.ts",
+    "srp-continue.ts",
+    "srp-prompt.ts",
+    "srp-providers.ts",
+    "srp-theme.ts",
+    "srp-vision.ts",
+    "srp-voice.ts",
+    "srp-image.ts",
+    "srp-web.ts",
+    "srp-memory",
+    "srp-subagent"
+]
+
+# 8. Pi 官方与社区 npm Packages 插件包
+pi_packages = [
+    "npm:@narumitw/pi-goal",
+    "npm:@upstash/context7-pi",
+    "npm:@narumitw/pi-btw",
+    "npm:pi-antigravity",
+    "npm:pi-autoresearch",
+    "npm:pi-wakatime"
+]
+
+skills_add = []

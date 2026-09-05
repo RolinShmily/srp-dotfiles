@@ -319,7 +319,7 @@ function Install-Scoop-Packages {
 }
 
 function Install-Python-Runtime {
-    Write-Host "`n--- [阶段 4/4] 安装现代 Python 环境与管理器 ---" -ForegroundColor Cyan
+    Write-Host "`n--- [阶段 4/5] 安装现代 Python 环境与管理器 ---" -ForegroundColor Cyan
 
     $pyManager = Get-TomlString -FilePath $ManifestFile -Section "windows" -Key "python_manager"
     if ($pyManager -eq "uv") {
@@ -339,6 +339,29 @@ function Install-Python-Runtime {
     }
 }
 
+function Install-Npm-Globals {
+    Write-Host "`n--- [阶段 5/5] 安装全局 npm 开发套件 ---" -ForegroundColor Cyan
+
+    # 刷新 PATH 环境变量以确保能识别刚通过 Scoop 安装的 nodejs/npm
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "User") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+    if (-not (Get-Command "npm" -ErrorAction SilentlyContinue)) {
+        Write-LogWarn "未检测到 npm 命令，跳过全局 npm 软件包安装阶段。"
+        return
+    }
+
+    $npmPackages = Get-TomlArray -FilePath $ManifestFile -Section "windows" -Key "npm_globals"
+    if ($npmPackages.Count -eq 0) {
+        Write-LogInfo "manifest.toml 中未定义 windows.npm_globals，跳过本阶段。"
+        return
+    }
+
+    foreach ($pkg in $npmPackages) {
+        Invoke-Step -Name "全局 npm 软件包 [$pkg]" -ScriptBlock {
+            npm install -g --ignore-scripts $pkg
+        }
+    }
+}
+
 function Run-Install {
     Write-Host "==========================================================" -ForegroundColor Cyan
     Write-Host "   📦 执行 Windows 依赖软件包全量安装 (manifest.toml)     " -ForegroundColor White -BackgroundColor DarkBlue
@@ -349,6 +372,7 @@ function Run-Install {
     Install-And-Configure-Scoop
     Install-Scoop-Packages
     Install-Python-Runtime
+    Install-Npm-Globals
 
     Write-Host ""
     Write-LogSuccess "Windows 软件包安装流水线全部完成！(未更改任何配置文件)"
@@ -412,6 +436,93 @@ function Configure-User-Environment {
     }
 }
 
+function Deploy-Pi-Stack {
+    param (
+        [string]$BackupDir
+    )
+
+    Write-Host ""
+    Write-LogInfo "--- 正在部署 Pi Coding Agent 智能体体系 ---"
+
+    $piAgentDir = Join-Path $UserHome ".pi\agent"
+    if (-not (Test-Path $piAgentDir)) {
+        New-Item -ItemType Directory -Path $piAgentDir -Force | Out-Null
+    }
+
+    # 1. 检查 node 命令是否就绪 (用于安全合并 JSON)
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "User") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+    if (-not (Get-Command "node" -ErrorAction SilentlyContinue)) {
+        Write-LogWarn "未检测到 node 命令，跳过 Pi settings.json 安全合并。请先安装 nodejs-lts。"
+    } else {
+        $piPackages = Get-TomlArray -FilePath $ManifestFile -Section "windows" -Key "pi_packages"
+        $mergeScript = Join-Path $DotfilesDir "scripts\merge_pi_settings.js"
+        $targetSettings = Join-Path $piAgentDir "settings.json"
+        $exampleSettings = Join-Path $DotfilesDir "pi\settings.json.example"
+
+        Invoke-Step -Name "Pi settings.json 配置安全合并与 packages 注入" -ScriptBlock {
+            $nodeArgs = @($mergeScript, $targetSettings, $exampleSettings, $BackupDir) + $piPackages
+            & node @nodeArgs
+        }
+    }
+
+    # 2. 部署 AGENTS.md 全局规范
+    $agentsSource = Join-Path $DotfilesDir "pi\AGENTS.md"
+    $agentsTarget = Join-Path $piAgentDir "AGENTS.md"
+    if (Test-Path $agentsSource) {
+        Invoke-Step -Name "部署 Pi 全局规范 (AGENTS.md)" -ScriptBlock {
+            Deploy-Link-Item -Source $agentsSource -Target $agentsTarget -Name "Pi AGENTS.md" -BackupDir $BackupDir
+        }
+    }
+
+    # 3. 部署指定扩展 (pi_extensions)
+    $piExts = Get-TomlArray -FilePath $ManifestFile -Section "windows" -Key "pi_extensions"
+    $extsSourceDir = Join-Path $DotfilesDir "pi\extensions"
+    $extsTargetDir = Join-Path $piAgentDir "extensions"
+
+    if (Test-Path $extsSourceDir) {
+        if (-not (Test-Path $extsTargetDir)) {
+            New-Item -ItemType Directory -Path $extsTargetDir -Force | Out-Null
+        }
+
+        Invoke-Step -Name "部署 Pi Extensions 扩展套件 ($($piExts.Count) 个)" -ScriptBlock {
+            foreach ($ext in $piExts) {
+                $src = Join-Path $extsSourceDir $ext
+                $dst = Join-Path $extsTargetDir $ext
+                if (Test-Path $src) {
+                    Deploy-Link-Item -Source $src -Target $dst -Name "Pi 扩展 [$ext]" -BackupDir $BackupDir
+                }
+            }
+        }
+    }
+
+    # 4. 部署 skills, prompts, agents 资源目录
+    $resourceTypes = @(
+        @{ Dir = "skills"; Name = "技能库" },
+        @{ Dir = "prompts"; Name = "提示词模板" },
+        @{ Dir = "agents"; Name = "子智能体角色" }
+    )
+
+    foreach ($res in $resourceTypes) {
+        $rDir = $res.Dir
+        $rName = $res.Name
+        $srcDir = Join-Path $DotfilesDir "pi\$rDir"
+        $dstDir = Join-Path $piAgentDir $rDir
+
+        if (Test-Path $srcDir) {
+            if (-not (Test-Path $dstDir)) {
+                New-Item -ItemType Directory -Path $dstDir -Force | Out-Null
+            }
+            Invoke-Step -Name "部署 Pi $rName ($rDir)" -ScriptBlock {
+                Get-ChildItem -Path $srcDir | ForEach-Object {
+                    $itemSrc = $_.FullName
+                    $itemDst = Join-Path $dstDir $_.Name
+                    Deploy-Link-Item -Source $itemSrc -Target $itemDst -Name "Pi $rName [$_]" -BackupDir $BackupDir
+                }
+            }
+        }
+    }
+}
+
 function Run-Config {
     Write-Host "==========================================================" -ForegroundColor Cyan
     Write-Host "       ⚙️ 正在部署 Dotfiles 符号链接配置 (manifest.toml)   " -ForegroundColor White -BackgroundColor DarkBlue
@@ -471,10 +582,16 @@ function Run-Config {
         }
     }
 
-    # 4. 部署通用应用配置目录 (~/.config/<app> - 如 fastfetch, zellij 等)
+    # 4. 部署通用应用配置目录 (~/.config/<app> - 如 fastfetch, zellij, yazi, btop 等) 与 Pi 体系
     $hasCommon = $false
     foreach ($app in $configsToDeploy) {
         if ($app -eq "wezterm" -or $app -eq "powershell") { continue }
+
+        if ($app -eq "pi") {
+            Deploy-Pi-Stack -BackupDir $backupDir
+            continue
+        }
+
         if (-not $hasCommon) {
             Write-Host ""
             Write-LogInfo "--- 正在部署通用应用配置目录 (~/.config/<app>) ---"
