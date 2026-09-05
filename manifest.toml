@@ -160,3 +160,45 @@ pi_packages = [
     "npm:pi-wakatime"
 ]
 skills_add = []
+
+[windows]
+package_managers = ["winget", "scoop"]
+
+# 1. 核心系统工具链 (通过 Winget 安装)
+winget_packages = [
+    "wez.wezterm",
+    "Microsoft.PowerShell",
+    "Git.Git",
+    "JanDeDobbeleer.OhMyPosh",
+    "GitHub.cli",
+    "Fastfetch-cli.Fastfetch"
+]
+
+# 2. Scoop 软件源与国内镜像加速 (南京大学镜像源 + 社区源)
+scoop_buckets = [
+    "main = https://mirror.nju.edu.cn/git/scoop-main.git",
+    "extras = https://mirror.nju.edu.cn/git/scoop-extras.git",
+    "versions = https://mirror.nju.edu.cn/git/scoop-versions.git",
+    "nerd-fonts = https://mirror.nju.edu.cn/git/scoop-nerd-fonts.git/",
+    "dorado = https://github.com/chawyehsu/dorado"
+]
+
+# 3. Scoop 软件包清单 (字体、终端复用器、轻量与主流编辑器)
+scoop_packages = [
+    "aria2",
+    "Maple-Mono-NF-CN",
+    "zellij",
+    "notepad3",
+    "vscode"
+]
+
+# 4. 现代 Python 管理器
+python_manager = "uv"
+
+# 5. 符号链接配置同步清单
+configs = [
+    "wezterm",
+    "powershell",
+    "fastfetch",
+    "zellij"
+]
