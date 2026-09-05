@@ -15,13 +15,19 @@
  *
  * 斜杠命令：
  *   - /srp-voice: 切换语音听写
+ *   - /srp-voice model: 交互式选择并切换 ASR 语音模型
+ *   - /srp-voice status: 查看当前 ASR 模型与鉴权状态
+ *
+ * 认证方式：
+ *   - 首选：通过 Pi 原生命令 `/login dashscope` 或 `/login deepgram` 保存凭据到 auth.json
+ *   - 兼容：settings.json 中的 srpVoice.apiKey 或系统环境变量 (DASHSCOPE_API_KEY / DEEPGRAM_API_KEY)
  *
  * settings.json 配置示例 (在 ~/.pi/agent/settings.json 或 .pi/settings.json 中)：
  *   "srpVoice": {
  *     "enabled": true,
  *     "provider": "auto",                  // "auto" | "aliyun" | "dashscope" | "deepgram"
  *     "model": "paraformer-realtime-v2",    // 或 "nova-3"
- *     "apiKey": "",                         // 可选，留空自动从 ~/.zshrc.local 或系统环境变量读取
+ *     "apiKey": "",                         // 可选，留空自动从 /login 凭证库或环境变量读取
  *     "language": "zh",                     // 语言偏好，如 "zh", "en", "multi"
  *     "shortcuts": ["alt+m"],
  *     "cancelShortcuts": ["alt+n"]
@@ -34,9 +40,9 @@ import {
   type ExtensionAPI,
   type ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
-import { Key, matchesKey, isKeyRelease, isKeyRepeat } from "@earendil-works/pi-tui";
+import { Key, matchesKey, isKeyRelease, isKeyRepeat, type AutocompleteItem } from "@earendil-works/pi-tui";
 import { spawn, type ChildProcessByStdio } from "node:child_process";
-import { existsSync, appendFileSync, readFileSync } from "node:fs";
+import { existsSync, appendFileSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { Readable } from "node:stream";
@@ -105,6 +111,112 @@ export interface SrpVoiceConfig {
   cancelShortcuts: string[];
 }
 
+let runtimeOverrides: Partial<SrpVoiceConfig> = {};
+
+function saveVoiceSettings(updates: Partial<SrpVoiceConfig>, cwd?: string): void {
+  const projectPath = cwd ? join(cwd, CONFIG_DIR_NAME, "settings.json") : null;
+  const targetPath = projectPath && existsSync(projectPath) ? projectPath : join(getAgentDir(), "settings.json");
+  let data: Record<string, unknown> = {};
+  try {
+    if (existsSync(targetPath)) {
+      data = JSON.parse(readFileSync(targetPath, "utf-8")) || {};
+    }
+  } catch {}
+  const currentVoice =
+    data.srpVoice && typeof data.srpVoice === "object" && !Array.isArray(data.srpVoice)
+      ? (data.srpVoice as Record<string, unknown>)
+      : {};
+  data.srpVoice = { ...currentVoice, ...updates };
+  try {
+    writeFileSync(targetPath, JSON.stringify(data, null, 2) + "\n", "utf-8");
+  } catch {}
+}
+
+async function resolveApiKey(
+  providerId: string,
+  directKey?: string,
+  ctx?: ExtensionContext | null,
+): Promise<{ key: string; source: string }> {
+  // 1. settings.json 或配置中显式指定的 apiKey
+  if (directKey?.trim()) {
+    return { key: directKey.trim(), source: "settings.json" };
+  }
+
+  // 2. Pi 原生 auth.json 凭据仓库 (~/.pi/agent/auth.json via /login)
+  if (ctx?.modelRegistry) {
+    const candidates = providerId === "dashscope" || providerId === "aliyun"
+      ? ["dashscope", "aliyun"]
+      : [providerId];
+
+    for (const id of candidates) {
+      try {
+        const key = await ctx.modelRegistry.getApiKeyForProvider(id);
+        if (key?.trim()) {
+          return { key: key.trim(), source: `/login ${id} (auth.json)` };
+        }
+      } catch {}
+      try {
+        const auth = await ctx.modelRegistry.getProviderAuth(id);
+        if (auth?.auth?.apiKey?.trim()) {
+          return { key: auth.auth.apiKey.trim(), source: `/login ${id} (auth.json)` };
+        }
+      } catch {}
+    }
+  }
+
+  // 3. 环境变量与本地环境配置文件回退
+  if (providerId === "dashscope" || providerId === "aliyun") {
+    const envKey = getEnv("DASHSCOPE_API_KEY") || getEnv("ALIYUN_API_KEY");
+    if (envKey) return { key: envKey, source: "环境变量 (DASHSCOPE_API_KEY)" };
+  } else if (providerId === "deepgram") {
+    const envKey = getEnv("DEEPGRAM_API_KEY");
+    if (envKey) return { key: envKey, source: "环境变量 (DEEPGRAM_API_KEY)" };
+  } else {
+    const envKey = getEnv(`${providerId.toUpperCase()}_API_KEY`);
+    if (envKey) return { key: envKey, source: `环境变量 (${providerId.toUpperCase()}_API_KEY)` };
+  }
+
+  return { key: "", source: "none" };
+}
+
+function formatDimText(ctx: ExtensionContext, text: string): string {
+  try {
+    if (ctx.ui?.theme?.fg) {
+      return ctx.ui.theme.fg("muted", text);
+    }
+  } catch {}
+  return `\x1b[90m${text}\x1b[39m`;
+}
+
+export interface AsrModelItem {
+  provider: "dashscope" | "deepgram";
+  model: string;
+  description: string;
+}
+
+export const ASR_MODELS: AsrModelItem[] = [
+  {
+    provider: "dashscope",
+    model: "paraformer-realtime-v2",
+    description: "阿里百炼实时语音（中文优先，精准断句与标点，首选推荐）",
+  },
+  {
+    provider: "dashscope",
+    model: "paraformer-8k-realtime-v1",
+    description: "阿里百炼 8k 窄带电话实时语音",
+  },
+  {
+    provider: "deepgram",
+    model: "nova-3",
+    description: "Deepgram Nova-3（极速低延迟，英文及多语言首选）",
+  },
+  {
+    provider: "deepgram",
+    model: "nova-2",
+    description: "Deepgram Nova-2 通用流式语音模型",
+  },
+];
+
 function loadVoiceConfig(cwd?: string): SrpVoiceConfig {
   const read = (path: string): Record<string, unknown> => {
     try {
@@ -144,6 +256,7 @@ function loadVoiceConfig(cwd?: string): SrpVoiceConfig {
     language,
     shortcuts,
     cancelShortcuts,
+    ...runtimeOverrides,
   };
 }
 
@@ -217,8 +330,9 @@ interface VoiceCallbacks {
 }
 
 interface StreamingVoiceProvider {
+  readonly id: string;
   readonly name: string;
-  isAvailable(): boolean;
+  isAvailable(): Promise<boolean>;
   start(callbacks: VoiceCallbacks): Promise<void>;
   sendAudio(chunk: Buffer): void;
   stop(): Promise<void>;
@@ -227,25 +341,28 @@ interface StreamingVoiceProvider {
 
 // ── Provider 1: Deepgram Nova-3 ───────────────────────────────────────────
 class DeepgramProvider implements StreamingVoiceProvider {
+  readonly id = "deepgram";
   readonly name = "Deepgram (Nova-3)";
   private ws: WebSocket | null = null;
   private config: SrpVoiceConfig;
+  private ctx?: ExtensionContext | null;
   private isCancelled = false;
 
-  constructor(config: SrpVoiceConfig) {
+  constructor(config: SrpVoiceConfig, ctx?: ExtensionContext | null) {
     this.config = config;
+    this.ctx = ctx;
   }
 
-  isAvailable(): boolean {
-    const key = this.config.apiKey || getEnv("DEEPGRAM_API_KEY");
+  async isAvailable(): Promise<boolean> {
+    const { key } = await resolveApiKey("deepgram", this.config.apiKey, this.ctx);
     return !!key;
   }
 
   async start(callbacks: VoiceCallbacks): Promise<void> {
     this.isCancelled = false;
-    const apiKey = this.config.apiKey || getEnv("DEEPGRAM_API_KEY");
+    const { key: apiKey } = await resolveApiKey("deepgram", this.config.apiKey, this.ctx);
     if (!apiKey) {
-      throw new Error("DEEPGRAM_API_KEY is not set in settings.json or environment");
+      throw new Error("未找到 Deepgram API Key，请先执行 /login deepgram 或在 settings.json / 环境变量中配置 DEEPGRAM_API_KEY");
     }
 
     const model = this.config.model || "nova-3";
@@ -333,27 +450,30 @@ class DeepgramProvider implements StreamingVoiceProvider {
 
 // ── Provider 2: 阿里百炼 (DashScope Paraformer 实时语音) ──────────────────────
 class AliyunDashscopeProvider implements StreamingVoiceProvider {
+  readonly id = "dashscope";
   readonly name = "Aliyun DashScope (Paraformer)";
   private ws: WebSocket | null = null;
   private taskId: string = "";
   private lastSentenceMap = new Map<number, string>();
   private config: SrpVoiceConfig;
+  private ctx?: ExtensionContext | null;
   private isCancelled = false;
 
-  constructor(config: SrpVoiceConfig) {
+  constructor(config: SrpVoiceConfig, ctx?: ExtensionContext | null) {
     this.config = config;
+    this.ctx = ctx;
   }
 
-  isAvailable(): boolean {
-    const key = this.config.apiKey || getEnv("DASHSCOPE_API_KEY");
+  async isAvailable(): Promise<boolean> {
+    const { key } = await resolveApiKey("dashscope", this.config.apiKey, this.ctx);
     return !!key;
   }
 
   async start(callbacks: VoiceCallbacks): Promise<void> {
     this.isCancelled = false;
-    const apiKey = this.config.apiKey || getEnv("DASHSCOPE_API_KEY");
+    const { key: apiKey } = await resolveApiKey("dashscope", this.config.apiKey, this.ctx);
     if (!apiKey) {
-      throw new Error("DASHSCOPE_API_KEY is not set in settings.json or environment");
+      throw new Error("未找到 DashScope API Key，请先执行 /login dashscope 或在 settings.json / 环境变量中配置 DASHSCOPE_API_KEY");
     }
 
     this.taskId = randomUUID().replace(/-/g, "");
@@ -489,17 +609,17 @@ class AliyunDashscopeProvider implements StreamingVoiceProvider {
 }
 
 // ── Provider 选择工厂 ───────────────────────────────────────────────────────
-function selectProvider(config: SrpVoiceConfig): StreamingVoiceProvider {
+async function selectProvider(config: SrpVoiceConfig, ctx?: ExtensionContext | null): Promise<StreamingVoiceProvider> {
   const explicit = (config.provider || "auto").toLowerCase().trim();
-  const aliyun = new AliyunDashscopeProvider(config);
-  const deepgram = new DeepgramProvider(config);
+  const aliyun = new AliyunDashscopeProvider(config, ctx);
+  const deepgram = new DeepgramProvider(config, ctx);
 
   if (explicit === "deepgram") return deepgram;
   if (explicit === "aliyun" || explicit === "dashscope" || explicit === "paraformer") return aliyun;
 
   // Auto 策略：优先使用已配置 Key 的 Provider (国内优先百炼)
-  if (aliyun.isAvailable()) return aliyun;
-  if (deepgram.isAvailable()) return deepgram;
+  if (await aliyun.isAvailable()) return aliyun;
+  if (await deepgram.isAvailable()) return deepgram;
 
   return aliyun;
 }
@@ -676,10 +796,10 @@ export default function (pi: ExtensionAPI) {
 
   const startDictation = async (ctx: ExtensionContext) => {
     const config = getConfig();
-    const provider = selectProvider(config);
-    if (!provider.isAvailable()) {
+    const provider = await selectProvider(config, ctx);
+    if (!(await provider.isAvailable())) {
       ctx.ui.notify(
-        `No API key configured for ${provider.name}. Please set DASHSCOPE_API_KEY or DEEPGRAM_API_KEY in settings.json or environment.`,
+        `未检测到 ${provider.name} 的有效 API Key。\n请在终端执行 /login ${provider.id}，或在 settings.json / 环境变量中配置。`,
         "error",
       );
       return;
@@ -808,14 +928,14 @@ export default function (pi: ExtensionAPI) {
     cleanup();
   };
 
-  const toggleDictation = (ctx: ExtensionContext) => {
+  const toggleDictation = async (ctx: ExtensionContext) => {
     lastCtx = ctx;
     if (state === "idle") {
       if (tuiHandle && !resolveTarget()) {
         ctx.ui.notify("No input field is focused — dictation not started", "warning");
         return;
       }
-      startDictation(ctx);
+      await startDictation(ctx);
     } else if (state === "recording") {
       stopDictation();
     }
@@ -908,7 +1028,7 @@ export default function (pi: ExtensionAPI) {
     description: "Toggle voice dictation (srp-voice)",
     handler: async (ctx) => {
       ensureTuiAttached(ctx);
-      toggleDictation(ctx);
+      await toggleDictation(ctx);
     },
   });
 
@@ -922,10 +1042,119 @@ export default function (pi: ExtensionAPI) {
 
   // 注册主命令 /srp-voice
   pi.registerCommand("srp-voice", {
-    description: "Toggle voice dictation (srp-voice)",
-    handler: async (_args, ctx) => {
+    description: "语音听写管理与模型切换 (/srp-voice [toggle|model|status])",
+    getArgumentCompletions: (prefix: string): AutocompleteItem[] | null => {
+      const trimmed = prefix.trimStart();
+      if (trimmed.startsWith("model ") || trimmed === "model") {
+        const subPrefix = trimmed.startsWith("model ") ? trimmed.slice(6).trimStart() : "";
+        const modelCandidates: AutocompleteItem[] = ASR_MODELS.map((item) => ({
+          value: `model ${item.model}`,
+          label: `${item.model} (${item.provider})`,
+          description: item.description,
+        }));
+        if (!subPrefix) return modelCandidates;
+        const filtered = modelCandidates.filter(
+          (c) =>
+            c.value.toLowerCase().includes(subPrefix.toLowerCase()) ||
+            c.label.toLowerCase().includes(subPrefix.toLowerCase()),
+        );
+        return filtered.length > 0 ? filtered : null;
+      }
+
+      const candidates: AutocompleteItem[] = [
+        { value: "toggle", label: "toggle", description: "开始 / 停止语音听写" },
+        { value: "model", label: "model", description: "交互式选择并切换 ASR 语音模型" },
+        { value: "status", label: "status", description: "查看当前 ASR 模型与鉴权状态" },
+      ];
+      const filtered = candidates.filter((item) => item.value.startsWith(trimmed));
+      return filtered.length > 0 ? filtered : null;
+    },
+    handler: async (args, ctx) => {
       ensureTuiAttached(ctx);
-      toggleDictation(ctx);
+      const parts = args.trim().toLowerCase().split(/\s+/).filter(Boolean);
+      const sub = parts[0];
+
+      if (sub === "model") {
+        const currentConfig = getConfig();
+        const modelArg = parts[1];
+        if (modelArg) {
+          const matched = ASR_MODELS.find(
+            (m) =>
+              m.model.toLowerCase() === modelArg ||
+              m.provider.toLowerCase() === modelArg ||
+              `${m.model} (${m.provider})`.toLowerCase() === modelArg ||
+              `${m.provider}/${m.model}`.toLowerCase() === modelArg ||
+              m.model.toLowerCase().includes(modelArg),
+          );
+          if (matched) {
+            runtimeOverrides = {
+              ...runtimeOverrides,
+              provider: matched.provider,
+              model: matched.model,
+            };
+            saveVoiceSettings({ provider: matched.provider, model: matched.model }, ctx.cwd);
+            ctx.ui.notify(`ASR 语音模型已切换为: ${matched.model} (${matched.provider})`, "info");
+            return;
+          }
+        }
+
+        const options = ASR_MODELS.map((item) => {
+          const isCurrent =
+            (currentConfig.provider === item.provider ||
+              (currentConfig.provider === "auto" && item.provider === "dashscope")) &&
+            (currentConfig.model === item.model || (!currentConfig.model && item.model === "paraformer-realtime-v2"));
+          const currentBadge = isCurrent ? " (当前使用)" : "";
+          const descLine = `  ${formatDimText(ctx, item.description)}`;
+          return `${item.model} (${item.provider})${currentBadge}\n${descLine}`;
+        });
+
+        const selected = await ctx.ui.select("选择当前生效的 ASR 语音模型：", options);
+        if (!selected) return;
+
+        const matchIndex = options.findIndex((opt, idx) => {
+          if (opt === selected) return true;
+          const item = ASR_MODELS[idx];
+          return selected.startsWith(`${item.model} (${item.provider})`);
+        });
+
+        if (matchIndex >= 0) {
+          const target = ASR_MODELS[matchIndex];
+          runtimeOverrides = {
+            ...runtimeOverrides,
+            provider: target.provider,
+            model: target.model,
+          };
+          saveVoiceSettings({ provider: target.provider, model: target.model }, ctx.cwd);
+          ctx.ui.notify(`ASR 语音模型已切换为: ${target.model} (${target.provider})`, "info");
+        }
+        return;
+      }
+
+      if (sub === "status") {
+        const current = getConfig();
+        const dashAuth = await resolveApiKey("dashscope", current.apiKey, ctx);
+        const deepgramAuth = await resolveApiKey("deepgram", current.apiKey, ctx);
+
+        const dashStatus = dashAuth.key ? `已就绪 (${dashAuth.source})` : "未配置 (可通过 /login dashscope 登录)";
+        const deepStatus = deepgramAuth.key ? `已就绪 (${deepgramAuth.source})` : "未配置 (可通过 /login deepgram 登录)";
+
+        const summary = [
+          `srp-voice 状态:`,
+          `• 当前服务商: ${current.provider} (${current.provider === "auto" ? "自动探测" : "显式指定"})`,
+          `• 当前 ASR 模型: ${current.model || "paraformer-realtime-v2 (默认)"}`,
+          `• 语言偏好: ${current.language}`,
+          `• DashScope 凭据: ${dashStatus}`,
+          `• Deepgram 凭据: ${deepStatus}`,
+          `• 听写热键: ${current.shortcuts.join(", ")}`,
+          `• 取消热键: ${current.cancelShortcuts.join(", ")}`,
+        ].join("\n");
+
+        ctx.ui.notify(summary, "info");
+        return;
+      }
+
+      // 默认行为：开始 / 停止听写
+      await toggleDictation(ctx);
     },
   });
 

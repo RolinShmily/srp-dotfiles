@@ -39,6 +39,7 @@ pi_extensions = [
     "srp-theme.ts",
     "srp-vision.ts",
     "srp-voice.ts",
+    "srp-image.ts",
     "srp-web.ts",
     "wsl-screenshot.ts",
     "srp-memory",
@@ -87,6 +88,7 @@ pi_extensions = [
     "srp-providers.ts",
     "srp-theme.ts",
     "srp-vision.ts",
+    "srp-image.ts",
     "srp-memory"
 ]
 pi_packages = [
@@ -144,6 +146,7 @@ pi_extensions = [
     "srp-providers.ts",
     "srp-theme.ts",
     "srp-vision.ts",
+    "srp-image.ts",
     "srp-web.ts",
     "srp-memory",
     "srp-subagent"

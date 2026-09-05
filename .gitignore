@@ -1,5 +1,6 @@
 # Pi 智能体会话记忆与 MCP 产物
 .memory/
+.pi/
 .playwright-mcp/
 pi/settings.json
 

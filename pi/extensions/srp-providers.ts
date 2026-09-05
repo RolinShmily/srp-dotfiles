@@ -9,13 +9,17 @@
  *        /login omniroute
  *        /login shuaiapi
  *        /login bigmodel
+ *        /login dashscope
+ *        /login deepgram
  *
  *   2. 手动：直接编辑 auth.json（条目 key 是 provider id，不是显示名）：
  *
  *        {
  *          "omniroute": { "type": "api_key", "key": "sk-..." },
  *          "shuaiapi":  { "type": "api_key", "key": "sk-..." },
- *          "bigmodel":  { "type": "api_key", "key": "..." }
+ *          "bigmodel":  { "type": "api_key", "key": "..." },
+ *          "dashscope": { "type": "api_key", "key": "sk-..." },
+ *          "deepgram":  { "type": "api_key", "key": "..." }
  *        }
  *
  *      key 还支持命令（"!cmd"）与环境变量插值（"$VAR"），见 providers.md。
@@ -244,10 +248,75 @@ function registerBigmodel(pi: ExtensionAPI): void {
   });
 }
 
+// ============================ dashscope ============================
+// 阿里百炼（DashScope）：https://dashscope.console.aliyun.com/
+// 接口：OpenAI 兼容端点（通义千问系列），同时为 srp-voice Paraformer 语音识别提供 /login dashscope 统一鉴权
+const DASHSCOPE_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1";
+const DASHSCOPE_COST = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
+const DASHSCOPE_MODELS: Record<string, unknown>[] = [
+  {
+    id: "qwen-max",
+    name: "Qwen Max (通义千问)",
+    reasoning: true,
+    input: ["text"],
+    contextWindow: 32_768,
+    maxTokens: 8_192,
+    cost: DASHSCOPE_COST,
+    compat: { supportsUsageInStreaming: true },
+  },
+  {
+    id: "qwen-plus",
+    name: "Qwen Plus (通义千问)",
+    reasoning: false,
+    input: ["text"],
+    contextWindow: 131_072,
+    maxTokens: 8_192,
+    cost: DASHSCOPE_COST,
+    compat: { supportsUsageInStreaming: true },
+  },
+  {
+    id: "qwen-turbo",
+    name: "Qwen Turbo (通义千问)",
+    reasoning: false,
+    input: ["text"],
+    contextWindow: 131_072,
+    maxTokens: 8_192,
+    cost: DASHSCOPE_COST,
+    compat: { supportsUsageInStreaming: true },
+  },
+];
+
+function registerDashscope(pi: ExtensionAPI): void {
+  pi.registerProvider("dashscope", {
+    name: "Aliyun DashScope (阿里百炼)",
+    baseUrl: DASHSCOPE_BASE_URL,
+    api: "openai-completions",
+    // 认证走 /login dashscope（auth.json），不设 apiKey 字段
+    compat: { supportsUsageInStreaming: true },
+    models: DASHSCOPE_MODELS,
+  });
+}
+
+// ============================ deepgram ============================
+// Deepgram：https://deepgram.com/
+// 专用于实时流式语音服务（Nova-3 等），通过 /login deepgram（auth.json）管理凭据。
+// models 置空以避免将专用音频模型污染至主 Agent 的 LLM 补全列表。
+function registerDeepgram(pi: ExtensionAPI): void {
+  pi.registerProvider("deepgram", {
+    name: "Deepgram",
+    baseUrl: "https://api.deepgram.com",
+    api: "openai-completions",
+    // 认证走 /login deepgram（auth.json），不设 apiKey 字段
+    models: [],
+  });
+}
+
 function registerAll(pi: ExtensionAPI): void {
   registerOmniroute(pi);
   registerShuaiapi(pi);
   registerBigmodel(pi);
+  registerDashscope(pi);
+  registerDeepgram(pi);
 }
 
 export default registerAll;
