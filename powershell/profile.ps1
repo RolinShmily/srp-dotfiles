@@ -201,8 +201,10 @@ function gdc  { git diff --cached @args }
 function _git_origin_default_branch {
     $originHead = git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>$null
     if ($originHead) { return $originHead }
-    if (git show-ref --verify --quiet refs/remotes/origin/main 2>$null; $LASTEXITCODE -eq 0) { return "origin/main" }
-    if (git show-ref --verify --quiet refs/remotes/origin/master 2>$null; $LASTEXITCODE -eq 0) { return "origin/master" }
+    git show-ref --verify --quiet refs/remotes/origin/main 2>$null
+    if ($LASTEXITCODE -eq 0) { return "origin/main" }
+    git show-ref --verify --quiet refs/remotes/origin/master 2>$null
+    if ($LASTEXITCODE -eq 0) { return "origin/master" }
     return $null
 }
 

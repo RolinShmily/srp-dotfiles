@@ -194,7 +194,7 @@ function Invoke-Step {
 
 function Show-Summary-Report {
     Write-Host "`n================================================================" -ForegroundColor Cyan
-    Write-Host "              📊 SrP-Dotfiles 安装与部署审计报告               " -ForegroundColor White -BackgroundColor DarkBlue
+    Write-Host "                SrP-Dotfiles 安装与部署审计报告                " -ForegroundColor Cyan
     Write-Host "================================================================" -ForegroundColor Cyan
 
     $totalSuccess = $script:ReportSuccess.Count
@@ -354,16 +354,23 @@ function Install-And-Configure-Scoop {
         }
     }
 
-    # 3. 如果包含 aria2，则配置多线程下载优化 (包管理器基础能力加速)
+    # 3. 如果包含 aria2，则配置多线程下载优化 (包管理器基础能力加速与防错加固)
     $scoopPkgs = Get-TomlArray -FilePath $ManifestFile -Section "windows" -Key "scoop_packages"
     if ($scoopPkgs -contains "aria2") {
         Invoke-Step -Name "Aria2 多线程下载优化配置" -ScriptBlock {
             scoop install aria2
+            # 即时将 Scoop shims 加入当前进程 PATH，杜绝找不到 aria2c 的情况
+            $shimsPath = Join-Path $UserHome "scoop\shims"
+            if ((Test-Path $shimsPath) -and ($env:PATH -notlike "*$shimsPath*")) {
+                $env:PATH = "$shimsPath;$env:PATH"
+            }
+            # 配置保守稳定的连接参数 (防 CDN 403 阻断与证书误报)
             scoop config aria2-enabled true
+            scoop config aria2-warning-enabled false
             scoop config aria2-retry-wait 2
-            scoop config aria2-split 5
-            scoop config aria2-max-connection-per-server 5
-            scoop config aria2-min-split-size 4M
+            scoop config aria2-split 3
+            scoop config aria2-max-connection-per-server 3
+            scoop config aria2-min-split-size 5M
         }
     }
 }
@@ -426,7 +433,7 @@ function Install-Npm-Globals {
 
 function Run-Install {
     Write-Host "==========================================================" -ForegroundColor Cyan
-    Write-Host "   📦 执行 Windows 依赖软件包全量安装 (manifest.toml)     " -ForegroundColor White -BackgroundColor DarkBlue
+    Write-Host "       执行 Windows 依赖软件包全量安装 (manifest.toml)       " -ForegroundColor Cyan
     Write-Host "==========================================================" -ForegroundColor Cyan
 
     Set-Pwsh-ExecutionPolicy
@@ -587,7 +594,7 @@ function Deploy-Pi-Stack {
 
 function Run-Config {
     Write-Host "==========================================================" -ForegroundColor Cyan
-    Write-Host "       ⚙️ 正在部署 Dotfiles 符号链接配置 (manifest.toml)   " -ForegroundColor White -BackgroundColor DarkBlue
+    Write-Host "         正在部署 Dotfiles 符号链接配置 (manifest.toml)         " -ForegroundColor Cyan
     Write-Host "==========================================================" -ForegroundColor Cyan
 
     $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
@@ -727,7 +734,7 @@ if ($Action -ne '' -and $Action -ne 'launch') {
 # -------------------------------------------------------------------------
 Clear-Host
 Write-Host "====================================================" -ForegroundColor Cyan
-Write-Host "       🚀 欢迎使用 SrP-Dotfiles Windows 一键管理引擎 " -ForegroundColor White -BackgroundColor DarkBlue
+Write-Host "       欢迎使用 SrP-Dotfiles Windows 一键管理引擎     " -ForegroundColor Cyan
 Write-Host "====================================================" -ForegroundColor Cyan
 Write-Host " 🖥️ 操作系统环境: Windows $([Environment]::OSVersion.Version.Major) ($([Environment]::OSVersion.VersionString))" -ForegroundColor Green
 Write-Host " 👤 当前用户目录: $UserHome" -ForegroundColor Yellow
