@@ -164,14 +164,24 @@ skills_add = []
 [windows]
 package_managers = ["winget", "scoop"]
 
-# 1. 核心系统工具链 (通过 Winget 安装)
+# 1. 核心系统工具链与现代 CLI (通过 Winget 安装)
 winget_packages = [
     "wez.wezterm",
     "Microsoft.PowerShell",
     "Git.Git",
     "JanDeDobbeleer.OhMyPosh",
     "GitHub.cli",
-    "Fastfetch-cli.Fastfetch"
+    "Fastfetch-cli.Fastfetch",
+    "sxyazi.yazi",
+    "Gyan.FFmpeg",
+    "7zip.7zip",
+    "jqlang.jq",
+    "oschwartz10612.Poppler",
+    "sharkdp.fd",
+    "BurntSushi.ripgrep.MSVC",
+    "junegunn.fzf",
+    "ajeetdsouza.zoxide",
+    "ImageMagick.ImageMagick"
 ]
 
 # 2. Scoop 软件源与国内镜像加速 (南京大学镜像源 + 社区源)
@@ -183,10 +193,11 @@ scoop_buckets = [
     "dorado = https://github.com/chawyehsu/dorado"
 ]
 
-# 3. Scoop 软件包清单 (字体、终端复用器、轻量与主流编辑器)
+# 3. Scoop 软件包清单 (字体、终端监控、复用器、轻量与主流编辑器)
 scoop_packages = [
     "aria2",
     "Maple-Mono-NF-CN",
+    "btop-lhm",
     "zellij",
     "notepad3",
     "vscode"
@@ -200,5 +211,7 @@ configs = [
     "wezterm",
     "powershell",
     "fastfetch",
-    "zellij"
+    "zellij",
+    "yazi",
+    "btop"
 ]

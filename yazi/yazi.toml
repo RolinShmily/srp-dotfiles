@@ -25,19 +25,23 @@ edit = [
 	{ run = '${EDITOR:-vim} %s', block = true, desc = "$EDITOR", for = "unix" },
 	{ run = 'code %s', orphan = true, desc = "VS Code", for = "unix" },
 	{ run = 'code %*', orphan = true, desc = "VS Code", for = "windows" },
+	{ run = 'notepad %*', block = true, desc = "Notepad", for = "windows" },
 ]
 open = [
 	{ run = 'for f in %s; do /mnt/c/Windows/System32/rundll32.exe url.dll,FileProtocolHandler "$(wslpath -w "$f")"; done', orphan = true, desc = "Open in Windows", for = "unix" },
+	{ run = 'start "" "%1"', orphan = true, desc = "Open in Windows", for = "windows" },
 ]
 reveal = [
 	{ run = 'explorer.exe /select,"$(wslpath -w "%s1")"', orphan = true, desc = "Reveal in Windows", for = "unix" },
+	{ run = 'explorer /select,"%1"', orphan = true, desc = "Reveal in Explorer", for = "windows" },
 ]
 extract = [
 	{ run = 'unar %s1', desc = "Extract here", for = "unix" },
-	{ run = 'unar %1', desc = "Extract here", for = "windows" },
+	{ run = '7z x %1', desc = "Extract here", for = "windows" },
 ]
 play = [
 	{ run = 'for f in %s; do /mnt/c/Windows/System32/rundll32.exe url.dll,FileProtocolHandler "$(wslpath -w "$f")"; done', orphan = true, desc = "Play in Windows", for = "unix" },
+	{ run = 'start "" "%1"', orphan = true, desc = "Play in Windows", for = "windows" },
 ]
 zathura = [{ run = 'zathura %s1', orphan = true, for = "unix" }]
 rootbrowse = [{ run = 'rootbrowse %s1', orphan = true, for = "unix" }]

@@ -19,7 +19,8 @@
   - **移动端/WSL 适配**：Android Termux 自动注入 Nerd Font，WSL 剪贴板无缝桥接。
 - 🪟 **Windows 工业级工作流 (`start.ps1`)**：
   - **WezTerm 工业级调优**：呼吸感平滑光标 (EaseOut)、智能 URL 清洗与全键盘 QuickSelect (`Alt+Ctrl+u`)、专属背景图 / 纯黑底色一键切换 (`Alt+/`)；
-  - **PowerShell 7 + Oh My Posh**：全局 Profile 模板自动软链部署；
+  - **PowerShell 7 + Oh My Posh**：全局 Profile 模板自动软链部署，集成 `yz`（Yazi 退出同步目录）、`proj`、`mkcd`、`grt` 及全套 Git/CLI 增强；
+  - **Yazi 现代文件管理器跨平台对齐**：Winget 自动安装 Yazi 与 9 大预览依赖（FFmpeg, 7zip, jq, Poppler, fd, ripgrep, fzf, zoxide, ImageMagick），Windows 下完美支持 Catppuccin 主题与边框；
   - **国内镜像源与多线程加速**：Scoop 自动配置南京大学镜像源（main/extras/versions/nerd-fonts）与 Aria2 多线程下载；
   - **权限优雅降级**：优先建立符号链接（支持开发实时双向同步），无开发者模式时自动安全降级为文件复制。
 - 🤖 **Pi Coding Agent 深度集成**：内置全局智能体规范（`AGENTS.md`）、自研扩展集（语音/图像/记忆/子智能体）、提示词与技能工具链。
