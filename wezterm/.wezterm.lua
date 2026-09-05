@@ -65,14 +65,14 @@ config.adjust_window_size_when_changing_font_size = false
 
 config.underline_thickness = '1.5pt'
 
--- ============================ 3. 光标呼吸感缓动动画 ============================
+-- ============================ 3. 光标经典慢速闪烁 ============================
 
 config.default_cursor_style = 'BlinkingBlock'
 config.cursor_blink_rate = 650
-config.cursor_blink_ease_in = 'EaseOut'
-config.cursor_blink_ease_out = 'EaseOut'
+config.cursor_blink_ease_in = 'Constant'
+config.cursor_blink_ease_out = 'Constant'
 
--- ============================ 4. 窗口外观与低功耗 ============================
+-- ============================ 4. 窗口外观与低功耗渲染 ============================
 
 config.color_scheme = 'Catppuccin Mocha'
 
