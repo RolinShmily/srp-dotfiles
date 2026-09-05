@@ -1,8 +1,32 @@
-import { estimateTokens as estimateMessageTokens } from "@earendil-works/pi-coding-agent";
-
 /** Rough char-based token estimate. Matches OM's heuristic (≈4 chars/token). */
 export function estimateStringTokens(text: string): number {
   return Math.ceil(text.length / 4);
+}
+
+export function estimateMessageTokens(message: unknown): number {
+  if (!message || typeof message !== "object") return 0;
+  const msg = message as { content?: unknown };
+  if (typeof msg.content === "string") {
+    return estimateStringTokens(msg.content);
+  }
+  if (Array.isArray(msg.content)) {
+    let total = 0;
+    for (const part of msg.content) {
+      if (part && typeof part === "object") {
+        if ("text" in part && typeof (part as { text?: unknown }).text === "string") {
+          total += estimateStringTokens((part as { text: string }).text);
+        } else if ("thinking" in part && typeof (part as { thinking?: unknown }).thinking === "string") {
+          total += estimateStringTokens((part as { thinking: string }).thinking);
+        }
+      }
+    }
+    return total;
+  }
+  try {
+    return estimateStringTokens(JSON.stringify(message));
+  } catch {
+    return 0;
+  }
 }
 
 /**

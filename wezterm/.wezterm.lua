@@ -6,7 +6,7 @@
 -- 3. 智能 URL 清洗剥离与免鼠标 QuickSelect 打开
 -- 4. 窗口缩放锁定 (调字号不跳动物理窗口大小)
 -- 5. 20000 行大回滚缓冲区、无感退出、彻底消除刺耳蜂鸣
--- 6. 内置现代命令面板 (F2) 与全屏快速搜索 (Alt + f)
+-- 6. 内置现代命令面板 (F2)
 -- 7. 优雅清晰 Maple Mono NF CN (14.0pt Regular)
 -- ====================================================================
 
@@ -50,9 +50,13 @@ config.launch_menu = {
 
 -- ============================ 2. 字体与排版优化 ============================
 
+-- 关闭缺失字形时的弹窗报错 (防止特殊字符触发 configuration error 窗口)
+config.warn_about_missing_glyphs = false
+
 config.font = wezterm.font_with_fallback({
-  { family = 'Maple Mono NF CN', weight = 'Regular' },
-  { family = 'Microsoft YaHei UI', weight = 'Regular' },
+  { family = 'Maple Mono NF CN' },
+  { family = 'Microsoft YaHei UI' },
+  { family = 'Segoe UI Emoji', assume_emoji_presentation = true },
 })
 config.font_size = 14.0
 config.line_height = 1.15
@@ -175,9 +179,6 @@ config.keys = {
   -- F2：唤起命令面板 (Command Palette，类似 VSCode Ctrl+Shift+P)
   { key = 'F2', mods = 'NONE', action = act.ActivateCommandPalette },
 
-  -- Alt + f：终端内全屏实时搜索 (Search)
-  { key = 'f', mods = 'ALT', action = act.Search({ CaseInSensitiveString = '' }) },
-
   -- Alt + Ctrl + u：URL QuickSelect (全屏高亮所有链接，按字母一键打开)
   {
     key = 'u',
@@ -203,6 +204,8 @@ config.keys = {
   -- 剪贴板交互
   { key = 'c', mods = 'CTRL|SHIFT', action = act.CopyTo('Clipboard') },
   { key = 'v', mods = 'CTRL|SHIFT', action = act.PasteFrom('Clipboard') },
+  { key = 'v', mods = 'CTRL', action = act.PasteFrom('Clipboard') },
+  { key = 'Insert', mods = 'SHIFT', action = act.PasteFrom('Clipboard') },
 
   -- 标签管理 (备用)
   { key = 't', mods = 'CTRL|SHIFT', action = act.SpawnTab('DefaultDomain') },

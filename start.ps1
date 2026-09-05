@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     SrP-Dotfiles - Windows 统一环境一键管理总控引擎 (基于 manifest.toml 声明式驱动)
 
@@ -17,6 +17,7 @@
     3. 符号链接配置部署模块 (config):
        - Windows 用户级环境变量配置 (SHELL -> pwsh.exe，保障 Zellij 等多端识别)
        - 自动根据 manifest.toml.windows.configs 分发软链接与安全备份：
+         * Vim 原生配置与 Windows 兼容配置 (%USERPROFILE%\.vimrc & %USERPROFILE%\_vimrc)
          * WezTerm 工业级配置与专属背景图 (%USERPROFILE%\.config\wezterm\)
          * PowerShell 7 全局 Profile ($PROFILE)
          * 通用应用配置目录 (%USERPROFILE%\.config\<app> 如 fastfetch, zellij)
@@ -247,19 +248,33 @@ function Show-Summary-Report {
 # 1. 零依赖原生 TOML 解析器 (纯正则表达式实现)
 # -------------------------------------------------------------------------
 
+function Get-TomlSection {
+    param (
+        [string]$FilePath,
+        [string]$Section
+    )
+    if (-not (Test-Path $FilePath)) { return "" }
+    $content = Get-Content $FilePath -Raw -Encoding UTF8
+    
+    # 匹配目标 Section，直到下一个以 [ 开头的 section 标题或文件结束
+    $pattern = "(?ms)^\s*\[\s*$([regex]::Escape($Section))\s*\]\s*`r?`n(.*?)(?=^\s*\[[^\]]+\]|\z)"
+    if ($content -match $pattern) {
+        return $matches[1]
+    }
+    return ""
+}
+
 function Get-TomlArray {
     param (
         [string]$FilePath,
         [string]$Section,
         [string]$Key
     )
-    if (-not (Test-Path $FilePath)) {
-        Write-LogError "未找到清单文件: $FilePath"
-        return @()
-    }
-    $content = Get-Content $FilePath -Raw -Encoding UTF8
-    $pattern = "(?ms)^\s*\[$Section\]\s*.*?(?:^\s*$Key\s*=\s*\[(.*?)\])"
-    if ($content -match $pattern) {
+    $sectionContent = Get-TomlSection -FilePath $FilePath -Section $Section
+    if ([string]::IsNullOrWhiteSpace($sectionContent)) { return @() }
+
+    $keyPattern = "(?ms)^\s*$([regex]::Escape($Key))\s*=\s*\[(.*?)\]"
+    if ($sectionContent -match $keyPattern) {
         $rawArray = $matches[1]
         $matchesList = [regex]::Matches($rawArray, '"([^"]+)"')
         $results = @($matchesList | ForEach-Object { $_.Groups[1].Value })
@@ -274,10 +289,11 @@ function Get-TomlString {
         [string]$Section,
         [string]$Key
     )
-    if (-not (Test-Path $FilePath)) { return "" }
-    $content = Get-Content $FilePath -Raw -Encoding UTF8
-    $pattern = "(?ms)^\s*\[$Section\]\s*.*?(?:^\s*$Key\s*=\s*""([^""]+)"")"
-    if ($content -match $pattern) {
+    $sectionContent = Get-TomlSection -FilePath $FilePath -Section $Section
+    if ([string]::IsNullOrWhiteSpace($sectionContent)) { return "" }
+
+    $keyPattern = "(?ms)^\s*$([regex]::Escape($Key))\s*=\s*""([^""]*)"""
+    if ($sectionContent -match $keyPattern) {
         return $matches[1]
     }
     return ""
@@ -464,6 +480,7 @@ function Deploy-Link-Item {
         throw "源文件不存在: $Source"
     }
 
+    $isDir = (Get-Item $Source).PSIsContainer
     $parentDir = Split-Path -Parent $Target
     if (-not (Test-Path $parentDir)) {
         New-Item -ItemType Directory -Path $parentDir -Force | Out-Null
@@ -471,8 +488,15 @@ function Deploy-Link-Item {
 
     if (Test-Path $Target) {
         $item = Get-Item $Target -Force
-        if ($item.LinkType -eq 'SymbolicLink' -and $item.Target -eq $Source) {
-            Write-LogSuccess "$Name 已经建立符号链接，状态健康。"
+        $isLinked = $false
+        if ($item.LinkType -in @('SymbolicLink', 'Junction')) {
+            if ($item.Target -eq $Source -or $item.Target -contains $Source) {
+                $isLinked = $true
+            }
+        }
+
+        if ($isLinked) {
+            Write-LogSuccess "$Name 已经建立链接，状态健康。"
             return
         }
 
@@ -481,18 +505,51 @@ function Deploy-Link-Item {
             Write-LogInfo "创建旧配置安全备份目录: $BackupDir"
         }
         $backupPath = Join-Path $BackupDir (Split-Path -Leaf $Target)
-        Move-Item -Path $Target -Destination $backupPath -Force
-        Write-LogWarn "已安全归档旧配置至: $backupPath"
+        try {
+            Move-Item -Path $Target -Destination $backupPath -Force -ErrorAction Stop
+            Write-LogWarn "已安全归档旧配置至: $backupPath"
+        } catch {
+            Remove-Item -Path $Target -Recurse -Force -ErrorAction SilentlyContinue
+        }
     }
 
+    # 1. 优先尝试创建符号链接 (SymbolicLink)
     try {
         New-Item -ItemType SymbolicLink -Path $Target -Target $Source -Force -ErrorAction Stop | Out-Null
         Write-LogSuccess "$Name 成功创建符号链接 -> $Target"
+        return
     } catch {
-        Write-LogWarn "系统未开启开发者模式或权限不足，自动降级为文件复制模式。"
-        Copy-Item -Path $Source -Destination $Target -Force
-        Write-LogSuccess "$Name 成功部署为独立文件 -> $Target"
+        # 权限不足或未开开发者模式时继续尝试
     }
+
+    # 2. 如果是目录，尝试创建 Windows 原生免特权联接点 (Junction)
+    if ($isDir) {
+        try {
+            New-Item -ItemType Junction -Path $Target -Target $Source -Force -ErrorAction Stop | Out-Null
+            Write-LogSuccess "$Name 成功创建目录联接点 (Junction) -> $Target"
+            return
+        } catch {
+            # Junction 失败时继续降级
+        }
+    } else {
+        # 如果是单文件且 SymbolicLink 失败，尝试免特权硬链接 (HardLink)
+        try {
+            New-Item -ItemType HardLink -Path $Target -Target $Source -Force -ErrorAction Stop | Out-Null
+            Write-LogSuccess "$Name 成功创建硬链接 (HardLink) -> $Target"
+            return
+        } catch {
+            # HardLink 失败时继续降级
+        }
+    }
+
+    # 3. 最终降级模式：文件/目录递归安全复制
+    Write-LogWarn "系统未开启开发者模式且无法创建联接点，自动降级为文件复制模式。"
+    if ($isDir) {
+        Copy-Item -Path $Source -Destination $Target -Recurse -Force
+    } else {
+        Copy-Item -Path $Source -Destination $Target -Force
+    }
+    Write-LogSuccess "$Name 成功部署为独立文件 -> $Target"
 }
 
 function Configure-User-Environment {
@@ -609,7 +666,27 @@ function Run-Config {
     # 1. 配置 Windows 终端环境变量适配
     Configure-User-Environment
 
-    # 2. 部署 WezTerm 工业级配置体系
+    # 2. 部署 Vim 现代化原生配置体系
+    if ($configsToDeploy -contains "vim" -or $configsToDeploy -contains "vimrc") {
+        Write-Host ""
+        Write-LogInfo "--- 正在部署 Vim 基础配置 ---"
+        $vimrcSource = Join-Path $DotfilesDir ".vimrc"
+        $vimrcTarget = Join-Path $UserHome ".vimrc"
+        $winVimrcTarget = Join-Path $UserHome "_vimrc"
+
+        if (Test-Path $vimrcSource) {
+            Invoke-Step -Name "部署 Vim 主配置文件 (.vimrc)" -ScriptBlock {
+                Deploy-Link-Item -Source $vimrcSource -Target $vimrcTarget -Name "Vim 主配置 (.vimrc)" -BackupDir $backupDir
+            }
+            Invoke-Step -Name "部署 Windows Vim 兼容配置文件 (_vimrc)" -ScriptBlock {
+                Deploy-Link-Item -Source $vimrcSource -Target $winVimrcTarget -Name "Windows Vim 兼容配置 (_vimrc)" -BackupDir $backupDir
+            }
+        } else {
+            Write-LogWarn "未在仓库根目录找到 .vimrc 文件: $vimrcSource"
+        }
+    }
+
+    # 3. 部署 WezTerm 工业级配置体系
     if ($configsToDeploy -contains "wezterm") {
         Write-Host ""
         Write-LogInfo "--- 正在部署 WezTerm 终端配置 ---"
@@ -635,7 +712,8 @@ function Run-Config {
         }
     }
 
-    # 3. 部署 PowerShell Profile 全局配置
+    # 4. 部署 PowerShell Profile 全局配置
+    # 4. 部署 PowerShell Profile 全局配置
     if ($configsToDeploy -contains "powershell") {
         Write-Host ""
         Write-LogInfo "--- 正在部署 PowerShell Profile 全局配置 ---"
@@ -651,10 +729,96 @@ function Run-Config {
         }
     }
 
-    # 4. 部署通用应用配置目录 (~/.config/<app> - 如 fastfetch, zellij, yazi, btop 等) 与 Pi 体系
+    # 5. 部署 Zellij 终端复用器 (Windows 原生 %APPDATA%\Zellij\config + ~/.config/zellij)
+    if ($configsToDeploy -contains "zellij") {
+        Write-Host ""
+        Write-LogInfo "--- 正在部署 Zellij 终端复用器配置 ---"
+        $zellijSourceDir = Join-Path $DotfilesDir "zellij"
+        $zellijWinTarget = Join-Path ([Environment]::GetFolderPath('ApplicationData')) "Zellij\config"
+        $zellijCompatTarget = Join-Path $UserHome ".config\zellij"
+
+        Invoke-Step -Name "部署 Zellij Windows 原生配置目录 (%APPDATA%\Zellij\config)" -ScriptBlock {
+            Deploy-Link-Item -Source $zellijSourceDir -Target $zellijWinTarget -Name "Zellij Windows 配置目录" -BackupDir $backupDir
+        }
+        Invoke-Step -Name "部署 Zellij 兼容配置目录 (~/.config/zellij)" -ScriptBlock {
+            Deploy-Link-Item -Source $zellijSourceDir -Target $zellijCompatTarget -Name "Zellij ~/.config 配置目录" -BackupDir $backupDir
+        }
+    }
+
+    # 6. 部署 btop 监控器 (Scoop 持久化目录 + current 目录 + ~/.config/btop)
+    if ($configsToDeploy -contains "btop") {
+        Write-Host ""
+        Write-LogInfo "--- 正在部署 btop 现代系统监控配置 ---"
+        $btopSourceDir = Join-Path $DotfilesDir "btop"
+        $btopConfSource = Join-Path $btopSourceDir "btop.conf"
+        $btopThemesSource = Join-Path $btopSourceDir "themes"
+        $btopCompatTarget = Join-Path $UserHome ".config\btop"
+
+        $scoopDir = if ($env:SCOOP) { $env:SCOOP } else { Join-Path $UserHome "scoop" }
+        $btopPersistDir = Join-Path $scoopDir "persist\btop"
+
+        if (Test-Path $scoopDir) {
+            $btopPersistConf = Join-Path $btopPersistDir "btop.conf"
+            $btopPersistThemes = Join-Path $btopPersistDir "themes"
+
+            Invoke-Step -Name "部署 btop Scoop 持久化主配置 (persist\btop\btop.conf)" -ScriptBlock {
+                Deploy-Link-Item -Source $btopConfSource -Target $btopPersistConf -Name "btop 主配置 (Scoop Persist)" -BackupDir $backupDir
+            }
+            Invoke-Step -Name "部署 btop Scoop 主题包目录 (persist\btop\themes)" -ScriptBlock {
+                Deploy-Link-Item -Source $btopThemesSource -Target $btopPersistThemes -Name "btop 主题目录 (Scoop Persist)" -BackupDir $backupDir
+            }
+
+            # 确保 apps\btop\current 存在时也能直接更新
+            $btopCurrentConf = Join-Path $scoopDir "apps\btop\current\btop.conf"
+            if (Test-Path (Split-Path -Parent $btopCurrentConf)) {
+                Invoke-Step -Name "部署 btop 当前运行主配置 (apps\btop\current\btop.conf)" -ScriptBlock {
+                    Deploy-Link-Item -Source $btopConfSource -Target $btopCurrentConf -Name "btop 主配置 (Scoop Current)" -BackupDir $backupDir
+                }
+            }
+        }
+
+        Invoke-Step -Name "部署 btop 兼容配置目录 (~/.config/btop)" -ScriptBlock {
+            Deploy-Link-Item -Source $btopSourceDir -Target $btopCompatTarget -Name "btop ~/.config 配置目录" -BackupDir $backupDir
+        }
+    }
+
+    # 7. 部署 Yazi 终端文件管理器 (Windows 原生 %APPDATA%\yazi\config + ~/.config/yazi)
+    if ($configsToDeploy -contains "yazi") {
+        Write-Host ""
+        Write-LogInfo "--- 正在部署 Yazi 终端文件管理器配置 ---"
+        $yaziSourceDir = Join-Path $DotfilesDir "yazi"
+        $yaziWinTarget = Join-Path ([Environment]::GetFolderPath('ApplicationData')) "yazi\config"
+        $yaziCompatTarget = Join-Path $UserHome ".config\yazi"
+
+        Invoke-Step -Name "部署 Yazi Windows 原生配置目录 (%APPDATA%\yazi\config)" -ScriptBlock {
+            Deploy-Link-Item -Source $yaziSourceDir -Target $yaziWinTarget -Name "Yazi Windows 配置目录" -BackupDir $backupDir
+        }
+        Invoke-Step -Name "部署 Yazi 兼容配置目录 (~/.config/yazi)" -ScriptBlock {
+            Deploy-Link-Item -Source $yaziSourceDir -Target $yaziCompatTarget -Name "Yazi ~/.config 配置目录" -BackupDir $backupDir
+        }
+    }
+
+    # 8. 部署 Fastfetch 系统信息展示工具
+    if ($configsToDeploy -contains "fastfetch") {
+        Write-Host ""
+        Write-LogInfo "--- 正在部署 Fastfetch 系统信息工具配置 ---"
+        $fastfetchSourceDir = Join-Path $DotfilesDir "fastfetch"
+        $fastfetchTarget = Join-Path $UserHome ".config\fastfetch"
+        $fastfetchWinTarget = Join-Path ([Environment]::GetFolderPath('ApplicationData')) "fastfetch"
+
+        Invoke-Step -Name "部署 Fastfetch 主配置目录 (~/.config/fastfetch)" -ScriptBlock {
+            Deploy-Link-Item -Source $fastfetchSourceDir -Target $fastfetchTarget -Name "Fastfetch ~/.config 配置目录" -BackupDir $backupDir
+        }
+        Invoke-Step -Name "部署 Fastfetch AppData 兼容目录 (%APPDATA%\fastfetch)" -ScriptBlock {
+            Deploy-Link-Item -Source $fastfetchSourceDir -Target $fastfetchWinTarget -Name "Fastfetch AppData 配置目录" -BackupDir $backupDir
+        }
+    }
+
+    # 9. 部署通用应用配置目录 (~/.config/<app>) 与 Pi 体系
     $hasCommon = $false
+    $specializedApps = @("wezterm", "powershell", "vim", "vimrc", "zellij", "btop", "yazi", "fastfetch")
     foreach ($app in $configsToDeploy) {
-        if ($app -eq "wezterm" -or $app -eq "powershell") { continue }
+        if ($app -in $specializedApps) { continue }
 
         if ($app -eq "pi") {
             Deploy-Pi-Stack -BackupDir $backupDir

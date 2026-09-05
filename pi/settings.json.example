@@ -4,25 +4,25 @@
   "defaultThinkingLevel": "high",
   "theme": "dark",
   "srpTheme": {
-    "header": false,
-    "footer": false,
-    "tps": false
+    "header": true,
+    "footer": true,
+    "tps": true
   },
   "srpAsk": {
-    "enabled": false
+    "enabled": true
   },
   "srpContinue": {
-    "enabled": false,
+    "enabled": true,
     "shortcuts": ["alt+c"],
     "prompt": "请继承并检查历史上下文，从中断处继续完成未完成的工作。"
   },
   "srpPrompt": {
-    "enabled": false,
+    "enabled": true,
     "shortcuts": ["alt+s"]
   },
   "srpWeb": {
-    "search": false,
-    "fetch": false
+    "search": true,
+    "fetch": true
   },
   "srpVision": {
     "enabled": false
@@ -33,7 +33,7 @@
     "outputDir": ".pi/generated-images"
   },
   "srpVoice": {
-    "enabled": false,
+    "enabled": true,
     "provider": "auto",
     "model": "",
     "apiKey": "",
@@ -45,12 +45,12 @@
     "enabled": false
   },
   "srpSubagent": {
-    "enabled": false,
+    "enabled": true,
     "mux": "auto",
-    "statusWidget": false
+    "statusWidget": true
   },
   "srpMemory": {
-    "default_enabled": false,
+    "default_enabled": true,
     "chunkTokens": 10000,
     "poolTargetTokens": 10000,
     "consolidateAtPoolTokens": 15000,

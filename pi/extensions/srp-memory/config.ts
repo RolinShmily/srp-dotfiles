@@ -122,6 +122,9 @@ function normalizeSettingsConfig(value: Record<string, unknown>, base: Config): 
   if (typeof value.default_enabled === "boolean") {
     normalized.defaultEnabled = value.default_enabled;
   }
+  if (typeof value.defaultEnabled === "boolean") {
+    normalized.defaultEnabled = value.defaultEnabled;
+  }
   const numberKeys = [
     "chunkTokens",
     "chunkOverlapTokens",

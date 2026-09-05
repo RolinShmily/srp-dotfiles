@@ -1,4 +1,4 @@
-# ====================================================================
+﻿# ====================================================================
 # PowerShell 7 个人全局配置文件 ($PROFILE)
 # 管理来源: SrP-Dotfiles (powershell/profile.ps1)
 # 设计哲学: 模块化、按需探测 (Command-Aware)、防御性兜底 (Graceful Fallback)
@@ -37,11 +37,18 @@ if (Get-Command "zoxide" -ErrorAction SilentlyContinue) {
 
 # 基础内置映射 (永远安全可用)
 Set-Alias -Name cl -Value Clear-Host -Option AllScope -ErrorAction SilentlyContinue
+function e { exit $args[0] }
 
 # 第三方 CLI 工具按需映射 (检测到安装才注册，杜绝未装工具时的红字报错)
-if (Get-Command "zellij"    -ErrorAction SilentlyContinue) { Set-Alias -Name ze -Value zellij    -Option AllScope }
-if (Get-Command "fastfetch" -ErrorAction SilentlyContinue) { Set-Alias -Name ff -Value fastfetch -Option AllScope }
-if (Get-Command "lazygit"   -ErrorAction SilentlyContinue) { Set-Alias -Name lg -Value lazygit   -Option AllScope }
+if (Get-Command "zellij"    -ErrorAction SilentlyContinue) { Set-Alias -Name ze   -Value zellij    -Option AllScope }
+if (Get-Command "fastfetch" -ErrorAction SilentlyContinue) { Set-Alias -Name ff   -Value fastfetch -Option AllScope }
+if (Get-Command "lazygit"   -ErrorAction SilentlyContinue) { Set-Alias -Name lg   -Value lazygit   -Option AllScope }
+if (Get-Command "fd"        -ErrorAction SilentlyContinue) { Set-Alias -Name find -Value fd        -Option AllScope }
+if (Get-Command "tldr"      -ErrorAction SilentlyContinue) {
+    Set-Alias -Name help -Value tldr -Option AllScope
+} elseif (Get-Command "tealdeer" -ErrorAction SilentlyContinue) {
+    Set-Alias -Name help -Value tealdeer -Option AllScope
+}
 
 # which 工具函数 (查找命令路径)
 function which ($name) {
@@ -52,7 +59,27 @@ function which ($name) {
 # 3. 优雅兜底增强函数 (Graceful Fallbacks)
 # --------------------------------------------------------------------
 
+# 移除 PowerShell 原生冲突别名以优先执行自定义增强函数
+Remove-Item alias:ls -Force -ErrorAction SilentlyContinue
+Remove-Item alias:cat -Force -ErrorAction SilentlyContinue
+
 # 现代目录列表 (优先 eza，无 eza 时优雅回退至 Get-ChildItem)
+function ls {
+    if (Get-Command "eza" -ErrorAction SilentlyContinue) {
+        eza --icons --group-directories-first @args
+    } else {
+        Get-ChildItem @args
+    }
+}
+
+function l {
+    if (Get-Command "eza" -ErrorAction SilentlyContinue) {
+        eza -1 --icons --group-directories-first @args
+    } else {
+        Get-ChildItem -Force @args | Select-Object -ExpandProperty Name
+    }
+}
+
 function ll {
     if (Get-Command "eza" -ErrorAction SilentlyContinue) {
         eza -lh --icons --git --group-directories-first @args
@@ -74,6 +101,22 @@ function lt {
         eza --tree --level=2 --icons --group-directories-first @args
     } else {
         Get-ChildItem -Recurse -Depth 2 @args
+    }
+}
+
+function lm {
+    if (Get-Command "eza" -ErrorAction SilentlyContinue) {
+        eza -lah --icons --git --sort=modified @args
+    } else {
+        Get-ChildItem -Force @args | Sort-Object LastWriteTime
+    }
+}
+
+function lmd {
+    if (Get-Command "eza" -ErrorAction SilentlyContinue) {
+        eza -lah --icons --git --sort=modified --reverse @args
+    } else {
+        Get-ChildItem -Force @args | Sort-Object LastWriteTime -Descending
     }
 }
 
@@ -106,6 +149,9 @@ function yz {
 # --------------------------------------------------------------------
 # 4. 高频生产力与目录跳转纯函数 (零外部依赖，100% 原生可靠)
 # --------------------------------------------------------------------
+
+# 移除 PowerShell 原生冲突别名以优先执行自定义增强函数
+Remove-Item alias:dir -Force -ErrorAction SilentlyContinue
 
 # 快速跳转到 Projects 开发根目录 (~/Projects 或指定子项目)
 function proj {
@@ -149,6 +195,12 @@ function grt {
 # --------------------------------------------------------------------
 # 5. Git 极速工作流快捷函数 (100% 对齐 Unix zsh.d/git.zsh)
 # --------------------------------------------------------------------
+
+# 移除与 Git 快捷命令冲突的 PowerShell 原生别名 (gp/gl/gc/gcm)
+@('gp', 'gl', 'gc', 'gcm') | ForEach-Object {
+    Remove-Item "alias:$_" -Force -ErrorAction SilentlyContinue
+}
+
 function gs   { git status @args }
 function gp   { git push @args }
 function gpf  { git push --force @args }
@@ -194,8 +246,21 @@ function gcam { git add -A; git commit -m @args }
 function gxn  { git clean -dn @args }
 function gx   { git clean -df @args }
 
-function gd   { git diff @args }
-function gdc  { git diff --cached @args }
+function gd {
+    if (Get-Command "diff-so-fancy" -ErrorAction SilentlyContinue) {
+        git diff --color @args | diff-so-fancy
+    } else {
+        git diff @args
+    }
+}
+
+function gdc {
+    if (Get-Command "diff-so-fancy" -ErrorAction SilentlyContinue) {
+        git diff --color --cached @args | diff-so-fancy
+    } else {
+        git diff --cached @args
+    }
+}
 
 # Git 智能 Rebase 辅助函数 (自动探测 origin/main 或 origin/master)
 function _git_origin_default_branch {
@@ -229,12 +294,12 @@ function gcfg {
         [Parameter(Position=1)][string]$Email
     )
     if (-not $Name -or -not $Email) {
-        Write-Host "用法: gcfg <name> <email>" -ForegroundColor Yellow
+        Write-Host "用法: gcfg [name] [email]" -ForegroundColor Yellow
         return
     }
     git config --global user.name $Name
     git config --global user.email $Email
-    Write-Host "[OK] Git 用户信息已配置: $Name <$Email>" -ForegroundColor Green
+    Write-Host "[OK] Git 用户信息已配置: $Name ($Email)" -ForegroundColor Green
 }
 
 # 快捷配置 SSH 提交签名
@@ -260,7 +325,7 @@ function gssh {
 function ggpg {
     param([string]$KeyId = "")
     if (-not $KeyId) {
-        Write-Host "用法: ggpg <key_id> (例如: ggpg 3AA5C34371567BD2)" -ForegroundColor Yellow
+        Write-Host "用法: ggpg [key_id] (例如: ggpg 3AA5C34371567BD2)" -ForegroundColor Yellow
         Write-Host "`n# 1. 打印密钥列表 (查找 sec 后面的 Key ID)"
         Write-Host "gpg --list-secret-keys --keyid-format=long"
         Write-Host "`n# 2. 导出私钥"

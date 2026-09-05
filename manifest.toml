@@ -166,6 +166,7 @@ package_managers = ["winget", "scoop"]
 
 # 1. 核心系统工具链与现代 CLI (通过 Winget 安装)
 winget_packages = [
+    "vim.vim",
     "wez.wezterm",
     "Microsoft.PowerShell",
     "Git.Git",
@@ -181,7 +182,9 @@ winget_packages = [
     "BurntSushi.ripgrep.MSVC",
     "junegunn.fzf",
     "ajeetdsouza.zoxide",
-    "ImageMagick.ImageMagick"
+    "ImageMagick.ImageMagick",
+    "sharkdp.bat",
+    "tldr-pages.tlrc"
 ]
 
 # 2. Scoop 软件源与国内镜像加速 (南京大学镜像源 + 社区源)
@@ -199,10 +202,12 @@ scoop_packages = [
     "nodejs-lts",
     "sox",
     "Maple-Mono-NF-CN",
-    "btop-lhm",
+    "btop",
     "zellij",
     "notepad3",
-    "vscode"
+    "vscode",
+    "eza",
+    "lazygit"
 ]
 
 # 4. 全局 npm 常用开发工具
@@ -217,6 +222,7 @@ python_manager = "uv"
 
 # 6. 符号链接配置同步清单
 configs = [
+    "vim",
     "wezterm",
     "powershell",
     "fastfetch",
