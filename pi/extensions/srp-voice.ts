@@ -824,7 +824,7 @@ export default function (pi: ExtensionAPI) {
     dbg(`start recording with ${provider.name} (gen ${myGeneration})`);
     startMeter();
 
-    // 启动跨平台音频捕获 (Windows 优先 sox -d，Unix 优先 rec)
+    // 启动跨平台音频捕获 (Windows 优先 sox -t waveaudio default，Unix 优先 rec / sox -d)
     const commonAudioArgs = [
       "-q",
       "--buffer", "512",
@@ -837,9 +837,10 @@ export default function (pi: ExtensionAPI) {
     ];
 
     let proc: ChildProcessByStdio<null, Readable, Readable>;
+    let recorderStderr = "";
     try {
       if (process.platform === "win32") {
-        proc = spawn("sox", ["-d", ...commonAudioArgs], { stdio: ["ignore", "pipe", "pipe"] });
+        proc = spawn("sox", ["-t", "waveaudio", "default", ...commonAudioArgs], { stdio: ["ignore", "pipe", "pipe"] });
       } else {
         try {
           proc = spawn("rec", commonAudioArgs, { stdio: ["ignore", "pipe", "pipe"] });
@@ -854,6 +855,12 @@ export default function (pi: ExtensionAPI) {
     }
     rec = proc;
 
+    proc.stderr?.on("data", (chunk: Buffer) => {
+      const msg = chunk.toString();
+      recorderStderr += msg;
+      dbg(`recorder stderr: ${msg}`);
+    });
+
     proc.on("error", (err) => {
       if (myGeneration !== generation) return;
       ctx.ui.notify(`Audio recording error: ${err.message}`, "error");
@@ -864,7 +871,8 @@ export default function (pi: ExtensionAPI) {
       if (myGeneration !== generation) return;
       if (state === "recording" && code !== null && code !== 0) {
         if (activeCtx) {
-          activeCtx.ui.notify(`Audio recorder exited unexpectedly (code ${code})`, "warning");
+          const detail = recorderStderr.trim() ? `: ${recorderStderr.trim()}` : "";
+          activeCtx.ui.notify(`Audio recorder exited unexpectedly (code ${code})${detail}`, "warning");
         }
         cleanup();
       }

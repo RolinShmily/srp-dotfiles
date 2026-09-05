@@ -14,6 +14,11 @@ if (Get-Command "pwsh" -ErrorAction SilentlyContinue) {
     $env:ZELLIJ_SHELL = "pwsh.exe"
 }
 
+# 针对 WezTerm 原生环境启用 Pi Kitty 图形协议
+if ($env:TERM_PROGRAM -eq "wezterm" -or $env:WEZTERM_PANE) {
+    $env:PI_IMAGE_PROTOCOL = "kitty"
+}
+
 # 终端 Shell 集成 (如果环境支持)
 $__it_si = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'PowerShell\shell-integration_v2.ps1'
 if (Test-Path -LiteralPath $__it_si) {

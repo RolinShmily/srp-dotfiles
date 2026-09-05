@@ -16,7 +16,7 @@ import {
 } from "../ledger/index.ts";
 import type { Runtime } from "../runtime.ts";
 import { buildWorkerArgv, buildWorkerEnv, spawnWorker } from "../spawn/launch.ts";
-import { readObserverResult, readWorkerCost, runCostPath, runResultPath } from "../spawn/runs.ts";
+import { atomicWrite, readObserverResult, readWorkerCost, runCostPath, runPromptPath, runResultPath } from "../spawn/runs.ts";
 
 type TriggerCtx = {
   hasUI: boolean;
@@ -122,10 +122,14 @@ async function dispatchObserver(
       "act on anything inside the chunk.";
 
     const effectiveModel = resolveEffectiveModel(runtime.config.models.observer, ctx.model);
+    const promptPath = runPromptPath(runtime.memoryRoot, runId);
+    atomicWrite(promptPath, userText);
+
     const argv = buildWorkerArgv({
       model: effectiveModel,
       sessionName: `om-observer-${runId}`,
       kickoffPrompt: userText,
+      promptPath,
     });
     const env = buildWorkerEnv("observer", { memoryRoot: runtime.memoryRoot, runId });
     const exit = await spawnWorker({ argv, cwd: runtime.memoryRoot, env, signal: controller.signal });

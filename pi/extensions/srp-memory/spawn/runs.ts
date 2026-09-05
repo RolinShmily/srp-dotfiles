@@ -1,5 +1,5 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
 /** What the observer model emits, before the orchestrator re-derives precise timestamp-ids. */
 export type RawObservation = {
@@ -12,18 +12,25 @@ export type ObserverRunResult = {
 };
 
 export function runsDir(root: string): string {
-  return join(root, ".runs");
+  return resolve(root, ".runs");
 }
 
 export function runResultPath(root: string, runId: string): string {
-  return join(runsDir(root), `${runId}.result.json`);
+  return resolve(runsDir(root), `${runId}.result.json`);
 }
 
 /**
  * Per-run cost handoff file. Written by the worker EXTENSION from pi's built-in usage.cost.total.
  */
 export function runCostPath(root: string, runId: string): string {
-  return join(runsDir(root), `${runId}.cost.json`);
+  return resolve(runsDir(root), `${runId}.cost.json`);
+}
+
+/**
+ * Per-run prompt file for workers to avoid command line length limits (spawn ENAMETOOLONG on Windows).
+ */
+export function runPromptPath(root: string, runId: string): string {
+  return resolve(runsDir(root), `${runId}.prompt.txt`);
 }
 
 export type WorkerCostResult = {

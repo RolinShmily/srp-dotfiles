@@ -16,6 +16,7 @@ import { renderIndexFile } from "../memory/index-render.ts";
 import { atomicWrite, indexPath, listTopics, readJourney } from "../memory/paths.ts";
 import type { Runtime } from "../runtime.ts";
 import { buildWorkerArgv, buildWorkerEnv, spawnWorker } from "../spawn/launch.ts";
+import { runPromptPath } from "../spawn/runs.ts";
 import { recordWorkerCost } from "./observer-trigger.ts";
 
 type TriggerCtx = {
@@ -90,10 +91,14 @@ async function dispatchConsolidator(
   try {
     const prompt = buildConsolidatorPrompt(runtime.memoryRoot, promote, runtime.config.journeyTargetTokens);
     const effectiveModel = resolveEffectiveModel(runtime.config.models.consolidator, ctx.model);
+    const promptPath = runPromptPath(runtime.memoryRoot, runId);
+    atomicWrite(promptPath, prompt);
+
     const argv = buildWorkerArgv({
       model: effectiveModel,
       sessionName: `om-consolidator-${runId}`,
       kickoffPrompt: prompt,
+      promptPath,
     });
     const env = buildWorkerEnv("consolidator", { memoryRoot: runtime.memoryRoot, runId });
     const exit = await spawnWorker({ argv, cwd: runtime.memoryRoot, env, signal: controller.signal });

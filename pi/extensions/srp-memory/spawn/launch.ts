@@ -33,6 +33,7 @@ export function buildWorkerArgv(opts: {
   model: ConfiguredModel;
   sessionName: string;
   kickoffPrompt: string;
+  promptPath?: string;
   agentExtensionPath?: string;
 }): string[] {
   const pi = resolvePiBinary();
@@ -54,7 +55,11 @@ export function buildWorkerArgv(opts: {
   }
   args.push("-e", opts.agentExtensionPath ?? AGENT_EXTENSION_PATH);
   args.push("-n", opts.sessionName);
-  args.push("-p", opts.kickoffPrompt);
+  if (opts.promptPath) {
+    args.push("-p", `@${resolve(opts.promptPath)}`);
+  } else {
+    args.push("-p", opts.kickoffPrompt);
+  }
   return [pi.command, ...args];
 }
 
@@ -73,17 +78,24 @@ export function spawnWorker(opts: {
   mkdirSync(opts.cwd, { recursive: true });
   return new Promise<WorkerExit>((resolvePromise) => {
     const isWindowsCmd = process.platform === "win32" && (command.endsWith(".cmd") || command.endsWith(".bat"));
-    const proc = spawn(command, rest, {
-      cwd: opts.cwd,
-      env: opts.env,
-      stdio: ["ignore", "ignore", "pipe"],
-      shell: isWindowsCmd,
-    });
+    let proc;
+    try {
+      proc = spawn(command, rest, {
+        cwd: opts.cwd,
+        env: opts.env,
+        stdio: ["ignore", "ignore", "pipe"],
+        shell: isWindowsCmd,
+      });
+    } catch (err: any) {
+      resolvePromise({ code: 1, signal: null, stderr: `spawn error: ${err?.message || String(err)}` });
+      return;
+    }
+
     let stderr = "";
     proc.stderr?.on("data", (d: Buffer | string) => {
       stderr += d.toString();
     });
-    proc.on("error", () => resolvePromise({ code: 1, signal: null, stderr: stderr || "spawn error" }));
+    proc.on("error", (err: any) => resolvePromise({ code: 1, signal: null, stderr: stderr || `spawn error: ${err?.message || String(err)}` }));
     proc.on("close", (code: number | null, signal: NodeJS.Signals | null) => resolvePromise({ code, signal, stderr }));
 
     if (opts.signal) {
