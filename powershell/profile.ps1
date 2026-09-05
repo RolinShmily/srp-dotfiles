@@ -147,25 +147,171 @@ function grt {
 }
 
 # --------------------------------------------------------------------
-# 5. Git 极速工作流快捷函数 (对标 Unix zsh.d/git.zsh)
+# 5. Git 极速工作流快捷函数 (100% 对齐 Unix zsh.d/git.zsh)
 # --------------------------------------------------------------------
 function gs   { git status @args }
-function gb   { git branch @args }
+function gp   { git push @args }
+function gpf  { git push --force @args }
+function gpft { git push --follow-tags @args }
+function gpl  { git pull --rebase @args }
+function gcl  { git clone @args }
+function gst  { git stash @args }
+function grm  { git rm @args }
+function grmc { git rm --cached @args }
+function gmv  { git mv @args }
+
+function main { git checkout main @args }
 function gco  { git checkout @args }
 function gcob { git checkout -b @args }
-function main { git checkout main @args }
+
+function gb   { git branch @args }
+function gbd  { git branch -d @args }
+
+function grb  { git rebase @args }
+function grbc { git rebase --continue @args }
+
+function gl   { git log @args }
+function glo  { git log --oneline --graph @args }
+function glp {
+    param([string]$n = "")
+    if ($n) {
+        git --no-pager log -n $n @args
+    } else {
+        git --no-pager log @args
+    }
+}
+
+function grh  { git reset HEAD @args }
+function grh1 { git reset HEAD~1 @args }
 
 function ga   { git add @args }
 function gA   { git add -A @args }
 function gc   { git commit @args }
 function gcm  { git commit -m @args }
+function gca  { git commit -a @args }
 function gcam { git add -A; git commit -m @args }
 
-function gp   { git push @args }
-function gpf  { git push --force @args }
-function gpl  { git pull --rebase @args }
+function gxn  { git clean -dn @args }
+function gx   { git clean -df @args }
 
-function gl   { git log @args }
-function glo  { git log --oneline --graph @args }
 function gd   { git diff @args }
 function gdc  { git diff --cached @args }
+
+# Git 智能 Rebase 辅助函数 (自动探测 origin/main 或 origin/master)
+function _git_origin_default_branch {
+    $originHead = git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>$null
+    if ($originHead) { return $originHead }
+    if (git show-ref --verify --quiet refs/remotes/origin/main 2>$null; $LASTEXITCODE -eq 0) { return "origin/main" }
+    if (git show-ref --verify --quiet refs/remotes/origin/master 2>$null; $LASTEXITCODE -eq 0) { return "origin/master" }
+    return $null
+}
+
+function grbom {
+    $base = _git_origin_default_branch
+    if (-not $base) { Write-Error "未能检测到远端默认主分支 (origin/main 或 origin/master)"; return }
+    git rebase $base @args
+}
+
+function gfrb {
+    git fetch origin
+    if ($LASTEXITCODE -ne 0) { return }
+    $base = _git_origin_default_branch
+    if (-not $base) { Write-Error "未能检测到远端默认主分支 (origin/main 或 origin/master)"; return }
+    git rebase $base @args
+}
+
+# 快捷配置 Git 用户信息
+function gcfg {
+    param(
+        [Parameter(Position=0)][string]$Name,
+        [Parameter(Position=1)][string]$Email
+    )
+    if (-not $Name -or -not $Email) {
+        Write-Host "用法: gcfg <name> <email>" -ForegroundColor Yellow
+        return
+    }
+    git config --global user.name $Name
+    git config --global user.email $Email
+    Write-Host "[OK] Git 用户信息已配置: $Name <$Email>" -ForegroundColor Green
+}
+
+# 快捷配置 SSH 提交签名
+function gssh {
+    param([string]$KeyPath = "")
+    if (-not $KeyPath) {
+        $sshDir = Join-Path $HOME ".ssh"
+        $pubKeys = Get-ChildItem -Path $sshDir -Filter "*.pub" -ErrorAction SilentlyContinue
+        if ($pubKeys -and $pubKeys.Count -gt 0) {
+            $KeyPath = $pubKeys[0].FullName
+        } else {
+            Write-Warning "在 $sshDir 未找到任何 *.pub 公钥文件"
+            return
+        }
+    }
+    git config --global gpg.format ssh
+    git config --global user.signingkey "$KeyPath"
+    git config --global commit.gpgsign true
+    Write-Host "[OK] 已启用 SSH Commit 签名 (Key: $KeyPath)" -ForegroundColor Green
+}
+
+# 快捷配置 GPG 提交签名
+function ggpg {
+    param([string]$KeyId = "")
+    if (-not $KeyId) {
+        Write-Host "用法: ggpg <key_id> (例如: ggpg 3AA5C34371567BD2)" -ForegroundColor Yellow
+        Write-Host "`n# 1. 打印密钥列表 (查找 sec 后面的 Key ID)"
+        Write-Host "gpg --list-secret-keys --keyid-format=long"
+        Write-Host "`n# 2. 导出私钥"
+        Write-Host "gpg --armor --export-secret-keys"
+        Write-Host "`n# 3. 生成 GPG 密钥"
+        Write-Host "gpg --full-generate-key"
+        return
+    }
+    git config --global gpg.format gpg
+    git config --global user.signingkey "$KeyId"
+    git config --global commit.gpgsign true
+    Write-Host "[OK] 已启用 GPG Commit 签名 (Key ID: $KeyId)" -ForegroundColor Green
+}
+
+# --------------------------------------------------------------------
+# 6. GitHub CLI (gh) 极速提效函数 (对标 Unix zsh.d/git.zsh)
+# --------------------------------------------------------------------
+function ghci { gh run list -L 1 @args }
+
+function pr {
+    param([Parameter(Position=0)][string]$Target = "ls")
+    if ($Target -eq "ls") {
+        gh pr list @args
+    } else {
+        gh pr checkout $Target @args
+    }
+}
+
+# --------------------------------------------------------------------
+# 7. 项目与开发提效组合函数 (对标 Unix zsh.d/aliases.zsh)
+# --------------------------------------------------------------------
+function clonep {
+    param([Parameter(Mandatory=$true)][string]$repo)
+    $prev = Get-Location
+    proj
+    clone $repo
+    if (Get-Command "code" -ErrorAction SilentlyContinue) { code . }
+    Set-Location $prev
+}
+
+function codep {
+    param([string]$target = "")
+    $prev = Get-Location
+    proj $target
+    if (Get-Command "code" -ErrorAction SilentlyContinue) { code . }
+    Set-Location $prev
+}
+
+function serve {
+    param([string]$path = "dist")
+    if (Get-Command "live-server" -ErrorAction SilentlyContinue) {
+        live-server $path @args
+    } else {
+        Write-Warning "未检测到 live-server，请先运行 'npm install -g live-server' 或 '.\start.ps1 install'。"
+    }
+}
