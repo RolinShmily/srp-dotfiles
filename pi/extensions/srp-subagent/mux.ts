@@ -27,7 +27,11 @@ function hasCommand(command: string): boolean {
 
   let available = false;
   try {
-    execFileSync("sh", ["-c", `command -v ${command}`], { stdio: "ignore" });
+    if (process.platform === "win32") {
+      execFileSync("where.exe", [command], { stdio: "ignore" });
+    } else {
+      execFileSync("sh", ["-c", `command -v ${command}`], { stdio: "ignore" });
+    }
     available = true;
   } catch {
     available = false;
@@ -474,23 +478,32 @@ export function sendLongCommand(
   command: string,
   options?: { scriptPath?: string; scriptPreamble?: string },
 ): string {
+  const isWin = process.platform === "win32";
+  const ext = isWin ? ".ps1" : ".sh";
   const scriptPath =
     options?.scriptPath ??
     join(
       tmpdir(),
       "srp-subagent-scripts",
-      `subagent-${Date.now()}-${Math.random().toString(16).slice(2, 8)}.sh`,
+      `subagent-${Date.now()}-${Math.random().toString(16).slice(2, 8)}${ext}`,
     );
   mkdirSync(dirname(scriptPath), { recursive: true });
 
-  const scriptParts = ["#!/bin/bash"];
+  const scriptParts: string[] = [];
+  if (!isWin) {
+    scriptParts.push("#!/bin/bash");
+  }
   if (options?.scriptPreamble) {
     scriptParts.push(options.scriptPreamble.trimEnd());
   }
   scriptParts.push(command);
 
   writeFileSync(scriptPath, scriptParts.join("\n") + "\n", { mode: 0o755 });
-  sendCommand(surface, `bash ${shellEscape(scriptPath)}`);
+  if (isWin) {
+    sendCommand(surface, `& "${scriptPath}"`);
+  } else {
+    sendCommand(surface, `bash ${shellEscape(scriptPath)}`);
+  }
   return scriptPath;
 }
 

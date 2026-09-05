@@ -27,15 +27,41 @@ log_warn() { echo -e "${YELLOW}[WARN]${RESET} $1"; }
 log_error() { echo -e "${RED}[ERROR]${RESET} $1"; }
 
 # ------------------------------------------------------------------
-# 0. 全局执行账本与受控步骤执行器 (Step Runner)
+# 0. 全局执行账本与受控步骤执行器 (Step Runner & Two-Stage Interrupt)
 # ------------------------------------------------------------------
 declare -a REPORT_SUCCESS=()
 declare -a REPORT_SKIPPED=()
 declare -a REPORT_FAILED=()
 
+LAST_CTRL_C_TIME=0
+CURRENT_STEP_NAME=""
+STEP_INTERRUPTED=0
+
+handle_sigint() {
+    local now
+    now=$(date +%s%3N 2>/dev/null || date +%s)
+    local diff=$(( now - LAST_CTRL_C_TIME ))
+
+    if [ "$diff" -le 1200 ] && [ "$LAST_CTRL_C_TIME" -gt 0 ]; then
+        echo -e "\n${RED}[ABORT] 连续检测到 Ctrl+C，已彻底终止安装部署流程！${RESET}"
+        if [ -n "$CURRENT_STEP_NAME" ]; then
+            REPORT_FAILED+=("$CURRENT_STEP_NAME (用户连续 Ctrl+C 终止)")
+        fi
+        print_summary_report
+        exit 130
+    else
+        LAST_CTRL_C_TIME=$now
+        STEP_INTERRUPTED=1
+        echo -e "\n${YELLOW}[SKIP] 已手动中断当前步骤: ${BOLD}${CURRENT_STEP_NAME}${RESET}${YELLOW} (1秒内再次按下 Ctrl+C 将彻底退出脚本)${RESET}"
+    fi
+}
+trap handle_sigint INT TERM
+
 run_step() {
     local step_name="$1"
     shift
+    CURRENT_STEP_NAME="$step_name"
+    STEP_INTERRUPTED=0
 
     while true; do
         log_info "正在执行: ${BOLD}$step_name${RESET} ..."
@@ -44,8 +70,17 @@ run_step() {
         local status=$?
         set -e
 
+        # 如果被单次 Ctrl+C 打断
+        if [ "$STEP_INTERRUPTED" -eq 1 ] || [ $status -eq 130 ]; then
+            STEP_INTERRUPTED=0
+            REPORT_SKIPPED+=("$step_name (手动中断跳过)")
+            CURRENT_STEP_NAME=""
+            return 1
+        fi
+
         if [ $status -eq 0 ]; then
             REPORT_SUCCESS+=("$step_name")
+            CURRENT_STEP_NAME=""
             return 0
         fi
 
@@ -55,6 +90,7 @@ run_step() {
         if [ ! -t 0 ]; then
             log_warn "检测到非交互终端，已自动跳过此步骤。"
             REPORT_SKIPPED+=("$step_name (自动跳过: 退出码 $status)")
+            CURRENT_STEP_NAME=""
             return 1
         fi
 
@@ -71,10 +107,12 @@ run_step() {
             [sS]*)
                 log_warn "已手动跳过步骤: $step_name"
                 REPORT_SKIPPED+=("$step_name (手动跳过: 退出码 $status)")
+                CURRENT_STEP_NAME=""
                 return 1
                 ;;
             [rR]*)
                 log_info "正在重试步骤: $step_name ..."
+                STEP_INTERRUPTED=0
                 continue
                 ;;
             [aA]*)
@@ -86,6 +124,7 @@ run_step() {
             *)
                 log_warn "输入无法识别，默认跳过此步骤。"
                 REPORT_SKIPPED+=("$step_name (手动跳过: 退出码 $status)")
+                CURRENT_STEP_NAME=""
                 return 1
                 ;;
         esac

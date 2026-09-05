@@ -118,8 +118,8 @@ function proj {
     }
 }
 
-# 创建目录并立刻进入 (mkcd)
-function mkcd {
+# 创建目录并立刻进入 (dir)
+function dir {
     param([Parameter(Mandatory=$true)][string]$path)
     New-Item -ItemType Directory -Path $path -Force | Out-Null
     Set-Location $path

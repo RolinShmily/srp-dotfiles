@@ -193,10 +193,11 @@ scoop_buckets = [
     "dorado = https://github.com/chawyehsu/dorado"
 ]
 
-# 3. Scoop 软件包清单 (Node.js/npm运行时、字体、终端监控、复用器、编辑器)
+# 3. Scoop 软件包清单 (Node.js/npm运行时、字体、终端监控、复用器、音频录制、编辑器)
 scoop_packages = [
     "aria2",
     "nodejs-lts",
+    "sox",
     "Maple-Mono-NF-CN",
     "btop-lhm",
     "zellij",

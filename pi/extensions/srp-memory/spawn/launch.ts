@@ -25,7 +25,8 @@ export function resolvePiBinary(): { command: string; baseArgs: string[] } {
       // fall through
     }
   }
-  return { command: "pi", baseArgs: [] };
+  const fallbackCmd = process.platform === "win32" ? "pi.cmd" : "pi";
+  return { command: fallbackCmd, baseArgs: [] };
 }
 
 export function buildWorkerArgv(opts: {
@@ -71,10 +72,12 @@ export function spawnWorker(opts: {
   const [command, ...rest] = opts.argv;
   mkdirSync(opts.cwd, { recursive: true });
   return new Promise<WorkerExit>((resolvePromise) => {
+    const isWindowsCmd = process.platform === "win32" && (command.endsWith(".cmd") || command.endsWith(".bat"));
     const proc = spawn(command, rest, {
       cwd: opts.cwd,
       env: opts.env,
       stdio: ["ignore", "ignore", "pipe"],
+      shell: isWindowsCmd,
     });
     let stderr = "";
     proc.stderr?.on("data", (d: Buffer | string) => {

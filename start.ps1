@@ -55,17 +55,55 @@ function Write-LogWarn { param([string]$Msg) Write-Host "[WARN] " -ForegroundCol
 function Write-LogError { param([string]$Msg) Write-Host "[FAIL] " -ForegroundColor Red -NoNewline; Write-Host $Msg }
 
 # -------------------------------------------------------------------------
-# 0. 全局执行账本与受控步骤执行器 (Step Runner)
+# 0. 全局执行账本与受控步骤执行器 (Step Runner & Two-Stage Interrupt)
 # -------------------------------------------------------------------------
 $script:ReportSuccess = [System.Collections.Generic.List[string]]::new()
 $script:ReportSkipped = [System.Collections.Generic.List[string]]::new()
 $script:ReportFailed  = [System.Collections.Generic.List[string]]::new()
+
+$script:LastCtrlCTime = [DateTime]::MinValue
+$script:CurrentStepName = ""
+$script:StepInterrupted = $false
+
+# 注册控制台两级 Ctrl+C 拦截器 (单击跳过当前步骤，1.2秒内连按彻底退出)
+try {
+    [Console]::TreatControlCAsInput = $false
+    $null = [Console]::CancelKeyPress += {
+        param($sender, $eventArgs)
+        $now = [DateTime]::UtcNow
+        $diff = ($now - $script:LastCtrlCTime).TotalMilliseconds
+
+        if ($diff -le 1200 -and $script:LastCtrlCTime -ne [DateTime]::MinValue) {
+            # 1.2 秒内连按两次：彻底终止整个流程
+            $eventArgs.Cancel = $false
+            Write-Host "`n"
+            Write-LogError "连续检测到 Ctrl+C，已彻底终止安装部署流程！"
+            if ($script:CurrentStepName) {
+                $script:ReportFailed.Add("$($script:CurrentStepName) (用户连续 Ctrl+C 终止)")
+            }
+            Show-Summary-Report
+            [System.Environment]::Exit(130)
+        } else {
+            # 单次按下：仅中断跳过当前卡住的子步骤
+            $eventArgs.Cancel = $true
+            $script:LastCtrlCTime = $now
+            $script:StepInterrupted = $true
+            Write-Host "`n"
+            Write-LogWarn "已手动中断当前步骤: [$($script:CurrentStepName)] (1秒内再次按下 Ctrl+C 将彻底退出脚本)"
+        }
+    }
+} catch {
+    # 在非控制台托管环境下静默忽略
+}
 
 function Invoke-Step {
     param (
         [string]$Name,
         [scriptblock]$ScriptBlock
     )
+
+    $script:CurrentStepName = $Name
+    $script:StepInterrupted = $false
 
     while ($true) {
         Write-LogInfo "正在执行: $Name ..."
@@ -76,19 +114,39 @@ function Invoke-Step {
             $global:LASTEXITCODE = 0
             & $ScriptBlock
 
+            # 检查是否有单次 Ctrl+C 打断
+            if ($script:StepInterrupted) {
+                $script:StepInterrupted = $false
+                $script:ReportSkipped.Add("$Name (手动中断跳过)")
+                $script:CurrentStepName = ""
+                return $false
+            }
+
             # 检查是否有非零外部命令退出码
             if ($null -ne $global:LASTEXITCODE -and $global:LASTEXITCODE -ne 0 -and $global:LASTEXITCODE -ne -1978335189) {
                 # 注意: -1978335189 为 winget 提示软件包已安装且已是最新版的正常返回码
                 $stepFailed = $true
                 $errorDetails = "命令返回非零退出码: $global:LASTEXITCODE"
             }
+        } catch [System.Management.Automation.PipelineStoppedException] {
+            $script:StepInterrupted = $false
+            $script:ReportSkipped.Add("$Name (手动中断跳过)")
+            $script:CurrentStepName = ""
+            return $false
         } catch {
+            if ($script:StepInterrupted) {
+                $script:StepInterrupted = $false
+                $script:ReportSkipped.Add("$Name (手动中断跳过)")
+                $script:CurrentStepName = ""
+                return $false
+            }
             $stepFailed = $true
             $errorDetails = $_.Exception.Message
         }
 
         if (-not $stepFailed) {
             $script:ReportSuccess.Add($Name)
+            $script:CurrentStepName = ""
             return $true
         }
 
@@ -109,21 +167,25 @@ function Invoke-Step {
             "s" {
                 Write-LogWarn "已手动跳过步骤: $Name"
                 $script:ReportSkipped.Add("$Name (手动跳过: $errorDetails)")
+                $script:CurrentStepName = ""
                 return $false
             }
             "r" {
                 Write-LogInfo "正在重试步骤: $Name ..."
+                $script:StepInterrupted = $false
                 continue
             }
             "a" {
                 Write-LogError "用户主动终止安装部署流程。"
                 $script:ReportFailed.Add("$Name (用户中止: $errorDetails)")
+                $script:CurrentStepName = ""
                 Show-Summary-Report
                 exit 1
             }
             default {
                 Write-LogWarn "输入无法识别，默认跳过此步骤。"
                 $script:ReportSkipped.Add("$Name (手动跳过: $errorDetails)")
+                $script:CurrentStepName = ""
                 return $false
             }
         }

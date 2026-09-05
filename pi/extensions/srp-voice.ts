@@ -284,7 +284,16 @@ function rmsToBlock(rms: number): string {
 // ── 跨平台剪贴板复制 ────────────────────────────────────────────────────────
 function copyToClipboard(text: string): boolean {
   if (!text) return false;
-  // 1. WSL 环境或 Windows clip.exe
+  // 1. 原生 Windows (win32)
+  if (process.platform === "win32") {
+    try {
+      const p = spawn("clip.exe", [], { stdio: ["pipe", "ignore", "ignore"] });
+      p.stdin.end(text);
+      return true;
+    } catch {}
+  }
+
+  // 2. WSL 环境或 Windows clip.exe 挂载路径
   const isWsl = !!process.env.WSL_DISTRO_NAME || existsSync("/mnt/c/WINDOWS/system32/clip.exe");
   if (isWsl && existsSync("/mnt/c/WINDOWS/system32/clip.exe")) {
     try {
@@ -294,7 +303,7 @@ function copyToClipboard(text: string): boolean {
     } catch {}
   }
 
-  // 2. Linux Wayland (wl-copy)
+  // 3. Linux Wayland (wl-copy)
   if (process.env.WAYLAND_DISPLAY || existsSync("/usr/bin/wl-copy") || existsSync("/usr/sbin/wl-copy")) {
     try {
       const p = spawn("wl-copy", [], { stdio: ["pipe", "ignore", "ignore"] });
@@ -303,7 +312,7 @@ function copyToClipboard(text: string): boolean {
     } catch {}
   }
 
-  // 3. Linux X11 (xclip)
+  // 4. Linux X11 (xclip)
   if (process.env.DISPLAY || existsSync("/usr/bin/xclip") || existsSync("/usr/sbin/xclip")) {
     try {
       const p = spawn("xclip", ["-selection", "clipboard"], { stdio: ["pipe", "ignore", "ignore"] });
@@ -312,7 +321,7 @@ function copyToClipboard(text: string): boolean {
     } catch {}
   }
 
-  // 4. macOS (pbcopy)
+  // 5. macOS (pbcopy)
   try {
     const p = spawn("pbcopy", [], { stdio: ["pipe", "ignore", "ignore"] });
     p.stdin.end(text);
@@ -815,25 +824,31 @@ export default function (pi: ExtensionAPI) {
     dbg(`start recording with ${provider.name} (gen ${myGeneration})`);
     startMeter();
 
-    // 启动音频捕获 (优先 rec / sox)
+    // 启动跨平台音频捕获 (Windows 优先 sox -d，Unix 优先 rec)
+    const commonAudioArgs = [
+      "-q",
+      "--buffer", "512",
+      "-r", "16000",
+      "-c", "1",
+      "-b", "16",
+      "-e", "signed-integer",
+      "-t", "raw",
+      "-",
+    ];
+
     let proc: ChildProcessByStdio<null, Readable, Readable>;
     try {
-      proc = spawn(
-        "rec",
-        [
-          "-q",
-          "--buffer", "512",
-          "-r", "16000",
-          "-c", "1",
-          "-b", "16",
-          "-e", "signed-integer",
-          "-t", "raw",
-          "-",
-        ],
-        { stdio: ["ignore", "pipe", "pipe"] },
-      );
+      if (process.platform === "win32") {
+        proc = spawn("sox", ["-d", ...commonAudioArgs], { stdio: ["ignore", "pipe", "pipe"] });
+      } else {
+        try {
+          proc = spawn("rec", commonAudioArgs, { stdio: ["ignore", "pipe", "pipe"] });
+        } catch {
+          proc = spawn("sox", ["-d", ...commonAudioArgs], { stdio: ["ignore", "pipe", "pipe"] });
+        }
+      }
     } catch (e: any) {
-      ctx.ui.notify("Failed to spawn 'rec'. Please ensure sox is installed.", "error");
+      ctx.ui.notify("Failed to spawn audio recorder. Please ensure sox/rec is installed.", "error");
       cleanup();
       return;
     }
