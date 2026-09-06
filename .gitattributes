@@ -1,0 +1,49 @@
+# ====================================================================
+# Git 跨平台换行符规范与文本处理策略 (.gitattributes)
+# 适用环境: Windows 11 / WSL2 / Arch Linux / macOS
+# ====================================================================
+
+# 默认所有文本文件在检出与暂存时统一使用 LF 换行符 (消除 CRLF 冲突)
+* text=auto eol=lf
+
+# 明确的 Unix Shell 脚本、配置文件与源码必须保持 LF
+*.sh        text eol=lf
+*.zsh       text eol=lf
+*.bash      text eol=lf
+*.lua       text eol=lf
+*.py        text eol=lf
+*.js        text eol=lf
+*.ts        text eol=lf
+*.json      text eol=lf
+*.toml      text eol=lf
+*.yaml      text eol=lf
+*.yml       text eol=lf
+*.md        text eol=lf
+*.kdl       text eol=lf
+*.conf      text eol=lf
+*.theme     text eol=lf
+.vimrc      text eol=lf
+.gitignore  text eol=lf
+
+# Windows 平台专属脚本与批处理
+*.ps1       text eol=lf
+*.psm1      text eol=lf
+*.bat       text eol=crlf
+*.cmd       text eol=crlf
+
+# 二进制文件严禁进行换行符转换
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.webp      binary
+*.gif       binary
+*.ico       binary
+*.exe       binary
+*.dll       binary
+*.zip       binary
+*.7z        binary
+*.tar.gz    binary
+*.ttf       binary
+*.otf       binary
+*.woff      binary
+*.woff2     binary

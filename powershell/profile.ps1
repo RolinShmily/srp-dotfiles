@@ -199,8 +199,8 @@ function grt {
 # 5. Git 极速工作流快捷函数 (100% 对齐 Unix zsh.d/git.zsh)
 # --------------------------------------------------------------------
 
-# 移除与 Git 快捷命令冲突的 PowerShell 原生别名 (gp/gl/gc/gcm)
-@('gp', 'gl', 'gc', 'gcm') | ForEach-Object {
+# 彻底移除与 Git 快捷命令冲突的 PowerShell 原生别名 (gp/gl/gc/gcm)
+@('gp', 'gl', 'gc', 'gcm', 'ga', 'gs', 'gm') | ForEach-Object {
     Remove-Item "alias:$_" -Force -ErrorAction SilentlyContinue
 }
 
@@ -248,6 +248,28 @@ function gcam { git add -A; git commit -m @args }
 
 function gxn  { git clean -dn @args }
 function gx   { git clean -df @args }
+
+# 安全解除 Git 索引锁 (当暂存区/提交异常崩溃残留 index.lock 时一键解锁)
+function gunlock {
+    $lockFile = Join-Path (git rev-parse --show-toplevel 2>$null) ".git/index.lock"
+    if (Test-Path $lockFile) {
+        Remove-Item -Force $lockFile
+        Write-Host "[OK] 已清理 Git 索引锁: $lockFile" -ForegroundColor Green
+    } else {
+        Write-Host "[Info] 当前仓库无残留 index.lock 锁文件。" -ForegroundColor Cyan
+    }
+}
+
+# 按照 .gitattributes 一键规范化修复换行符
+function gfix-crlf {
+    git add --renormalize .
+    Write-Host "[OK] 已根据 .gitattributes 完成全量换行符重规范化。" -ForegroundColor Green
+}
+
+# 强力锁定别名作用域，防止被后续模块重新覆盖
+@('gp', 'gl', 'gc', 'gcm', 'ga', 'gs') | ForEach-Object {
+    Set-Alias -Name $_ -Value $_ -Option AllScope -Force -ErrorAction SilentlyContinue
+}
 
 function gd {
     if (Get-Command "diff-so-fancy" -ErrorAction SilentlyContinue) {
