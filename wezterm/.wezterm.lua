@@ -29,8 +29,10 @@ config.audible_bell = 'Disabled'
 -- 禁用 Win32 控制台低级按键捕获，确保 WezTerm 优先拦截 Alt 组合键 (解决 Alt+t/Alt+w 被抢占)
 config.allow_win32_input_mode = false
 
--- 扩充回滚缓冲区至 20000 行
+-- 扩充回滚缓冲区至 20000 行并开启原生右侧滚动条
 config.scrollback_lines = 20000
+config.enable_scroll_bar = true
+config.min_scroll_bar_height = '2cell'
 
 -- 规范化粘贴换行
 config.canonicalize_pasted_newlines = 'LineFeed'
@@ -72,9 +74,18 @@ config.adjust_window_size_when_changing_font_size = false
 
 config.underline_thickness = '1.5pt'
 
--- ============================ 3. 光标经典慢速闪烁 ============================
+-- ============================ 3. 光标与输入法 (IME) 深度优化 ============================
 
-config.default_cursor_style = 'BlinkingBlock'
+-- 解决 Windows 输入法 (微软拼音等) 候选框漂移脱离光标的问题：
+-- 显式启用系统级原生 Composition 渲染，确保候选窗精准跟随输入光标
+config.use_ime = true
+config.ime_preedit_rendering = 'System'
+
+-- 键入时自动隐藏鼠标指针
+config.hide_mouse_cursor_when_typing = true
+
+-- 光标样式采用优雅竖线 (Bar)，打字输入更清晰不遮挡文字
+config.default_cursor_style = 'BlinkingBar'
 config.cursor_blink_rate = 650
 config.cursor_blink_ease_in = 'Constant'
 config.cursor_blink_ease_out = 'Constant'
@@ -130,8 +141,9 @@ config.hide_tab_bar_if_only_one_tab = false
 config.show_new_tab_button_in_tab_bar = true
 config.tab_max_width = 32
 
--- 标签栏采用 Catppuccin Mauve 暗紫夜光质感配色与按钮美化
+-- 标签栏与窗口元素采用 Catppuccin Mauve 暗紫夜光质感配色
 config.colors = {
+  scrollbar_thumb = 'rgba(0,0,0,0)', -- 默认透明，由 update-status 智能感知按需渲染
   tab_bar = {
     background = '#15141e',
     inactive_tab_edge = '#15141e', -- 彻底消除默认灰色分界线
@@ -161,28 +173,30 @@ config.colors = {
   },
 }
 
--- ============================ 格式化标签栏：智能进程图标与夜光标题美化 ============================
+-- ============================ 格式化标签栏：Nerd Font 单色极客矢量图标 ============================
 
 local function get_process_icon(title)
   local lower = string.lower(title)
-  if string.find(lower, 'zellij') then
-    return '⚡'
+  if string.find(lower, 'zellij') or string.find(lower, 'tmux') then
+    return '\u{f01a8}' -- 󰆨 终端复用器
   elseif string.find(lower, 'pi') or string.find(lower, 'agent') then
-    return '🤖'
+    return '\u{f06a9}' -- 󰚩 AI / Agent
   elseif string.find(lower, 'pwsh') or string.find(lower, 'powershell') then
-    return '󰨊'
+    return '\u{e795}' --  PowerShell / CLI
   elseif string.find(lower, 'cmd') then
-    return ''
-  elseif string.find(lower, 'wsl') or string.find(lower, 'ubuntu') or string.find(lower, 'bash') or string.find(lower, 'zsh') then
-    return '󰌽'
+    return '\u{ebc4}' --  CMD
+  elseif string.find(lower, 'wsl') or string.find(lower, 'ubuntu') or string.find(lower, 'linux') then
+    return '\u{f17c}' --  Linux
   elseif string.find(lower, 'yazi') then
-    return '󰇥'
+    return '\u{f07b}' --  资源管理
   elseif string.find(lower, 'btop') or string.find(lower, 'top') then
-    return '󰍛'
+    return '\u{f0e4}' --  监控仪表盘
   elseif string.find(lower, 'vim') or string.find(lower, 'nvim') then
-    return ''
+    return '\u{e62b}' --  Vim
+  elseif string.find(lower, 'git') or string.find(lower, 'lazygit') then
+    return '\u{f1d3}' --  Git
   else
-    return '󰆍'
+    return '\u{e795}' --  默认终端提示符
   end
 end
 
@@ -195,24 +209,16 @@ wezterm.on('format-tab-title', function(tab, tabs, panes, config_obj, hover, max
 
   local icon = get_process_icon(title)
   local tab_num = tostring(tab.tab_index + 1)
-
-  -- 如果 title 已经自带 emoji (比如 ⚡ Zellij / 🤖 Pi Agent)，则不重复前缀图标
-  local display_title = title
-  if not string.match(title, '^[^\x00-\x7F]') then
-    display_title = icon .. ' ' .. title
-  end
-
   local num_color = is_active and '#cba6f7' or (hover and '#b4befe' or '#72678c')
   local text_color = is_active and '#f5eeff' or (hover and '#e0d4fc' or '#938aa9')
 
-  -- 舒展呼吸感间距：前后对称留白，序号与标题分明
   return {
     { Foreground = { Color = num_color } },
     { Attribute = { Intensity = 'Bold' } },
     { Text = '  ' .. tab_num .. '  ' },
     { Foreground = { Color = text_color } },
     { Attribute = { Intensity = is_active and 'Bold' or 'Normal' } },
-    { Text = display_title .. '   ' },
+    { Text = icon .. '  ' .. title .. '   ' },
   }
 end)
 
@@ -259,9 +265,39 @@ config.background = get_background(true)
 -- 注册切换事件：在背景图与纯黑之间一键切换
 wezterm.on('toggle-bg-image', function(window)
   show_bg_image = not show_bg_image
-  window:set_config_overrides({
-    background = get_background(show_bg_image),
-  })
+  local overrides = window:get_config_overrides() or {}
+  overrides.background = get_background(show_bg_image)
+  window:set_config_overrides(overrides)
+end)
+
+-- ============================ 6. 智能动态滚动条感知 ============================
+
+local SCROLLBAR_COLOR = '#4a3866'
+local TRANSPARENT = 'rgba(0,0,0,0)'
+
+-- 仅在确实存在可回滚历史、且非全屏独占应用 (如 Vim/Yazi) 与复用器 (如 Zellij/Tmux) 时才渲染滚动条
+wezterm.on('update-status', function(window, pane)
+  local overrides = window:get_config_overrides() or {}
+  overrides.colors = overrides.colors or {}
+
+  -- 1. 检测全屏应用 (如 Vim, Nvim, Btop, Yazi, Less 等 Alt-Screen 独占模式)
+  local is_alt = pane:is_alt_screen_active()
+
+  -- 2. 检测终端复用器 (如 Zellij, Tmux 等自带滚动管理的程序)
+  local title = string.lower(pane:get_title() or '')
+  local is_multiplexer = string.find(title, 'zellij') ~= nil or string.find(title, 'tmux') ~= nil
+
+  -- 3. 检测是否有真实溢出的回滚历史 (physical_top > 0 说明历史行已溢出视口上方)
+  local dims = pane:get_dimensions()
+  local has_scrollback = dims and dims.physical_top and (dims.physical_top > 0)
+
+  local should_show = (not is_alt) and (not is_multiplexer) and (has_scrollback == true)
+  local target_color = should_show and SCROLLBAR_COLOR or TRANSPARENT
+
+  if overrides.colors.scrollbar_thumb ~= target_color then
+    overrides.colors.scrollbar_thumb = target_color
+    window:set_config_overrides(overrides)
+  end
 end)
 
 -- ============================ 6. URL 识别规则 ============================

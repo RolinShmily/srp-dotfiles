@@ -14,10 +14,8 @@ if (Get-Command "pwsh" -ErrorAction SilentlyContinue) {
     $env:ZELLIJ_SHELL = "pwsh.exe"
 }
 
-# 针对 WezTerm 原生环境启用 Pi iTerm2 图形协议 (穿透 Windows ConPTY)
-if ($env:TERM_PROGRAM -eq "wezterm" -or $env:WEZTERM_PANE) {
-    $env:PI_IMAGE_PROTOCOL = "iterm2"
-}
+# 启用 Pi 终端硬件光标同步 (确保 Windows IME 输入法候选窗精准跟随输入光标)
+$env:PI_HARDWARE_CURSOR = "1"
 
 # 终端 Shell 集成 (如果环境支持)
 $__it_si = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'PowerShell\shell-integration_v2.ps1'

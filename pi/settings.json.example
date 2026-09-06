@@ -8,6 +8,15 @@
     "footer": true,
     "tps": true
   },
+  "terminal": {
+    "images": false
+  },
+  "showHardwareCursor": true,
+  "markdown": {
+    "codeBlockIndent": "  ",
+    "mermaid": "streaming",
+    "latex": true
+  },
   "srpAsk": {
     "enabled": true
   },

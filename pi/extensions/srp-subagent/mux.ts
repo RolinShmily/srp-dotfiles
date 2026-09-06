@@ -489,18 +489,24 @@ export function sendLongCommand(
     );
   mkdirSync(dirname(scriptPath), { recursive: true });
 
+  const isSh = scriptPath.endsWith(".sh");
   const scriptParts: string[] = [];
-  if (!isWin) {
-    scriptParts.push("#!/bin/bash");
+  if (isSh || !isWin) {
+    scriptParts.push("#!/usr/bin/env bash");
   }
   if (options?.scriptPreamble) {
     scriptParts.push(options.scriptPreamble.trimEnd());
   }
   scriptParts.push(command);
 
-  writeFileSync(scriptPath, scriptParts.join("\n") + "\n", { mode: 0o755 });
+  const content = (isSh ? scriptParts.join("\n").replace(/\r\n/g, "\n") : scriptParts.join("\n")) + "\n";
+  writeFileSync(scriptPath, content, { mode: 0o755 });
   if (isWin) {
-    sendCommand(surface, `& "${scriptPath}"`);
+    if (isSh) {
+      sendCommand(surface, `bash "${scriptPath.replace(/\\/g, "/")}"`);
+    } else {
+      sendCommand(surface, `& "${scriptPath}"`);
+    }
   } else {
     sendCommand(surface, `bash ${shellEscape(scriptPath)}`);
   }
