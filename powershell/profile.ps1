@@ -402,3 +402,92 @@ function serve {
         Write-Warning "未检测到 live-server，请先运行 'npm install -g live-server' 或 '.\start.ps1 install'。"
     }
 }
+
+# --------------------------------------------------------------------
+# 8. 远程连接与 SSH 提效函数 (对标原生 ssh-copy-id)
+# --------------------------------------------------------------------
+
+# Windows 原生 ssh-copy-id 兜底实现 (将本地公钥推送到远程 authorized_keys)
+function ssh-copy-id {
+    param(
+        [Parameter(Position = 0)]
+        [string]$userAtMachine
+    )
+
+    # 1. 收集并解析参数 (支持 user@host 与 -i/-p 等参数任意位置摆放)
+    $allArgs = @()
+    if ($userAtMachine) { $allArgs += $userAtMachine }
+    $allArgs += $args
+
+    $target = ""
+    $identityFile = ""
+    $sshExtraArgs = @()
+
+    $i = 0
+    while ($i -lt $allArgs.Count) {
+        $arg = $allArgs[$i]
+        if ($arg -eq "-i" -and ($i + 1) -lt $allArgs.Count) {
+            $identityFile = $allArgs[$i + 1]
+            $i += 2
+            continue
+        }
+        if (-not $target -and $arg -notmatch "^-") {
+            $target = $arg
+            $i++
+            continue
+        }
+        $sshExtraArgs += $arg
+        $i++
+    }
+
+    if (-not $target) {
+        Write-Host "用法: ssh-copy-id [-i [identity_file]] [-p port] [user@]hostname [ssh_args...]" -ForegroundColor Yellow
+        return
+    }
+
+    # 2. 探测公钥路径 (优先 -i 指定，其次优先 id_rsa.pub，回退探测 id_ed25519/id_ecdsa 或 ~/.ssh/*.pub)
+    $publicKey = $identityFile
+    if (-not $publicKey) {
+        $sshDir = Join-Path $HOME ".ssh"
+        $candidates = @(
+            (Join-Path $sshDir "id_rsa.pub"),
+            (Join-Path $sshDir "id_ed25519.pub"),
+            (Join-Path $sshDir "id_ecdsa.pub")
+        )
+        foreach ($c in $candidates) {
+            if (Test-Path $c) {
+                $publicKey = $c
+                break
+            }
+        }
+        if (-not $publicKey) {
+            $anyPub = Get-ChildItem -Path $sshDir -Filter "*.pub" -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($anyPub) {
+                $publicKey = $anyPub.FullName
+            }
+        }
+    }
+
+    if (-not $publicKey -or -not (Test-Path $publicKey)) {
+        Write-Error "ERROR: failed to open ID file '$publicKey': No such file"
+        return
+    }
+
+    # 3. 使用原生 Get-Content 读取纯净公钥内容 (规避 profile 中 cat/bat 样式与行号污染)
+    $pubContent = (Get-Content -Path $publicKey -Raw).Trim()
+    if (-not $pubContent) {
+        Write-Error "ERROR: 公钥文件 '$publicKey' 内容为空"
+        return
+    }
+
+    Write-Host "[*] 正在安装公钥: $publicKey -> $target" -ForegroundColor Cyan
+
+    # 4. 透传给 ssh 执行远程追加 (保证独立整行追加)
+    $remoteCmd = "umask 077; test -d .ssh || mkdir .ssh ; cat >> .ssh/authorized_keys || exit 1"
+    ($pubContent + "`n") | ssh.exe @sshExtraArgs $target $remoteCmd
+
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "[OK] 密钥已成功配置到 $target 的 ~/.ssh/authorized_keys" -ForegroundColor Green
+    }
+}
+

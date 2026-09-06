@@ -75,7 +75,7 @@ run_step() {
             STEP_INTERRUPTED=0
             REPORT_SKIPPED+=("$step_name (手动中断跳过)")
             CURRENT_STEP_NAME=""
-            return 1
+            return 0
         fi
 
         if [ $status -eq 0 ]; then
@@ -91,7 +91,7 @@ run_step() {
             log_warn "检测到非交互终端，已自动跳过此步骤。"
             REPORT_SKIPPED+=("$step_name (自动跳过: 退出码 $status)")
             CURRENT_STEP_NAME=""
-            return 1
+            return 0
         fi
 
         echo -e "${YELLOW}----------------------------------------------------${RESET}"
@@ -108,7 +108,7 @@ run_step() {
                 log_warn "已手动跳过步骤: $step_name"
                 REPORT_SKIPPED+=("$step_name (手动跳过: 退出码 $status)")
                 CURRENT_STEP_NAME=""
-                return 1
+                return 0
                 ;;
             [rR]*)
                 log_info "正在重试步骤: $step_name ..."
@@ -125,7 +125,7 @@ run_step() {
                 log_warn "输入无法识别，默认跳过此步骤。"
                 REPORT_SKIPPED+=("$step_name (手动跳过: 退出码 $status)")
                 CURRENT_STEP_NAME=""
-                return 1
+                return 0
                 ;;
         esac
     done
