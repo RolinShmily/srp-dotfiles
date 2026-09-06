@@ -166,7 +166,6 @@ package_managers = ["winget", "scoop"]
 
 # 1. 核心系统工具链与现代 CLI (通过 Winget 安装)
 winget_packages = [
-    "vim.vim",
     "wez.wezterm",
     "Microsoft.PowerShell",
     "Git.Git",
@@ -199,6 +198,7 @@ scoop_buckets = [
 # 3. Scoop 软件包清单 (Node.js/npm运行时、字体、终端监控、复用器、音频录制、编辑器)
 scoop_packages = [
     "aria2",
+    "vim",
     "nodejs-lts",
     "sox",
     "Maple-Mono-NF-CN",

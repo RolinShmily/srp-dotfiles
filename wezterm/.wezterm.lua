@@ -26,6 +26,9 @@ config.automatically_reload_config = true
 -- 关闭 Windows 系统蜂鸣警告
 config.audible_bell = 'Disabled'
 
+-- 禁用 Win32 控制台低级按键捕获，确保 WezTerm 优先拦截 Alt 组合键 (解决 Alt+t/Alt+w 被抢占)
+config.allow_win32_input_mode = false
+
 -- 扩充回滚缓冲区至 20000 行
 config.scrollback_lines = 20000
 
@@ -80,11 +83,38 @@ config.cursor_blink_ease_out = 'Constant'
 
 config.color_scheme = 'Catppuccin Mocha'
 
--- 移除独立 Windows 标题栏，将最小化/最大化/关闭按钮无缝嵌入标签栏最右侧 (一体化现代标题栏)
+-- 移除独立系统标题栏，将 Windows 原生矢量三按钮 (最小化、最大化、关闭) 嵌入 Tab 栏最右侧
 config.window_decorations = 'INTEGRATED_BUTTONS | RESIZE'
 config.integrated_title_button_style = 'Windows'
 config.integrated_title_button_alignment = 'Right'
 config.integrated_title_buttons = { 'Hide', 'Maximize', 'Close' }
+
+-- 窗口框架与原生 Fancy 标签栏深度美化 (消除生硬灰边与杂色，统一为暗紫夜光底槽)
+config.window_frame = {
+  font = wezterm.font_with_fallback({
+    { family = 'Maple Mono NF CN' },
+    { family = 'Microsoft YaHei UI' },
+  }),
+  font_size = 11.5,
+  active_titlebar_bg = '#15141e',
+  inactive_titlebar_bg = '#15141e',
+  active_titlebar_fg = '#f5eeff',
+  inactive_titlebar_fg = '#938aa9',
+  active_titlebar_border_bottom = '#15141e',
+  inactive_titlebar_border_bottom = '#15141e',
+  button_fg = '#938aa9',
+  button_bg = '#15141e',
+  button_hover_fg = '#ffffff',
+  button_hover_bg = '#322846',
+  border_left_width = '0px',
+  border_right_width = '0px',
+  border_bottom_height = '0px',
+  border_top_height = '0px',
+  border_left_color = '#15141e',
+  border_right_color = '#15141e',
+  border_bottom_color = '#15141e',
+  border_top_color = '#15141e',
+}
 
 -- 窗口内边距
 config.window_padding = {
@@ -95,15 +125,16 @@ config.window_padding = {
 }
 
 config.enable_tab_bar = true
-config.use_fancy_tab_bar = false
+config.use_fancy_tab_bar = true
 config.hide_tab_bar_if_only_one_tab = false
 config.show_new_tab_button_in_tab_bar = true
-config.tab_max_width = 36
+config.tab_max_width = 32
 
--- 标签栏采用 Catppuccin Mauve 暗紫夜光质感配色
+-- 标签栏采用 Catppuccin Mauve 暗紫夜光质感配色与按钮美化
 config.colors = {
   tab_bar = {
     background = '#15141e',
+    inactive_tab_edge = '#15141e', -- 彻底消除默认灰色分界线
     active_tab = {
       bg_color = '#4a3866',
       fg_color = '#f5eeff',
@@ -117,22 +148,43 @@ config.colors = {
       bg_color = '#322846',
       fg_color = '#e0d4fc',
     },
-    -- 完美融入底槽：new_tab 底色完全与 tab_bar.background (#15141e) 一致，彻底消除生硬色块
+    -- "+" 新建标签按钮美化
     new_tab = {
       bg_color = '#15141e',
-      fg_color = '#72678c',
+      fg_color = '#938aa9',
     },
     new_tab_hover = {
-      bg_color = '#251e33',
+      bg_color = '#322846',
       fg_color = '#cba6f7',
+      intensity = 'Bold',
     },
   },
 }
 
--- ============================ 格式化标签栏：现代化圆润胶囊式 (Pill / Capsule) 设计 ============================
+-- ============================ 格式化标签栏：智能进程图标与夜光标题美化 ============================
 
-local SOLID_LEFT_ROUND = utf8.char(0xe0b6)   --  胶囊左圆弧
-local SOLID_RIGHT_ROUND = utf8.char(0xe0b4)  --  胶囊右圆弧
+local function get_process_icon(title)
+  local lower = string.lower(title)
+  if string.find(lower, 'zellij') then
+    return '⚡'
+  elseif string.find(lower, 'pi') or string.find(lower, 'agent') then
+    return '🤖'
+  elseif string.find(lower, 'pwsh') or string.find(lower, 'powershell') then
+    return '󰨊'
+  elseif string.find(lower, 'cmd') then
+    return ''
+  elseif string.find(lower, 'wsl') or string.find(lower, 'ubuntu') or string.find(lower, 'bash') or string.find(lower, 'zsh') then
+    return '󰌽'
+  elseif string.find(lower, 'yazi') then
+    return '󰇥'
+  elseif string.find(lower, 'btop') or string.find(lower, 'top') then
+    return '󰍛'
+  elseif string.find(lower, 'vim') or string.find(lower, 'nvim') then
+    return ''
+  else
+    return '󰆍'
+  end
+end
 
 wezterm.on('format-tab-title', function(tab, tabs, panes, config_obj, hover, max_width)
   local is_active = tab.is_active
@@ -141,46 +193,26 @@ wezterm.on('format-tab-title', function(tab, tabs, panes, config_obj, hover, max
     title = tab.tab_title
   end
 
-  local tab_bar_bg = '#15141e'
-  local pill_bg = is_active and '#4a3866' or '#221c30'
-  local pill_fg = is_active and '#f5eeff' or '#938aa9'
-  local index_fg = is_active and '#cba6f7' or '#72678c'
-
-  if hover and not is_active then
-    pill_bg = '#322846'
-    pill_fg = '#e0d4fc'
-    index_fg = '#b4befe'
-  end
-
+  local icon = get_process_icon(title)
   local tab_num = tostring(tab.tab_index + 1)
 
-  -- 统一等距胶囊模型：每个胶囊左侧统一置入 1 格底槽背景，确保窗口左边距与所有胶囊间距严格等宽 (100% 对称一致)
+  -- 如果 title 已经自带 emoji (比如 ⚡ Zellij / 🤖 Pi Agent)，则不重复前缀图标
+  local display_title = title
+  if not string.match(title, '^[^\x00-\x7F]') then
+    display_title = icon .. ' ' .. title
+  end
+
+  local num_color = is_active and '#cba6f7' or (hover and '#b4befe' or '#72678c')
+  local text_color = is_active and '#f5eeff' or (hover and '#e0d4fc' or '#938aa9')
+
+  -- 舒展呼吸感间距：前后对称留白，序号与标题分明
   return {
-    -- 胶囊前置间隙 (作为左内边距与胶囊间标准间隙)
-    { Background = { Color = tab_bar_bg } },
-    { Foreground = { Color = tab_bar_bg } },
-    { Text = ' ' },
-
-    -- 胶囊左圆弧 ()
-    { Background = { Color = tab_bar_bg } },
-    { Foreground = { Color = pill_bg } },
-    { Text = SOLID_LEFT_ROUND },
-
-    -- 胶囊主体：序号 + 标题
-    { Background = { Color = pill_bg } },
-    { Foreground = { Color = index_fg } },
+    { Foreground = { Color = num_color } },
     { Attribute = { Intensity = 'Bold' } },
-    { Text = ' ' .. tab_num .. ' ' },
-
-    { Background = { Color = pill_bg } },
-    { Foreground = { Color = pill_fg } },
+    { Text = '  ' .. tab_num .. '  ' },
+    { Foreground = { Color = text_color } },
     { Attribute = { Intensity = is_active and 'Bold' or 'Normal' } },
-    { Text = title .. ' ' },
-
-    -- 胶囊右圆弧 ()
-    { Background = { Color = tab_bar_bg } },
-    { Foreground = { Color = pill_bg } },
-    { Text = SOLID_RIGHT_ROUND },
+    { Text = display_title .. '   ' },
   }
 end)
 
@@ -298,35 +330,18 @@ config.keys = {
   { key = 'v', mods = 'CTRL', action = act.PasteFrom('Clipboard') },
   { key = 'Insert', mods = 'SHIFT', action = act.PasteFrom('Clipboard') },
 
-  -- 标签管理与切换
+  -- 标签管理与切换 (工业标准 T/W 体系，支持 Ctrl+Shift+t/w 与 Alt+t/w)
+  { key = 't', mods = 'CTRL|SHIFT', action = act.SpawnTab('DefaultDomain') },           -- Ctrl + Shift + t：新建标签页并进入
+  { key = 'w', mods = 'CTRL|SHIFT', action = act.CloseCurrentTab({ confirm = false }) }, -- Ctrl + Shift + w：秒关当前标签页 (免确认)
+  { key = 't', mods = 'ALT', action = act.SpawnTab('DefaultDomain') },                  -- Alt + t：单手新建标签页
+  { key = 'w', mods = 'ALT', action = act.CloseCurrentTab({ confirm = false }) },      -- Alt + w：单手秒关当前标签页
+  { key = '1', mods = 'ALT', action = act.ActivateTab(0) },                            -- Alt + 1：直达 Tab 1
+  { key = '2', mods = 'ALT', action = act.ActivateTab(1) },                            -- Alt + 2：直达 Tab 2
+  { key = '3', mods = 'ALT', action = act.ActivateTab(2) },                            -- Alt + 3：直达 Tab 3
+  { key = '4', mods = 'ALT', action = act.ActivateTab(3) },                            -- Alt + 4：直达 Tab 4
+  { key = 'Tab', mods = 'CTRL', action = act.ActivateTabRelative(1) },                 -- Ctrl + Tab：向后切换 Tab
+  { key = 'Tab', mods = 'CTRL|SHIFT', action = act.ActivateTabRelative(-1) },           -- Ctrl + Shift + Tab：向前切换 Tab
   { key = 'Tab', mods = 'SHIFT', action = act.ActivateTabRelative(1) },
-  { key = '1', mods = 'ALT', action = act.ActivateTab(0) },
-  { key = '2', mods = 'ALT', action = act.ActivateTab(1) },
-  { key = 't', mods = 'CTRL|SHIFT', action = act.SpawnTab('DefaultDomain') },
-  { key = 'w', mods = 'CTRL|SHIFT', action = act.CloseCurrentTab({ confirm = false }) },
-  { key = 'Tab', mods = 'CTRL', action = act.ActivateTabRelative(1) },
-  { key = 'Tab', mods = 'CTRL|SHIFT', action = act.ActivateTabRelative(-1) },
 }
-
--- ============================ 8. 默认双 Tab 启动 (Zellij + Pi Agent) ============================
-
-wezterm.on('gui-startup', function(cmd)
-  local mux = wezterm.mux
-
-  -- Tab 1: 默认运行 Zellij 复用环境
-  local tab_zellij, pane_zellij, window = mux.spawn_window({
-    args = { 'pwsh.exe', '-NoLogo', '-NoExit', '-Command', 'if (Get-Command zellij -ErrorAction SilentlyContinue) { zellij }' },
-  })
-  tab_zellij:set_title('⚡ Zellij')
-
-  -- Tab 2: 纯净终端环境，注入 PI_IMAGE_PROTOCOL=kitty，专注运行 Pi Agent
-  local tab_pi, pane_pi = window:spawn_tab({
-    args = { 'pwsh.exe', '-NoLogo', '-NoExit', '-Command', '$env:PI_IMAGE_PROTOCOL = "kitty"' },
-  })
-  tab_pi:set_title('🤖 Pi Agent')
-
-  -- 默认激活 Tab 1 (Zellij)
-  tab_zellij:activate()
-end)
 
 return config

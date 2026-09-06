@@ -149,6 +149,11 @@ Or run directly with subcommands:
 
 | Shortcut | Action | Description |
 | :--- | :--- | :--- |
+| **`Ctrl + Shift + t` / `Alt + t`** | **New Tab** | Spawn a new tab and focus it immediately |
+| **`Ctrl + Shift + w` / `Alt + w`** | **Close Current Tab** | Instantly close active tab without prompt |
+| **`Alt + 1 ~ 4`** | **Activate Tab 1 ~ 4** | Jump directly to specific tabs |
+| **`Ctrl + Tab`** | **Cycle Next Tab** | Relative next tab navigation |
+| **`Ctrl + Shift + Tab`** | **Cycle Prev Tab** | Relative previous tab navigation |
 | **`Alt + /`** | **Toggle Background Image** | Toggle between custom background image and pure black focus mode |
 | **`Alt + f`** | **Terminal Search** | Full-screen interactive search across terminal scrollback |
 | **`F2`** | **Command Palette** | Fuzzy-search all WezTerm commands and actions (VSCode style) |

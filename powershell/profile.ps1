@@ -14,9 +14,9 @@ if (Get-Command "pwsh" -ErrorAction SilentlyContinue) {
     $env:ZELLIJ_SHELL = "pwsh.exe"
 }
 
-# 针对 WezTerm 原生环境启用 Pi Kitty 图形协议
+# 针对 WezTerm 原生环境启用 Pi iTerm2 图形协议 (穿透 Windows ConPTY)
 if ($env:TERM_PROGRAM -eq "wezterm" -or $env:WEZTERM_PANE) {
-    $env:PI_IMAGE_PROTOCOL = "kitty"
+    $env:PI_IMAGE_PROTOCOL = "iterm2"
 }
 
 # 终端 Shell 集成 (如果环境支持)
