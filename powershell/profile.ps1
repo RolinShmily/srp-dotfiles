@@ -266,11 +266,6 @@ function gfix-crlf {
     Write-Host "[OK] 已根据 .gitattributes 完成全量换行符重规范化。" -ForegroundColor Green
 }
 
-# 强力锁定别名作用域，防止被后续模块重新覆盖
-@('gp', 'gl', 'gc', 'gcm', 'ga', 'gs') | ForEach-Object {
-    Set-Alias -Name $_ -Value $_ -Option AllScope -Force -ErrorAction SilentlyContinue
-}
-
 function gd {
     if (Get-Command "diff-so-fancy" -ErrorAction SilentlyContinue) {
         git diff --color @args | diff-so-fancy

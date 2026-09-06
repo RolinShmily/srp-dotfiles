@@ -3,6 +3,8 @@
   "files.autoSave": "afterDelay",
   // 自动猜测文件编码
   "files.autoGuessEncoding": true,
+  // 全局默认换行符统一为 LF，消除跨平台 CRLF 冲突
+  "files.eol": "\n",
   // 列表、光标移动、编辑器、光标闪烁样式平滑
   "workbench.list.smoothScrolling": true,
   "editor.cursorSmoothCaretAnimation": "on",

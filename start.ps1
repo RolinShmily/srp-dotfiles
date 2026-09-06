@@ -561,6 +561,15 @@ function Configure-User-Environment {
         $env:ZELLIJ_SHELL = "pwsh.exe"
         Write-LogSuccess "SHELL 环境变量已成功指向 pwsh.exe。"
     }
+
+    Invoke-Step -Name "配置 Git 跨平台换行符规范 (core.autocrlf = input)" -ScriptBlock {
+        if (Get-Command "git" -ErrorAction SilentlyContinue) {
+            & git config --global core.autocrlf input
+            Write-LogSuccess "Git 全局换行符策略已规范为 input (提交转 LF，检出不转 CRLF)。"
+        } else {
+            Write-LogWarn "未检测到 git 命令，跳过 Git 换行符配置。"
+        }
+    }
 }
 
 function Deploy-Pi-Stack {
