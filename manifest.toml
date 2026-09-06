@@ -229,7 +229,8 @@ configs = [
     "zellij",
     "yazi",
     "btop",
-    "pi"
+    "pi",
+    "code"
 ]
 
 # 7. Pi Coding Agent 扩展套件 (仅剔除 WSL 专用的 wsl-screenshot.ts)

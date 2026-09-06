@@ -28,7 +28,7 @@
     .\start.ps1 all              # 自动非交互执行全部 (依赖安装 + 符号链接部署)
     .\start.ps1 install          # 仅执行系统环境与依赖安装 (不触碰任何配置文件)
     .\start.ps1 config           # 仅部署与同步 Dotfiles 配置文件 (不安装任何软件)
-    .\start.ps1 config -Force    # 强制覆盖部署当前配置
+    .\start.ps1 config -f        # 强制覆盖部署当前配置 (-f 或 -Force)
 #>
 
 [CmdletBinding()]
@@ -37,6 +37,7 @@ param (
     [ValidateSet('all', 'install', 'config', 'launch', 'help', '')]
     [string]$Action = '',
 
+    [Alias('f')]
     [switch]$Force
 )
 
@@ -650,6 +651,10 @@ function Deploy-Pi-Stack {
 }
 
 function Run-Config {
+    param (
+        [switch]$ForceDeploy = $Force
+    )
+
     Write-Host "==========================================================" -ForegroundColor Cyan
     Write-Host "         正在部署 Dotfiles 符号链接配置 (manifest.toml)         " -ForegroundColor Cyan
     Write-Host "==========================================================" -ForegroundColor Cyan
@@ -814,9 +819,97 @@ function Run-Config {
         }
     }
 
-    # 9. 部署通用应用配置目录 (~/.config/<app>) 与 Pi 体系
+    # 9. 部署 VS Code 体系配置 (code)
+    if ($configsToDeploy -contains "code") {
+        Write-Host ""
+        Write-LogInfo "--- 正在部署 VS Code 体系配置 ---"
+        $codeSourceDir = Join-Path $DotfilesDir "code"
+        $codeTargetDir = Join-Path $UserHome ".config\code"
+        $codeUserSettingsDir = Join-Path ([Environment]::GetFolderPath('ApplicationData')) "Code\User"
+        $codeUserSettingsFile = Join-Path $codeUserSettingsDir "settings.json"
+        $codeSettingsExample = Join-Path $codeSourceDir "settings.json.example"
+
+        if (Test-Path $codeSourceDir) {
+            # 1. 部署 ~/.config/code/ 静态资源 (排除 settings.json.example)
+            Invoke-Step -Name "部署 Code 静态资源目录 (~/.config/code)" -ScriptBlock {
+                if (-not (Test-Path $codeTargetDir)) {
+                    New-Item -ItemType Directory -Path $codeTargetDir -Force | Out-Null
+                }
+
+                $resourceItems = Get-ChildItem -Path $codeSourceDir | Where-Object { $_.Name -ne "settings.json.example" }
+                if ($resourceItems.Count -eq 0) {
+                    Write-LogWarn "code 目录中未找到需要分发的静态资源文件。"
+                } else {
+                    foreach ($item in $resourceItems) {
+                        $targetItemPath = Join-Path $codeTargetDir $item.Name
+                        Deploy-Link-Item -Source $item.FullName -Target $targetItemPath -Name "Code 静态资源 [$($item.Name)]" -BackupDir $backupDir
+                    }
+                }
+            }
+
+            # 2. 同步与对比 VS Code 用户配置 (%APPDATA%\Code\User\settings.json)
+            if (Test-Path $codeSettingsExample) {
+                Invoke-Step -Name "同步 VS Code 用户配置 (settings.json)" -ScriptBlock {
+                    if (-not (Test-Path $codeUserSettingsDir)) {
+                        New-Item -ItemType Directory -Path $codeUserSettingsDir -Force | Out-Null
+                    }
+
+                    if (-not (Test-Path $codeUserSettingsFile)) {
+                        # 默认情况下不存在 settings.json：直接以 example 模板生成
+                        Copy-Item -Path $codeSettingsExample -Destination $codeUserSettingsFile -Force
+                        Write-LogSuccess "未检测到现有 settings.json，已根据 settings.json.example 直接生成配置。"
+                    } else {
+                        # 文件已存在：对比 settings.json.example 与现有 settings.json
+                        $exampleLines = Get-Content -Path $codeSettingsExample -Encoding UTF8
+                        $targetLines = Get-Content -Path $codeUserSettingsFile -Encoding UTF8
+                        $diff = Compare-Object -ReferenceObject $exampleLines -DifferenceObject $targetLines
+
+                        if ($null -eq $diff -or $diff.Count -eq 0) {
+                            Write-LogSuccess "VS Code settings.json 与模板内容完全一致，无需更新。"
+                        } else {
+                            Write-LogWarn "检测到 VS Code settings.json 与 settings.json.example 存在差异 ($($diff.Count) 处差异)："
+                            Write-Host "----------------- [配置差异对比 (<= 模板 | => 当前)] -----------------" -ForegroundColor DarkYellow
+                            $maxDisplay = 40
+                            $displayItems = $diff | Select-Object -First $maxDisplay
+                            $displayItems | ForEach-Object {
+                                $indicator = if ($_.SideIndicator -eq "<=") { "[+ 模板独有]" } else { "[- 当前独有]" }
+                                $color = if ($_.SideIndicator -eq "<=") { "Green" } else { "Magenta" }
+                                Write-Host "$indicator $($_.InputObject)" -ForegroundColor $color
+                            }
+                            if ($diff.Count -gt $maxDisplay) {
+                                Write-Host "... 剩余 $($diff.Count - $maxDisplay) 处差异未展开 ..." -ForegroundColor DarkGray
+                            }
+                            Write-Host "----------------------------------------------------------------------" -ForegroundColor DarkYellow
+
+                            if ($ForceDeploy) {
+                                if (-not (Test-Path $backupDir)) {
+                                    New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
+                                    Write-LogInfo "创建旧配置安全备份目录: $backupDir"
+                                }
+                                $backupSettingsPath = Join-Path $backupDir "settings.json"
+                                Move-Item -Path $codeUserSettingsFile -Destination $backupSettingsPath -Force
+                                Write-LogWarn "已安全归档原 settings.json 至: $backupSettingsPath"
+
+                                Copy-Item -Path $codeSettingsExample -Destination $codeUserSettingsFile -Force
+                                Write-LogSuccess "已在 -f / -Force 参数下强制以 settings.json.example 覆盖配置！"
+                            } else {
+                                Write-LogWarn "当前存在配置差异但未传入 -f / -Force 参数，已保留现有 settings.json 不动。"
+                                Write-Host " 💡 提示: 若需强制覆盖现有配置，请使用: .\start.ps1 config -f" -ForegroundColor Yellow
+                            }
+                        }
+                    }
+                }
+            } else {
+                Write-LogWarn "未在仓库 code 目录找到 settings.json.example 文件: $codeSettingsExample"
+            }
+        } else {
+            Write-LogWarn "未在仓库中找到 code 目录: $codeSourceDir"
+        }
+    }
+
+    # 10. 部署通用应用配置目录 (~/.config/<app>) 与 Pi 体系
     $hasCommon = $false
-    $specializedApps = @("wezterm", "powershell", "vim", "vimrc", "zellij", "btop", "yazi", "fastfetch")
+    $specializedApps = @("wezterm", "powershell", "vim", "vimrc", "zellij", "btop", "yazi", "fastfetch", "code")
     foreach ($app in $configsToDeploy) {
         if ($app -in $specializedApps) { continue }
 
@@ -868,7 +961,7 @@ SrP-Dotfiles Windows 声明式一键配置总控脚本 (start.ps1)
   help        显示本帮助信息
 
 选项:
-  -Force      强制覆盖部署现有配置文件，跳过询问
+  -f, -Force  强制覆盖部署现有配置文件，跳过询问
 
 异常处理机制:
   当安装或部署遇到错误时，脚本会自动拦截并提供 [s] 跳过 / [r] 重试 / [a] 终止，
@@ -879,15 +972,16 @@ SrP-Dotfiles Windows 声明式一键配置总控脚本 (start.ps1)
   .\start.ps1 all         # 一键全自动完成所有配置
   .\start.ps1 install     # 仅安装软件包
   .\start.ps1 config      # 仅同步配置文件
+  .\start.ps1 config -f   # 强制覆盖同步配置文件
 "@
 }
 
 # 处理明确的 CLI 参数命令
 if ($Action -ne '' -and $Action -ne 'launch') {
     switch ($Action) {
-        'all'     { Run-Install; Write-Host ""; Run-Config; Show-Summary-Report; exit 0 }
+        'all'     { Run-Install; Write-Host ""; Run-Config -ForceDeploy:$Force; Show-Summary-Report; exit 0 }
         'install' { Run-Install; Show-Summary-Report; exit 0 }
-        'config'  { Run-Config; Show-Summary-Report; exit 0 }
+        'config'  { Run-Config -ForceDeploy:$Force; Show-Summary-Report; exit 0 }
         'help'    { Show-Help; exit 0 }
         default   { Show-Help; exit 1 }
     }
@@ -919,7 +1013,7 @@ switch ($choice) {
     "1" {
         Run-Install
         Write-Host ""
-        Run-Config
+        Run-Config -ForceDeploy:$Force
         Show-Summary-Report
     }
     "2" {
@@ -927,7 +1021,7 @@ switch ($choice) {
         Show-Summary-Report
     }
     "3" {
-        Run-Config
+        Run-Config -ForceDeploy:$Force
         Show-Summary-Report
     }
     "0" {

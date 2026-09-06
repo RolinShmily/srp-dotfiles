@@ -61,7 +61,8 @@ srp-dotfiles/
 │
 ├── 🪟 Windows 系统配置体系
 │   ├── wezterm/           # WezTerm 现代终端工业级配置 (.wezterm.lua) 与专属背景图
-│   └── powershell/        # Windows PowerShell 7 全局 Profile 模板 (整合 Oh-My-Posh)
+│   ├── powershell/        # Windows PowerShell 7 全局 Profile 模板 (整合 Oh-My-Posh)
+│   └── code/              # VS Code 配置模板与开屏/背景等静态样式资源
 │
 └── 🤖 Pi Agent 智能体体系
     ├── pi/settings.json.example # 安全运行时配置模板
@@ -222,3 +223,7 @@ export ANTHROPIC_API_KEY="sk-..."
 - [KevinSilvester/wezterm-config](https://github.com/KevinSilvester/wezterm-config) — WezTerm 工业级细节调优与平滑 URL 处理设计借鉴。
 - [amosblomqvist/pi-config](https://github.com/amosblomqvist/pi-config) — Pi Coding Agent 扩展体系架构参考。
 - [BarryYangi/chezmoi-dotfiles](https://github.com/BarryYangi/chezmoi-dotfiles) — 模块化 Zsh 与系统分流设计参考。
+- [Aikoyori/ProgrammingVTuberLogos](https://github.com/Aikoyori/ProgrammingVTuberLogos) — VS Code 视觉素材（`code/VSCode-Thick.png`）由 [Aikoyori](https://github.com/Aikoyori) 创作，遵循 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) 知识共享许可协议进行署名与非商业性使用。
+- [Xy (Pixiv 85385041)](https://www.pixiv.net/users/85385041) — 终端与编辑器专属背景壁纸原创画师：
+  - VS Code 背景插画（`code/background.png`）：[CSGO / Nightlight-Print&Asimov](https://www.pixiv.net/artworks/121230570)
+  - WezTerm 背景插画（`wezterm/background.png`）：[CSGO / Original Sin-Printstream](https://www.pixiv.net/artworks/121094692)

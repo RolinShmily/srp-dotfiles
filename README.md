@@ -61,7 +61,8 @@ srp-dotfiles/
 │
 ├── 🪟 Windows Configuration Suite
 │   ├── wezterm/           # WezTerm terminal configuration (.wezterm.lua) & background
-│   └── powershell/        # Windows PowerShell 7 global profile template ($PROFILE)
+│   ├── powershell/        # Windows PowerShell 7 global profile template ($PROFILE)
+│   └── code/              # VS Code settings template & custom styling assets
 │
 └── 🤖 Pi Agent Architecture
     ├── pi/settings.json.example # Secure runtime configuration template
@@ -222,3 +223,7 @@ We recommend installing [Maple Mono NF CN](https://github.com/subframe7536/maple
 - [KevinSilvester/wezterm-config](https://github.com/KevinSilvester/wezterm-config) — Reference for WezTerm tuning, smooth URL cleanup, and QuickSelect design.
 - [amosblomqvist/pi-config](https://github.com/amosblomqvist/pi-config) — Reference for Pi Coding Agent extension architecture.
 - [BarryYangi/chezmoi-dotfiles](https://github.com/BarryYangi/chezmoi-dotfiles) — Reference for modular Zsh architecture and OS branching.
+- [Aikoyori/ProgrammingVTuberLogos](https://github.com/Aikoyori/ProgrammingVTuberLogos) — VS Code visual asset (`code/VSCode-Thick.png`) created by [Aikoyori](https://github.com/Aikoyori), licensed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) for non-commercial use with attribution.
+- [Xy (Pixiv 85385041)](https://www.pixiv.net/users/85385041) — Original artist for terminal & editor background wallpapers:
+  - VS Code background artwork (`code/background.png`): [CSGO / Nightlight-Print&Asimov](https://www.pixiv.net/artworks/121230570)
+  - WezTerm background artwork (`wezterm/background.png`): [CSGO / Original Sin-Printstream](https://www.pixiv.net/artworks/121094692)

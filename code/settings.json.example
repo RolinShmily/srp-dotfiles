@@ -1,0 +1,64 @@
+{
+  // 自动保存文件
+  "files.autoSave": "afterDelay",
+  // 自动猜测文件编码
+  "files.autoGuessEncoding": true,
+  // 列表、光标移动、编辑器、光标闪烁样式平滑
+  "workbench.list.smoothScrolling": true,
+  "editor.cursorSmoothCaretAnimation": "on",
+  "editor.smoothScrolling": true,
+  "editor.cursorBlinking": "smooth",
+  // 按住 Ctrl 滚轮缩放编辑器字体
+  "editor.mouseWheelZoom": true,
+  // 粘贴、输入、保存时自动格式化
+  "editor.formatOnPaste": true,
+  "editor.formatOnType": true,
+  "editor.formatOnSave": true,
+  // 自动换行(避免横向滚动条)
+  "editor.wordWrap": "on",
+  // 括号配对引导线
+  "editor.guides.bracketPairs": true,
+  // 允许代码片段触发快速建议
+  "editor.suggest.snippetsPreventQuickSuggestions": false,
+  // 回车键智能接受建议（仅当没有其他文本建议时）
+  "editor.acceptSuggestionOnEnter": "smart",
+  // 建议列表优先显示最近使用的项
+  "editor.suggestSelection": "recentlyUsed",
+  // 使用自定义对话框样式
+  "window.dialogStyle": "custom",
+  // 在概览标尺中显示断点
+  "debug.showBreakpointsInOverviewRuler": true,
+  // 主题 Theme
+  "workbench.colorTheme": "One Dark Pro",
+  // 允许本地 WSL
+  "security.allowedUNCHosts": ["wsl.localhost"],
+  // 文件列表 icon
+  "workbench.iconTheme": "material-icon-theme",
+  // 取消文件资源管理器(Windows Shell)的确定删除弹窗
+  "explorer.confirmDelete": false,
+  // 字体
+  "editor.fontFamily": "'Maple Mono NF CN'",
+  // git Sync 弹窗
+  "git.confirmSync": false,
+  // 关闭欢迎页面
+  "workbench.startupEditor": "none",
+  // 直接打开未受信文件
+  "security.workspace.trust.untrustedFiles": "open",
+  // 自定义开屏画面CSS
+  "vscode_custom_css.imports": ["file://${userHome}/.config/code/custom.css"],
+  // 背景图片
+  "background.enabled": true,
+  "background.fullscreen": {
+    // `images` 支持在线和本地图片，以及文件夹。
+    "images": [
+      // 本地图片
+      "~/.config/code/background.png",
+    ],
+    "opacity": 0.1,
+    "size": "cover",
+    "position": "center",
+    "styles": [],
+    "interval": 0,
+    "random": false
+  },
+}
