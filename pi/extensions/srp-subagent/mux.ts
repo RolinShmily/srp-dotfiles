@@ -88,6 +88,25 @@ export function shellEscape(s: string): string {
   return "'" + s.replace(/'/g, "'\\''") + "'";
 }
 
+/**
+ * Escape a value for PowerShell. Single-quoted strings are literal in PS;
+ * embedded single quotes are escaped by doubling them (POSIX `'\''` is NOT
+ * valid PowerShell).
+ */
+export function psEscape(s: string): string {
+  return "'" + s.replace(/'/g, "''") + "'";
+}
+
+// Tokens made solely of these characters are emitted unquoted in PowerShell
+// argument position. Anything else (@ splatting, $ interpolation, whitespace,
+// quotes, operators, ...) gets single-quoted — inside single quotes every byte
+// is literal, so this is always safe.
+const PS_SAFE_TOKEN = /^[A-Za-z0-9_.:/\\+\-]+$/;
+
+function psToken(s: string): string {
+  return s !== "" && PS_SAFE_TOKEN.test(s) ? s : psEscape(s);
+}
+
 export function isFishShell(): boolean {
   const shell = process.env.SHELL ?? "";
   return basename(shell) === "fish";
@@ -98,8 +117,10 @@ export function exitStatusVar(): string {
 }
 
 function tailLines(text: string, lines: number): string {
-  const split = text.split("\n");
-  if (split.length <= lines) return text;
+  const trimmed = text.trimEnd();
+  if (!trimmed) return "";
+  const split = trimmed.split("\n");
+  if (split.length <= lines) return trimmed;
   return split.slice(-lines).join("\n");
 }
 
@@ -471,7 +492,56 @@ export function sendCommand(surface: string, command: string): void {
 }
 
 /**
+ * Render a subagent launch command for the current platform's pane shell.
+ *
+ * - POSIX (WSL/linux): bash — `cd 'x' && VAR='v' pi ...; echo '__SUBAGENT_DONE_'$?'__'`
+ * - Windows native: PowerShell — `$env:VAR = 'v'` assignments, `Set-Location`,
+ *   and a `$LASTEXITCODE`-based sentinel (PS `$?` is a boolean, and POSIX env
+ *   prefixes / `&&` are syntax errors in PowerShell).
+ *
+ * `spec.args` must be RAW argv tokens (no shell quoting); escaping happens here
+ * per shell so the POSIX and PowerShell renderings can never drift.
+ */
+export interface SubagentCommandSpec {
+  /** Working directory the command runs in, or null to inherit. */
+  cwd: string | null;
+  /** Environment variables set for the child process. */
+  env: Array<[string, string]>;
+  /** Raw argv tokens; args[0] is the binary (emitted unquoted). */
+  args: string[];
+}
+
+export function renderSubagentCommand(spec: SubagentCommandSpec): { script: string; scriptExt: ".sh" | ".ps1" } {
+  const renderArgs = (escape: (s: string) => string): string =>
+    spec.args.length > 0 ? [spec.args[0], ...spec.args.slice(1).map(escape)].join(" ") : "";
+
+  if (process.platform === "win32") {
+    const lines: string[] = [];
+    if (spec.cwd) lines.push(`Set-Location -LiteralPath ${psEscape(spec.cwd)}`);
+    for (const [key, value] of spec.env) lines.push(`$env:${key} = ${psEscape(value)}`);
+    lines.push(renderArgs(psToken));
+    // $LASTEXITCODE is the native-command exit code (PS `$?` is a boolean).
+    // ${LASTEXITCODE} braces are REQUIRED inside the double-quoted string:
+    // without them PS parses the variable name as "LASTEXITCODE__" (underscores
+    // are valid name chars) which is always undefined → empty sentinel.
+    // If the binary itself was not found, $LASTEXITCODE stays null — emit 127
+    // (bash's command-not-found code) so pollForExit still terminates.
+    lines.push(`if ($null -eq $LASTEXITCODE) { Write-Output '__SUBAGENT_DONE_127__' } else { Write-Output "__SUBAGENT_DONE_\${LASTEXITCODE}__" }`);
+    return { script: lines.join("\n"), scriptExt: ".ps1" };
+  }
+
+  const envPrefix = spec.env.map(([key, value]) => `${key}=${shellEscape(value)}`).join(" ");
+  const cdPrefix = spec.cwd ? `cd ${shellEscape(spec.cwd)} && ` : "";
+  const script = `${cdPrefix}${envPrefix ? envPrefix + " " : ""}${renderArgs(shellEscape)}; echo '__SUBAGENT_DONE_'$?'__'`;
+  return { script, scriptExt: ".sh" };
+}
+
+/**
  * 将较长命令写入脚本文件并在目标 Pane 执行，避免终端长字符折行破坏参数。
+ *
+ * 脚本扩展名决定执行方式：`.sh` 经 `bash` 执行；`.ps1` 经显式
+ * `powershell -NoProfile -ExecutionPolicy Bypass -File` 执行 —— 不依赖 pane
+ * 的默认 shell（cmd / PowerShell 均可），也不受执行策略限制。
  */
 export function sendLongCommand(
   surface: string,
@@ -491,7 +561,7 @@ export function sendLongCommand(
 
   const isSh = scriptPath.endsWith(".sh");
   const scriptParts: string[] = [];
-  if (isSh || !isWin) {
+  if (isSh) {
     scriptParts.push("#!/usr/bin/env bash");
   }
   if (options?.scriptPreamble) {
@@ -499,16 +569,26 @@ export function sendLongCommand(
   }
   scriptParts.push(command);
 
-  const content = (isSh ? scriptParts.join("\n").replace(/\r\n/g, "\n") : scriptParts.join("\n")) + "\n";
+  let content = scriptParts.join(isSh ? "\n" : "\r\n") + "\n";
+  if (isSh) {
+    content = content.replace(/\r\n/g, "\n");
+  } else if (isWin) {
+    // UTF-8 BOM: PowerShell 5.1 reads no-BOM files as ANSI and would garble
+    // non-ASCII paths/names inside the script.
+    content = "\uFEFF" + content;
+  }
   writeFileSync(scriptPath, content, { mode: 0o755 });
-  if (isWin) {
-    if (isSh) {
+  if (isSh) {
+    if (isWin) {
       sendCommand(surface, `bash "${scriptPath.replace(/\\/g, "/")}"`);
     } else {
-      sendCommand(surface, `& "${scriptPath}"`);
+      sendCommand(surface, `bash ${shellEscape(scriptPath)}`);
     }
   } else {
-    sendCommand(surface, `bash ${shellEscape(scriptPath)}`);
+    sendCommand(
+      surface,
+      `powershell -NoProfile -ExecutionPolicy Bypass -File "${scriptPath}"`,
+    );
   }
   return scriptPath;
 }
@@ -529,13 +609,25 @@ export function sendEscape(surface: string): void {
 /**
  * 同步读取 Pane 终端屏幕输出。
  */
+function dumpZellijScreen(paneId: string, full: boolean, sync: boolean): Promise<string> | string {
+  const args = ["action", "dump-screen", ...(full ? ["--full"] : []), "--pane-id", paneId];
+  if (sync) {
+    return execFileSync("zellij", args, { encoding: "utf8" });
+  }
+  return execFileAsync("zellij", args, { encoding: "utf8" }).then(({ stdout }) => stdout);
+}
+
 export function readScreen(surface: string, lines = 50): string {
   const backend = requireMuxBackend();
   if (backend === "zellij") {
     const paneId = zellijPaneId(surface);
-    const raw = execFileSync("zellij", ["action", "dump-screen", "--pane-id", paneId], {
-      encoding: "utf8",
-    });
+    let raw = dumpZellijScreen(paneId, false, true) as string;
+    // zellij（0.45.x，Windows 实测）对非焦点 pane 不维护 viewport 渲染缓存，
+    // dump 结果为全空白 —— 而子代理 pane 是 --no-focus 创建的，永远非焦点。
+    // 此时回退全量滚动缓冲区，保证哨兵/状态轮询在后台 pane 上仍然有效。
+    if (!raw.trim()) {
+      raw = dumpZellijScreen(paneId, true, true) as string;
+    }
     return tailLines(raw, lines);
   }
 
@@ -553,11 +645,11 @@ export async function readScreenAsync(surface: string, lines = 50): Promise<stri
   const backend = requireMuxBackend();
   if (backend === "zellij") {
     const paneId = zellijPaneId(surface);
-    const { stdout } = await execFileAsync(
-      "zellij",
-      ["action", "dump-screen", "--pane-id", paneId],
-      { encoding: "utf8" },
-    );
+    let stdout = (await dumpZellijScreen(paneId, false, false)) as string;
+    // 同 readScreen：非焦点 pane viewport 为空时回退全量滚动缓冲区
+    if (!stdout.trim()) {
+      stdout = (await dumpZellijScreen(paneId, true, false)) as string;
+    }
     return tailLines(stdout, lines);
   }
 
@@ -667,7 +759,7 @@ export async function pollForExit(
 
     // 3. 读取终端屏幕捕获完成哨兵
     try {
-      const screen = await readScreenAsync(surface, 5);
+      const screen = await readScreenAsync(surface, 50);
       const match = screen.match(/__SUBAGENT_DONE_(\d+)__/);
       if (match) {
         return { reason: "sentinel", exitCode: parseInt(match[1], 10) };
