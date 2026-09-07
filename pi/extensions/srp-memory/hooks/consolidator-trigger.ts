@@ -90,7 +90,7 @@ async function dispatchConsolidator(
 
   try {
     const prompt = buildConsolidatorPrompt(runtime.memoryRoot, promote, runtime.config.journeyTargetTokens);
-    const effectiveModel = resolveEffectiveModel(runtime.config.models.consolidator, ctx.model);
+    const effectiveModel = resolveEffectiveModel(runtime.config.models.consolidator, ctx.model, runtime.config.settingsDefaultModel);
     const promptPath = runPromptPath(runtime.memoryRoot, runId);
     atomicWrite(promptPath, prompt);
 

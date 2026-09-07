@@ -37,6 +37,11 @@ export interface Config {
     observer: ConfiguredModel;
     consolidator: ConfiguredModel;
   };
+  /**
+   * Pi settings default model (`defaultProvider`/`defaultModel` from settings.json),
+   * used as the last-resort fallback when no session model is available.
+   */
+  settingsDefaultModel?: { provider?: string; id?: string };
   /** Resume the agent automatically after a mid-run compaction. */
   resumeAfterMidRunCompaction: boolean;
   /** Power-user setting: disable all triggers (distinct from the on/off gate). */
@@ -104,17 +109,26 @@ function normalizeModel(value: unknown, fallback: ConfiguredModel): ConfiguredMo
   return model;
 }
 
+/**
+ * Resolve the model a worker subprocess should run on.
+ *
+ * Priority: srp-memory configured model > current session model > pi settings
+ * default model. When nothing resolves, return an empty model so the worker
+ * omits `--provider`/`--model` and pi resolves its own default — never pin a
+ * hardcoded model here.
+ */
 export function resolveEffectiveModel(
   configured?: ConfiguredModel,
   sessionModel?: { provider?: string; id?: string },
-): { provider: string; id: string; thinking?: ModelThinkingLevel } {
-  const provider = configured?.provider || sessionModel?.provider || "antigravity";
-  const id = configured?.id || sessionModel?.id || "gemini-3.7-flash";
-  return {
-    provider,
-    id,
-    thinking: configured?.thinking,
-  };
+  settingsDefault?: { provider?: string; id?: string },
+): ConfiguredModel {
+  const model: ConfiguredModel = {};
+  const provider = configured?.provider || sessionModel?.provider || settingsDefault?.provider;
+  const id = configured?.id || sessionModel?.id || settingsDefault?.id;
+  if (provider) model.provider = provider;
+  if (id) model.id = id;
+  if (configured?.thinking) model.thinking = configured.thinking;
+  return model;
 }
 
 function normalizeSettingsConfig(value: Record<string, unknown>, base: Config): Partial<Config> {
@@ -164,6 +178,16 @@ function readJsonFile(path: string): Record<string, unknown> {
   }
 }
 
+function extractDefaultModel(settings: Record<string, unknown>): { provider?: string; id?: string } | undefined {
+  const provider = nonEmptyString(settings.defaultProvider);
+  const id = nonEmptyString(settings.defaultModel);
+  if (!provider && !id) return undefined;
+  const model: { provider?: string; id?: string } = {};
+  if (provider) model.provider = provider;
+  if (id) model.id = id;
+  return model;
+}
+
 function findSection(settings: Record<string, unknown>): Record<string, unknown> | undefined {
   for (const key of SETTINGS_KEYS) {
     if (isRecord(settings[key])) {
@@ -188,6 +212,8 @@ export function loadConfig(cwd: string = process.cwd()): Config {
     const globalNormalized = normalizeSettingsConfig(globalSection, merged);
     merged = { ...merged, ...globalNormalized };
   }
+  const globalDefaultModel = extractDefaultModel(globalSettings);
+  if (globalDefaultModel) merged.settingsDefaultModel = globalDefaultModel;
 
   const projectSettings = readJsonFile(join(cwd, CONFIG_DIR_NAME, "settings.json"));
   const projectSection = findSection(projectSettings);
@@ -195,6 +221,8 @@ export function loadConfig(cwd: string = process.cwd()): Config {
     const projectNormalized = normalizeSettingsConfig(projectSection, merged);
     merged = { ...merged, ...projectNormalized };
   }
+  const projectDefaultModel = extractDefaultModel(projectSettings);
+  if (projectDefaultModel) merged.settingsDefaultModel = projectDefaultModel;
 
   // Environment variable overrides
   if (process.env[PASSIVE_ENV] === "1" || process.env[PASSIVE_ENV]?.toLowerCase() === "true") {

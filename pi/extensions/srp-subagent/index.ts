@@ -1175,7 +1175,12 @@ function startWidgetRefresh() {
  */
 async function launchSubagent(
   params: Static<typeof SubagentParams>,
-  ctx: { sessionManager: { getSessionFile(): string | null | undefined; getSessionId(): string; getSessionDir(): string }; cwd: string },
+  ctx: {
+    sessionManager: { getSessionFile(): string | null | undefined; getSessionId(): string; getSessionDir(): string };
+    cwd: string;
+    model?: { provider?: string; id?: string } | null;
+    thinkingLevel?: string | null;
+  },
   options?: { surface?: string },
 ): Promise<RunningSubagent> {
   const startTime = Date.now();
@@ -1183,11 +1188,18 @@ async function launchSubagent(
 
   const effectiveName = params.name || params.agent || "subagent";
   const agentDefs = params.agent ? loadAgentDefaults(params.agent) : null;
-  const fallbackModel = (process.env.PI_PROVIDER && process.env.PI_MODEL ? `${process.env.PI_PROVIDER}/${process.env.PI_MODEL}` : "antigravity/gemini-3.7-flash");
-  const effectiveModel = params.model ?? agentDefs?.model ?? fallbackModel;
+  // Priority: explicit param > agent profile > env override > current session
+  // model. When nothing resolves, leave the model unset so the child pi
+  // resolves its own default — never pin a hardcoded model here.
+  const envModel =
+    process.env.PI_PROVIDER && process.env.PI_MODEL
+      ? `${process.env.PI_PROVIDER}/${process.env.PI_MODEL}`
+      : undefined;
+  const sessionModel = ctx.model?.provider && ctx.model?.id ? `${ctx.model.provider}/${ctx.model.id}` : undefined;
+  const effectiveModel = params.model ?? agentDefs?.model ?? envModel ?? sessionModel;
   const effectiveTools = agentDefs?.tools;
   const effectiveSkills = agentDefs?.skills;
-  const effectiveThinking = agentDefs?.thinking ?? (process.env.PI_REASONING_LEVEL || "high");
+  const effectiveThinking = agentDefs?.thinking || process.env.PI_REASONING_LEVEL || ctx.thinkingLevel || undefined;
   const effectiveInteractive = resolveEffectiveInteractive(params, agentDefs);
 
   const sessionFile = ctx.sessionManager.getSessionFile();
