@@ -48,7 +48,6 @@ pi_extensions = [
 pi_packages = [
     "~/.pi/agent/packages/pi-learn",
     "npm:@narumitw/pi-goal",
-    "npm:@ff-labs/pi-fff",
     "npm:@upstash/context7-pi",
     "npm:@narumitw/pi-btw",
     "npm:pi-antigravity",
