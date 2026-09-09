@@ -657,6 +657,43 @@ function Deploy-Pi-Stack {
             }
         }
     }
+
+    # 5. 部署 packages 本地包目录
+    $pkgsSourceDir = Join-Path $DotfilesDir "pi\packages"
+    $pkgsTargetDir = Join-Path $piAgentDir "packages"
+
+    if (Test-Path $pkgsSourceDir) {
+        if (-not (Test-Path $pkgsTargetDir)) {
+            New-Item -ItemType Directory -Path $pkgsTargetDir -Force | Out-Null
+        }
+
+        Invoke-Step -Name "部署 Pi 本地包套件 (packages)" -ScriptBlock {
+            Get-ChildItem -Path $pkgsSourceDir -Directory | ForEach-Object {
+                $pkgFolder = $_
+                $targetName = $pkgFolder.Name
+                $pkgJsonPath = Join-Path $pkgFolder.FullName "package.json"
+                if (Test-Path $pkgJsonPath) {
+                    try {
+                        $json = Get-Content $pkgJsonPath -Raw | ConvertFrom-Json
+                        if ($json.name) {
+                            $targetName = $json.name
+                        }
+                    } catch {}
+                }
+
+                $itemSrc = $pkgFolder.FullName
+                $itemDst = Join-Path $pkgsTargetDir $targetName
+                Deploy-Link-Item -Source $itemSrc -Target $itemDst -Name "Pi 本地包 [$targetName]" -BackupDir $BackupDir
+
+                if ($targetName -ne $pkgFolder.Name) {
+                    $aliasDst = Join-Path $pkgsTargetDir $pkgFolder.Name
+                    if (-not (Test-Path $aliasDst)) {
+                        Deploy-Link-Item -Source $itemSrc -Target $aliasDst -Name "Pi 本地包别名 [$($pkgFolder.Name)]" -BackupDir $BackupDir
+                    }
+                }
+            }
+        }
+    }
 }
 
 function Run-Config {

@@ -1,0 +1,26 @@
+{
+  "name": "pi-learn",
+  "version": "1.0.0",
+  "description": "Interactive learning and visualization package for pi",
+  "type": "module",
+  "keywords": [
+    "pi-package"
+  ],
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*",
+    "typebox": "*"
+  },
+  "dependencies": {
+    "@mermaid-js/mermaid-cli": "^11.4.2"
+  },
+  "pi": {
+    "extensions": [
+      "./index.ts",
+      "./extensions"
+    ],
+    "skills": [
+      "./skills"
+    ]
+  }
+}

@@ -577,6 +577,32 @@ deploy_pi_resources() {
     done
 }
 
+deploy_pi_packages() {
+    local dest_dir="$1"
+    local source_dir="$DOTFILES_DIR/pi/packages"
+    [ -d "$source_dir" ] || return 0
+
+    mkdir -p "$dest_dir"
+    for pkg_path in "$source_dir"/*; do
+        [ -d "$pkg_path" ] || continue
+        local folder_name
+        folder_name="$(basename "$pkg_path")"
+        local target_name="$folder_name"
+        if [ -f "$pkg_path/package.json" ]; then
+            local pkg_json_name
+            pkg_json_name="$(node -e 'try{console.log(require(process.argv[1]).name||"")}catch{}' "$pkg_path/package.json" 2>/dev/null || true)"
+            if [ -n "$pkg_json_name" ]; then
+                target_name="$pkg_json_name"
+            fi
+        fi
+
+        link_file "$pkg_path" "$dest_dir/$target_name"
+        if [ "$target_name" != "$folder_name" ]; then
+            link_file "$pkg_path" "$dest_dir/$folder_name"
+        fi
+    done
+}
+
 do_deploy_pi_stack() {
     local -a pi_pkgs=("${!1}")
     local -a pi_exts=("${!2}")
@@ -600,6 +626,7 @@ do_deploy_pi_stack() {
     deploy_pi_resources "skills" "技能" "$pi_agent_dir/skills"
     deploy_pi_resources "prompts" "提示词" "$pi_agent_dir/prompts"
     deploy_pi_resources "agents" "智能体" "$pi_agent_dir/agents"
+    deploy_pi_packages "$pi_agent_dir/packages"
 }
 
 do_deploy_termux_font() {

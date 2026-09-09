@@ -46,6 +46,7 @@ pi_extensions = [
     "srp-subagent"
 ]
 pi_packages = [
+    "~/.pi/agent/packages/pi-learn",
     "npm:@narumitw/pi-goal",
     "npm:@ff-labs/pi-fff",
     "npm:@upstash/context7-pi",
@@ -93,6 +94,7 @@ pi_extensions = [
     "srp-memory"
 ]
 pi_packages = [
+    "~/.pi/agent/packages/pi-learn",
     "npm:pi-web-access",
     "npm:pi-mcp-adapter",
     "npm:pi-subagents",
@@ -154,6 +156,7 @@ pi_extensions = [
     "srp-subagent"
 ]
 pi_packages = [
+    "~/.pi/agent/packages/pi-learn",
     "npm:@narumitw/pi-goal",
     "npm:@upstash/context7-pi",
     "npm:@narumitw/pi-btw",
@@ -253,6 +256,7 @@ pi_extensions = [
 
 # 8. Pi 官方与社区 npm Packages 插件包
 pi_packages = [
+    "~/.pi/agent/packages/pi-learn",
     "npm:@narumitw/pi-goal",
     "npm:@upstash/context7-pi",
     "npm:@narumitw/pi-btw",
