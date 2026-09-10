@@ -5,6 +5,7 @@ import type { Runtime } from "../runtime.ts";
 import {
   buildCompactionProjection,
   entryIndexById,
+  findLastCompactionIndex,
   isObservationsRecordedEntry,
   isSourceEntry,
   isValidCutPoint,
@@ -39,14 +40,25 @@ export function snapCutoff(
   proposedFirstKeptId: string,
   tailTokens: number,
 ): { firstKeptId: string; tail: number | undefined } {
+  const indexes = entryIndexById(branch);
+  const lastCompactionIdx = findLastCompactionIndex(branch);
   const boundaries = chunkBoundaryIndices(branch);
   let bestId: string | undefined;
   let bestTail: number | undefined;
   let bestDelta = Number.POSITIVE_INFINITY;
 
   for (const boundaryIndex of boundaries) {
+    if (lastCompactionIdx !== -1 && boundaryIndex <= lastCompactionIdx) {
+      continue;
+    }
     const firstKept = firstKeptAfterBoundary(branch, boundaryIndex);
     if (!firstKept) continue;
+
+    const firstKeptIdx = indexes.get(firstKept.id);
+    if (lastCompactionIdx !== -1 && (firstKeptIdx === undefined || firstKeptIdx <= lastCompactionIdx)) {
+      continue;
+    }
+
     const tail = rawTokensAfterIndex(branch, boundaryIndex);
     const delta = Math.abs(tail - tailTokens);
     if (delta < bestDelta) {
@@ -56,7 +68,24 @@ export function snapCutoff(
     }
   }
 
-  return bestId ? { firstKeptId: bestId, tail: bestTail } : { firstKeptId: proposedFirstKeptId, tail: undefined };
+  let finalFirstKeptId = bestId;
+  let finalTail = bestTail;
+
+  // Defensive verification: ensure the returned firstKeptId is NEVER at or before any existing compaction entry on branch.
+  if (finalFirstKeptId !== undefined) {
+    const finalIdx = indexes.get(finalFirstKeptId);
+    if (finalIdx === undefined || (lastCompactionIdx !== -1 && finalIdx <= lastCompactionIdx)) {
+      finalFirstKeptId = undefined;
+      finalTail = undefined;
+    }
+  }
+
+  if (!finalFirstKeptId) {
+    finalFirstKeptId = proposedFirstKeptId;
+    finalTail = undefined;
+  }
+
+  return { firstKeptId: finalFirstKeptId, tail: finalTail };
 }
 
 export function snapFirstKeptEntryId(branch: Entry[], proposedFirstKeptId: string, tailTokens: number): string {
