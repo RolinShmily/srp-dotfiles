@@ -41,7 +41,7 @@ pi_extensions = [
     "srp-voice.ts",
     "srp-image.ts",
     "srp-web.ts",
-    "wsl-screenshot.ts",
+    "windows-screenshot.ts",
     "srp-memory",
     "srp-subagent"
 ]
@@ -238,7 +238,7 @@ configs = [
     "code"
 ]
 
-# 7. Pi Coding Agent 扩展套件 (仅剔除 WSL 专用的 wsl-screenshot.ts)
+# 7. Pi Coding Agent 扩展套件
 pi_extensions = [
     "srp-ask.ts",
     "srp-continue.ts",
@@ -249,6 +249,7 @@ pi_extensions = [
     "srp-voice.ts",
     "srp-image.ts",
     "srp-web.ts",
+    "windows-screenshot.ts",
     "srp-memory",
     "srp-subagent"
 ]
