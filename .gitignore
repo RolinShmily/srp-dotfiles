@@ -7,6 +7,7 @@ pi/settings.json
 # 日志与临时文件
 *.log
 *.tmp
+*:Zone.Identifier
 
 # 本地私有 Zsh 配置 (若放置在 zsh.d 中)
 zsh.d/local.zsh

@@ -28,7 +28,8 @@ configs = [
     "fastfetch",
     "yazi",
     "zellij",
-    "pi"
+    "pi",
+    "mcp"
 ]
 zsh_module = "arch"
 pi_extensions = [
@@ -53,6 +54,7 @@ pi_packages = [
     "npm:pi-antigravity",
     "npm:pi-autoresearch",
     "npm:pi-wakatime",
+    "npm:pi-mcp-adapter",
     "https://github.com/cathrynlavery/diagram-design"
 ]
 skills_add = []
@@ -80,6 +82,7 @@ configs = [
     "btop",
     "fastfetch",
     "pi",
+    "mcp"
 ]
 zsh_module = "debian"
 pi_extensions = [
@@ -139,7 +142,8 @@ configs = [
     "fastfetch",
     "yazi",
     "zellij",
-    "pi"
+    "pi",
+    "mcp"
 ]
 zsh_module = "termux"
 pi_extensions = [
@@ -162,6 +166,7 @@ pi_packages = [
     "npm:pi-antigravity",
     "npm:pi-autoresearch",
     "npm:pi-wakatime",
+    "npm:pi-mcp-adapter",
     "https://github.com/cathrynlavery/diagram-design"
 ]
 skills_add = []
@@ -235,7 +240,8 @@ configs = [
     "yazi",
     "btop",
     "pi",
-    "code"
+    "code",
+    "mcp"
 ]
 
 # 7. Pi Coding Agent 扩展套件
@@ -263,6 +269,7 @@ pi_packages = [
     "npm:pi-antigravity",
     "npm:pi-autoresearch",
     "npm:pi-wakatime",
+    "npm:pi-mcp-adapter",
     "https://github.com/cathrynlavery/diagram-design"
 ]
 

@@ -20,6 +20,7 @@
          * Vim 原生配置与 Windows 兼容配置 (%USERPROFILE%\.vimrc & %USERPROFILE%\_vimrc)
          * WezTerm 工业级配置与专属背景图 (%USERPROFILE%\.config\wezterm\)
          * PowerShell 7 全局 Profile ($PROFILE)
+         * MCP 服务统一配置 (%USERPROFILE%\.config\mcp 及 %APPDATA%\mcp)
          * 通用应用配置目录 (%USERPROFILE%\.config\<app> 如 fastfetch, zellij)
        - 权限自动降级 (无开发者模式时优雅回退为安全拷贝)
 
@@ -953,9 +954,25 @@ function Run-Config {
         }
     }
 
-    # 10. 部署通用应用配置目录 (~/.config/<app>) 与 Pi 体系
+    # 10. 部署 MCP (Model Context Protocol) 统一配置体系 (~/.config/mcp 及 %APPDATA%\mcp)
+    if ($configsToDeploy -contains "mcp") {
+        Write-Host ""
+        Write-LogInfo "--- 正在部署 MCP 统一服务配置 ---"
+        $mcpSourceDir = Join-Path $DotfilesDir "mcp"
+        $mcpTarget = Join-Path $UserHome ".config\mcp"
+        $mcpWinTarget = Join-Path ([Environment]::GetFolderPath('ApplicationData')) "mcp"
+
+        Invoke-Step -Name "部署 MCP 主配置目录 (~/.config/mcp)" -ScriptBlock {
+            Deploy-Link-Item -Source $mcpSourceDir -Target $mcpTarget -Name "MCP ~/.config 配置目录" -BackupDir $backupDir
+        }
+        Invoke-Step -Name "部署 MCP AppData 兼容目录 (%APPDATA%\mcp)" -ScriptBlock {
+            Deploy-Link-Item -Source $mcpSourceDir -Target $mcpWinTarget -Name "MCP AppData 配置目录" -BackupDir $backupDir
+        }
+    }
+
+    # 11. 部署通用应用配置目录 (~/.config/<app>) 与 Pi 体系
     $hasCommon = $false
-    $specializedApps = @("wezterm", "powershell", "vim", "vimrc", "zellij", "btop", "yazi", "fastfetch", "code")
+    $specializedApps = @("wezterm", "powershell", "vim", "vimrc", "zellij", "btop", "yazi", "fastfetch", "code", "mcp")
     foreach ($app in $configsToDeploy) {
         if ($app -in $specializedApps) { continue }
 
