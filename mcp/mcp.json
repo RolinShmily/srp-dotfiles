@@ -18,7 +18,7 @@
         "-y",
         "chrome-devtools-mcp@latest"
       ]
-    }
+    },
     "mineru": {
       "command": "uvx",
       "args": ["mineru-open-mcp"],

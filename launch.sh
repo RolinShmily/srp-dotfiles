@@ -447,6 +447,44 @@ link_file() {
     log_success "已创建软链接: $dest -> $src"
 }
 
+# MCP 配置以文件级复制方式部署：仓库侧只保留占位符，本地副本可安全写入密钥。
+# 覆盖前会把已存在的 mcp.json 原地改名为 mcp.json.backup-<时间戳>。
+deploy_mcp_config() {
+    local src="$DOTFILES_DIR/mcp/mcp.json"
+    local dest_dir="$HOME/.config/mcp"
+    local dest="$dest_dir/mcp.json"
+
+    if [ ! -f "$src" ]; then
+        log_error "未在仓库中找到 MCP 配置文件: $src"
+        return 1
+    fi
+
+    # 目录若仍是历史软链接，仅摘除链接本身，避免把文件写回仓库源
+    if [ -L "$dest_dir" ]; then
+        log_warn "检测到历史软链接 $dest_dir，已摘除（不触碰仓库源）"
+        rm "$dest_dir"
+    fi
+
+    mkdir -p "$dest_dir"
+
+    # 覆盖前先将同名文件原地改名为 mcp.json.backup-<时间戳>，不丢本地密钥
+    if [ -e "$dest" ]; then
+        local stamp archive seq
+        stamp="$(date +%Y%m%d-%H%M%S)"
+        archive="$dest.backup-$stamp"
+        seq=1
+        while [ -e "$archive" ]; do
+            archive="$dest.backup-$stamp-$seq"
+            seq=$((seq + 1))
+        done
+        mv "$dest" "$archive"
+        log_warn "旧配置已原地归档为: $archive"
+    fi
+
+    cp -f "$src" "$dest"
+    log_success "MCP 配置已复制到: $dest"
+}
+
 setup_omz_plugins() {
     if [ -d "$HOME/.oh-my-zsh" ]; then
         local custom_dir="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
@@ -667,7 +705,9 @@ run_config() {
     readarray -t pi_extensions < <(parse_toml_array "$TARGET_OS" "pi_extensions" "$MANIFEST_FILE")
 
     for app in "${config_apps[@]}"; do
-        if [ "$app" = "pi" ]; then
+        if [ "$app" = "mcp" ]; then
+            run_step "部署 [mcp] 配置 (~/.config/mcp/mcp.json, 文件复制模式)" deploy_mcp_config
+        elif [ "$app" = "pi" ]; then
             run_step "部署 Pi Coding Agent 规则/扩展/技能体系" do_deploy_pi_stack pi_packages[@] pi_extensions[@]
         else
             if [ -d "$DOTFILES_DIR/$app" ]; then

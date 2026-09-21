@@ -954,19 +954,48 @@ function Run-Config {
         }
     }
 
-    # 10. 部署 MCP (Model Context Protocol) 统一配置体系 (~/.config/mcp 及 %APPDATA%\mcp)
+    # 10. 部署 MCP (Model Context Protocol) 统一配置体系 (~/.config/mcp/mcp.json)
+    #     仅以文件级复制方式部署 mcp.json：仓库侧只保留占位符，本地副本可安全写入密钥。
+    #     覆盖前会把已存在的 mcp.json 原地改名为 mcp.json.backup-<时间戳>。
     if ($configsToDeploy -contains "mcp") {
         Write-Host ""
-        Write-LogInfo "--- 正在部署 MCP 统一服务配置 ---"
-        $mcpSourceDir = Join-Path $DotfilesDir "mcp"
-        $mcpTarget = Join-Path $UserHome ".config\mcp"
-        $mcpWinTarget = Join-Path ([Environment]::GetFolderPath('ApplicationData')) "mcp"
+        Write-LogInfo "--- 正在部署 MCP 统一服务配置 (~/.config/mcp, 文件复制模式) ---"
+        $mcpSourceFile = Join-Path $DotfilesDir "mcp\mcp.json"
+        $mcpTargetDir = Join-Path $UserHome ".config\mcp"
+        $mcpTargetFile = Join-Path $mcpTargetDir "mcp.json"
 
-        Invoke-Step -Name "部署 MCP 主配置目录 (~/.config/mcp)" -ScriptBlock {
-            Deploy-Link-Item -Source $mcpSourceDir -Target $mcpTarget -Name "MCP ~/.config 配置目录" -BackupDir $backupDir
-        }
-        Invoke-Step -Name "部署 MCP AppData 兼容目录 (%APPDATA%\mcp)" -ScriptBlock {
-            Deploy-Link-Item -Source $mcpSourceDir -Target $mcpWinTarget -Name "MCP AppData 配置目录" -BackupDir $backupDir
+        Invoke-Step -Name "部署 MCP 配置 (~/.config/mcp/mcp.json)" -ScriptBlock {
+            if (-not (Test-Path $mcpSourceFile)) {
+                throw "未在仓库中找到 MCP 配置文件: $mcpSourceFile"
+            }
+
+            # 目录若仍是历史符号链接/联接点，仅摘除重解析点，避免把文件写回仓库源
+            if (Test-Path $mcpTargetDir) {
+                $dirItem = Get-Item $mcpTargetDir -Force
+                if ($dirItem.LinkType -in @('SymbolicLink', 'Junction')) {
+                    [System.IO.Directory]::Delete($mcpTargetDir, $false)
+                    Write-LogWarn "检测到历史链接 ~/.config/mcp，已摘除（不触碰仓库源）。"
+                }
+            }
+            if (-not (Test-Path $mcpTargetDir)) {
+                New-Item -ItemType Directory -Path $mcpTargetDir -Force | Out-Null
+            }
+
+            # 覆盖前先将同名文件原地改名为 mcp.json.backup-<时间戳>，不丢本地密钥
+            if (Test-Path $mcpTargetFile) {
+                $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+                $archivePath = "$mcpTargetFile.backup-$stamp"
+                $seq = 1
+                while (Test-Path $archivePath) {
+                    $archivePath = "$mcpTargetFile.backup-$stamp-$seq"
+                    $seq++
+                }
+                Move-Item -Path $mcpTargetFile -Destination $archivePath -ErrorAction Stop
+                Write-LogWarn "旧配置已原地归档为: $archivePath"
+            }
+
+            Copy-Item -Path $mcpSourceFile -Destination $mcpTargetFile -Force -ErrorAction Stop
+            Write-LogSuccess "MCP 配置已复制到: $mcpTargetFile"
         }
     }
 
