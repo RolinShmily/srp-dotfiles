@@ -2,28 +2,25 @@
   "mcpServers": {
     "playwright": {
       "command": "npx",
-      "args": [
-        "@playwright/mcp@latest"
-      ]
+      "args": ["@playwright/mcp@latest"]
     },
     "markitdown": {
       "command": "uvx",
-      "args": [
-        "markitdown-mcp"
-      ]
+      "args": ["markitdown-mcp"]
     },
     "chrome-devtools": {
       "command": "npx",
-      "args": [
-        "-y",
-        "chrome-devtools-mcp@latest"
-      ]
+      "args": ["-y", "chrome-devtools-mcp@latest"]
+    },
+    "porter": {
+      "command": "uvx",
+      "args": ["--from", "porter-workflow[mcp]", "porter-mcp"]
     },
     "mineru": {
       "command": "uvx",
       "args": ["mineru-open-mcp"],
       "env": {
-        "MINERU_API_TOKEN": "your token"
+        "MINERU_API_TOKEN": "${MINERU_API_TOKEN}"
       }
     }
   }
