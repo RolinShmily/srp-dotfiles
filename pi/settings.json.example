@@ -1,6 +1,6 @@
 {
-  "defaultProvider": "deepseek",
-  "defaultModel": "deepseek-v4-flash",
+  "defaultProvider": "opencode-go",
+  "defaultModel": "deepseek-v4.1-flash",
   "defaultThinkingLevel": "high",
   "theme": "dark",
   "srpTheme": {
@@ -8,26 +8,20 @@
     "footer": true,
     "tps": true
   },
-  "terminal": {
-    "images": false
-  },
-  "showHardwareCursor": true,
-  "markdown": {
-    "codeBlockIndent": "  ",
-    "mermaid": "streaming",
-    "latex": true
-  },
   "srpAsk": {
     "enabled": true
   },
   "srpContinue": {
     "enabled": true,
-    "shortcuts": ["alt+c"],
-    "prompt": "请继承并检查历史上下文，从中断处继续完成未完成的工作。"
+    "shortcuts": [
+      "alt+c"
+    ]
   },
   "srpPrompt": {
     "enabled": true,
-    "shortcuts": ["alt+s"]
+    "shortcuts": [
+      "alt+s"
+    ]
   },
   "srpWeb": {
     "search": true,
@@ -44,14 +38,17 @@
   "srpVoice": {
     "enabled": true,
     "provider": "auto",
-    "model": "",
-    "apiKey": "",
+    "model": "paraformer-realtime-v2",
     "language": "zh",
-    "shortcuts": ["alt+m"],
-    "cancelShortcuts": ["alt+n"]
+    "shortcuts": [
+      "alt+m"
+    ],
+    "cancelShortcuts": [
+      "alt+n"
+    ]
   },
   "wslScreenshot": {
-    "enabled": false
+    "enabled": true
   },
   "srpSubagent": {
     "enabled": true,
@@ -59,18 +56,25 @@
     "statusWidget": true
   },
   "srpMemory": {
-    "default_enabled": true,
-    "chunkTokens": 10000,
-    "poolTargetTokens": 10000,
-    "consolidateAtPoolTokens": 15000,
-    "compactAtContextTokens": 150000,
-    "tailTokens": 20000,
-    "journeyTargetTokens": 1000,
+    "default_enabled": false,
+    "chunkTokens": 20000,
+    "poolTargetTokens": 20000,
+    "consolidateAtPoolTokens": 25000,
+    "compactAtContextTokens": 250000,
+    "tailTokens": 30000,
+    "journeyTargetTokens": 2000,
     "observerConcurrency": 4,
     "models": {
-      "observer": { "thinking": "low" },
-      "consolidator": { "thinking": "medium" }
+      "observer": {
+        "thinking": "low"
+      },
+      "consolidator": {
+        "thinking": "medium"
+      }
     }
+  },
+  "terminal": {
+    "images": "false"
   },
   "packages": []
 }
