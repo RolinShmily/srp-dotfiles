@@ -4,13 +4,19 @@
 # launch.sh - SrP-Dotfiles Unix 统一环境一键管理总控引擎
 # 集成: 交互式启动菜单 (Launch) + 依赖安装 (Install) + 符号链接部署与备份 (Config)
 # 特性: 遇错拦截询问 (重试/跳过/终止) + 执行审计账本 + 部署汇总报告
-# 配置清单来源: manifest.toml [arch / debian / termux]
+# 配置清单来源: manifest.json [arch / debian / termux]
+#
+# 章节索引 (与 start.ps1 逐节对齐，便于两边对照阅读)
+#   0. 全局执行账本与受控步骤执行器    1. 声明清单读取    2. 操作系统与环境探测
+#   3. 模块一：环境与软件包检测安装    4. 模块二：配置部署 (只做派发)
+#   5. CLI 帮助信息                    6. CLI 参数解析    7. 交互式启动菜单
 # ==============================================================================
 
 set -e
 
 DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
-MANIFEST_FILE="$DOTFILES_DIR/manifest.toml"
+MANIFEST_FILE="$DOTFILES_DIR/manifest.json"
+MANIFEST_JS="$DOTFILES_DIR/scripts/lib/manifest.js"
 BACKUP_DIR="$HOME/.dotfiles_backup/$(date +%Y%m%d_%H%M%S)"
 
 GREEN="\033[0;32m"
@@ -25,6 +31,9 @@ log_info() { echo -e "${BLUE}[INFO]${RESET} $1"; }
 log_success() { echo -e "${GREEN}[OK]${RESET} $1"; }
 log_warn() { echo -e "${YELLOW}[WARN]${RESET} $1"; }
 log_error() { echo -e "${RED}[ERROR]${RESET} $1"; }
+
+# 让 scripts/configs/*.sh 子进程也能用到日志与上下文
+export -f log_info log_success log_warn log_error
 
 # ------------------------------------------------------------------
 # 0. 全局执行账本与受控步骤执行器 (Step Runner & Two-Stage Interrupt)
@@ -187,65 +196,32 @@ print_summary_report() {
 }
 
 # ------------------------------------------------------------------
-# 1. 零依赖 TOML 解析器 (纯 Awk 实现)
+# 1. 声明清单读取 (唯一事实源: manifest.json)
 # ------------------------------------------------------------------
-parse_toml_val() {
-    local section="$1"
-    local key="$2"
-    local file="$3"
-    awk -v target_sec="[$section]" -v target_key="$key" '
-        /^[ \t]*#/ { next }
-        $0 ~ "^[ \t]*\\[" {
-            clean = $0
-            gsub(/[ \t]/, "", clean)
-            in_sec = (clean == target_sec)
-        }
-        in_sec && $0 ~ "^[ \t]*" target_key "[ \t]*=" {
-            idx = index($0, "=")
-            val = substr($0, idx + 1)
-            sub(/^[ \t]*/, "", val)
-            sub(/[ \t\r\n]*$/, "", val)
-            gsub(/(^"|"$)/, "", val)
-            print val
-            exit
-        }
-    ' "$file"
+_need_node() {
+    command -v node >/dev/null 2>&1 && return 0
+    log_error "读取 manifest.json 需要 node，但当前系统没有 node。"
+    echo -e ""
+    echo -e "  请先手动安装 node，然后重试："
+    echo -e "    ${BOLD}Arch / WSL${RESET}        sudo pacman -S --needed nodejs npm"
+    echo -e "    ${BOLD}Debian / Ubuntu${RESET}   sudo apt-get install -y nodejs npm"
+    echo -e "    ${BOLD}Termux${RESET}            pkg install -y nodejs"
+    echo -e ""
+    echo -e "  ${YELLOW}注：install 与 config 均需先读清单，所以 node 是任何子命令的前置。${RESET}"
+    exit 1
 }
 
-parse_toml_array() {
-    local section="$1"
-    local key="$2"
-    local file="$3"
-    awk -v target_sec="[$section]" -v target_key="$key" '
-        /^[ \t]*#/ { next }
-        $0 ~ "^[ \t]*\\[" {
-            clean = $0
-            gsub(/[ \t]/, "", clean)
-            in_sec = (clean == target_sec)
-        }
-        in_sec && $0 ~ "^[ \t]*" target_key "[ \t]*=" {
-            in_arr = 1
-            idx = index($0, "=")
-            line = substr($0, idx + 1)
-        }
-        in_arr {
-            if (line == "") line = $0
-            while (match(line, /"[^"]*"/)) {
-                item = substr(line, RSTART + 1, RLENGTH - 2)
-                if (item != "") print item
-                line = substr(line, RSTART + RLENGTH)
-            }
-            if ($0 ~ /\]/) {
-                in_arr = 0
-                exit
-            }
-            line = ""
-        }
-    ' "$file"
-}
+# 单值:   manifest_get  <os> <key>
+# 数组:   manifest_get  <os> <key>   (逐行输出)
+# 计划表: manifest_plan <os>         (TSV，每行一个 config 条目)
+manifest_get()  { _need_node; node "$MANIFEST_JS" get  "$1" "$2"; }
+manifest_plan() { _need_node; node "$MANIFEST_JS" plan "$1"; }
+
+# 部署动词库: link_item / copy_item / expand_path / custom_script_path
+source "$DOTFILES_DIR/scripts/lib/deploy.sh"
 
 # ------------------------------------------------------------------
-# 2. 操作系统与环境探测
+# 2. 运行环境探测
 # ------------------------------------------------------------------
 detect_os() {
     if [ -d "/data/data/com.termux" ]; then
@@ -349,7 +325,9 @@ do_install_single_npm() {
 do_install_single_skill() {
     local skill_item="$1"
     local agent_param=""
-    if [[ ! "$skill_item" =~ (-a|--agent) ]]; then
+    # 只在整词形式的 -a / --agent 出现时才认为用户已指定 agent，
+    # 否则 K-Dense-AI、tt-a1i 这类名字里的 "-a" 子串会被误判。
+    if [[ ! "$skill_item" =~ (^|[[:space:]])(-a|--agent)([[:space:]]|$) ]]; then
         agent_param="-a pi"
     fi
 
@@ -374,10 +352,10 @@ run_install() {
     fi
 
     local package_manager
-    package_manager="$(parse_toml_val "$TARGET_OS" "package_manager" "$MANIFEST_FILE")"
-    readarray -t pkgs < <(parse_toml_array "$TARGET_OS" "packages" "$MANIFEST_FILE")
-    readarray -t npm_globals < <(parse_toml_array "$TARGET_OS" "npm_globals" "$MANIFEST_FILE")
-    readarray -t skills_add < <(parse_toml_array "$TARGET_OS" "skills_add" "$MANIFEST_FILE")
+    package_manager="$(manifest_get "$TARGET_OS" packageManager)"
+    readarray -t pkgs        < <(manifest_get "$TARGET_OS" packages)
+    readarray -t npm_globals < <(manifest_get "$TARGET_OS" npmGlobals)
+    readarray -t skills_add  < <(manifest_get "$TARGET_OS" skillsAdd)
 
     # 1. 系统核心包
     if [ ${#pkgs[@]} -gt 0 ]; then
@@ -409,81 +387,8 @@ run_install() {
 }
 
 # ------------------------------------------------------------------
-# 4. 模块二：符号链接配置部署与安全备份 (Config)
+# 4. 模块二：配置部署 (Config - 只做派发)
 # ------------------------------------------------------------------
-link_file() {
-    local src="$1"
-    local dest="$2"
-
-    if [ ! -e "$src" ]; then
-        log_warn "源文件/目录不存在，跳过: $src"
-        return 1
-    fi
-
-    mkdir -p "$(dirname "$dest")"
-
-    if [ -L "$dest" ]; then
-        local current_target
-        current_target="$(readlink "$dest")"
-        if [ "$current_target" = "$src" ]; then
-            log_info "软链接已正确指向: $dest"
-            return 0
-        else
-            log_warn "更新现有的软链接: $dest"
-            rm "$dest"
-        fi
-    elif [ -e "$dest" ]; then
-        if [ "$FORCE" -eq 1 ]; then
-            log_warn "[强制模式] 删除现有非链接文件/目录: $dest"
-            rm -rf "$dest"
-        else
-            mkdir -p "$BACKUP_DIR/$(dirname "${dest#$HOME/}")"
-            log_warn "备份现有非链接文件: $dest -> $BACKUP_DIR/${dest#$HOME/}"
-            mv "$dest" "$BACKUP_DIR/${dest#$HOME/}"
-        fi
-    fi
-
-    ln -s "$src" "$dest"
-    log_success "已创建软链接: $dest -> $src"
-}
-
-# MCP 配置以文件级复制方式部署：仓库侧只保留占位符，本地副本可安全写入密钥。
-# 覆盖前会把已存在的 mcp.json 原地改名为 mcp.json.backup-<时间戳>。
-deploy_mcp_config() {
-    local src="$DOTFILES_DIR/mcp/mcp.json"
-    local dest_dir="$HOME/.config/mcp"
-    local dest="$dest_dir/mcp.json"
-
-    if [ ! -f "$src" ]; then
-        log_error "未在仓库中找到 MCP 配置文件: $src"
-        return 1
-    fi
-
-    # 目录若仍是历史软链接，仅摘除链接本身，避免把文件写回仓库源
-    if [ -L "$dest_dir" ]; then
-        log_warn "检测到历史软链接 $dest_dir，已摘除（不触碰仓库源）"
-        rm "$dest_dir"
-    fi
-
-    mkdir -p "$dest_dir"
-
-    # 覆盖前先将同名文件原地改名为 mcp.json.backup-<时间戳>，不丢本地密钥
-    if [ -e "$dest" ]; then
-        local stamp archive seq
-        stamp="$(date +%Y%m%d-%H%M%S)"
-        archive="$dest.backup-$stamp"
-        seq=1
-        while [ -e "$archive" ]; do
-            archive="$dest.backup-$stamp-$seq"
-            seq=$((seq + 1))
-        done
-        mv "$dest" "$archive"
-        log_warn "旧配置已原地归档为: $archive"
-    fi
-
-    cp -f "$src" "$dest"
-    log_success "MCP 配置已复制到: $dest"
-}
 
 setup_omz_plugins() {
     if [ -d "$HOME/.oh-my-zsh" ]; then
@@ -505,168 +410,6 @@ setup_omz_plugins() {
     fi
 }
 
-deploy_pi_extensions() {
-    local extensions_dir="$1"
-    local source_dir="$DOTFILES_DIR/pi/extensions"
-    local -a pi_exts=("${@:2}")
-
-    [ -d "$source_dir" ] || return 0
-
-    local source_real
-    source_real="$(cd "$source_dir" 2>/dev/null && pwd -P)"
-
-    if [ -L "$extensions_dir" ]; then
-        local legacy_target
-        legacy_target="$(readlink -f "$extensions_dir" 2>/dev/null || true)"
-        if [ "$legacy_target" = "$source_real" ]; then
-            rm -f "$extensions_dir"
-            mkdir -p "$extensions_dir"
-        else
-            return 0
-        fi
-    else
-        mkdir -p "$extensions_dir"
-    fi
-
-    declare -A wanted_extensions=()
-    for ext in "${pi_exts[@]}"; do
-        wanted_extensions["$ext"]=1
-    done
-
-    while IFS= read -r -d '' destination; do
-        local target
-        target="$(readlink -f "$destination" 2>/dev/null || true)"
-        case "$target" in
-            "$source_real"/*)
-                local ext_name="${destination##*/}"
-                if [ -z "${wanted_extensions[$ext_name]}" ]; then
-                    rm -f "$destination"
-                fi
-                ;;
-        esac
-    done < <(find "$extensions_dir" -mindepth 1 -maxdepth 1 -type l -print0)
-
-    for extension in "${pi_exts[@]}"; do
-        local source="$source_dir/$extension"
-        local destination="$extensions_dir/$extension"
-        [ -e "$source" ] || continue
-        if [ -L "$destination" ]; then
-            local current_target
-            current_target="$(readlink "$destination" 2>/dev/null || true)"
-            [ "$current_target" = "$source" ] && continue
-            rm -f "$destination"
-        elif [ -e "$destination" ]; then
-            continue
-        fi
-        mkdir -p "$(dirname "$destination")"
-        ln -s "$source" "$destination"
-    done
-}
-
-deploy_pi_resources() {
-    local res_type="$1"
-    local res_label="$2"
-    local dest_dir="$3"
-    local source_dir="$DOTFILES_DIR/pi/$res_type"
-
-    [ -d "$source_dir" ] || return 0
-
-    local source_real
-    source_real="$(cd "$source_dir" 2>/dev/null && pwd -P)"
-
-    if [ -L "$dest_dir" ]; then
-        local legacy_target
-        legacy_target="$(readlink -f "$dest_dir" 2>/dev/null || true)"
-        if [ "$legacy_target" = "$source_real" ]; then
-            rm -f "$dest_dir"
-            mkdir -p "$dest_dir"
-        else
-            return 0
-        fi
-    else
-        mkdir -p "$dest_dir"
-    fi
-
-    while IFS= read -r -d '' destination; do
-        local target
-        target="$(readlink -f "$destination" 2>/dev/null || true)"
-        case "$target" in
-            "$source_real"/*)
-                if [ ! -e "$target" ]; then
-                    rm -f "$destination"
-                fi
-                ;;
-        esac
-    done < <(find "$dest_dir" -mindepth 1 -maxdepth 1 -type l -print0)
-
-    for item in "$source_dir"/*; do
-        [ -e "$item" ] || continue
-        local item_name="${item##*/}"
-        local destination="$dest_dir/$item_name"
-        if [ -L "$destination" ]; then
-            local current_target
-            current_target="$(readlink "$destination" 2>/dev/null || true)"
-            [ "$current_target" = "$item" ] && continue
-            rm -f "$destination"
-        elif [ -e "$destination" ]; then
-            continue
-        fi
-        ln -s "$item" "$destination"
-    done
-}
-
-deploy_pi_packages() {
-    local dest_dir="$1"
-    local source_dir="$DOTFILES_DIR/pi/packages"
-    [ -d "$source_dir" ] || return 0
-
-    mkdir -p "$dest_dir"
-    for pkg_path in "$source_dir"/*; do
-        [ -d "$pkg_path" ] || continue
-        local folder_name
-        folder_name="$(basename "$pkg_path")"
-        local target_name="$folder_name"
-        if [ -f "$pkg_path/package.json" ]; then
-            local pkg_json_name
-            pkg_json_name="$(node -e 'try{console.log(require(process.argv[1]).name||"")}catch{}' "$pkg_path/package.json" 2>/dev/null || true)"
-            if [ -n "$pkg_json_name" ]; then
-                target_name="$pkg_json_name"
-            fi
-        fi
-
-        link_file "$pkg_path" "$dest_dir/$target_name"
-        if [ "$target_name" != "$folder_name" ]; then
-            link_file "$pkg_path" "$dest_dir/$folder_name"
-        fi
-    done
-}
-
-do_deploy_pi_stack() {
-    local -a pi_pkgs=("${!1}")
-    local -a pi_exts=("${!2}")
-
-    local pi_agent_dir="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
-    mkdir -p "$pi_agent_dir"
-
-    if ! command -v node &>/dev/null; then
-        log_error "部署 Pi 配置需要 node 命令来安全合并 JSON。"
-        return 1
-    fi
-
-    node "$DOTFILES_DIR/scripts/merge_pi_settings.js" \
-        "$pi_agent_dir/settings.json" \
-        "$DOTFILES_DIR/pi/settings.json.example" \
-        "$BACKUP_DIR" \
-        "${pi_pkgs[@]}"
-
-    [ -f "$DOTFILES_DIR/pi/AGENTS.md" ] && link_file "$DOTFILES_DIR/pi/AGENTS.md" "$pi_agent_dir/AGENTS.md"
-    deploy_pi_extensions "$pi_agent_dir/extensions" "${pi_exts[@]}"
-    deploy_pi_resources "skills" "技能" "$pi_agent_dir/skills"
-    deploy_pi_resources "prompts" "提示词" "$pi_agent_dir/prompts"
-    deploy_pi_resources "agents" "智能体" "$pi_agent_dir/agents"
-    deploy_pi_packages "$pi_agent_dir/packages"
-}
-
 do_deploy_termux_font() {
     if [ ! -f "$HOME/.termux/font.ttf" ]; then
         mkdir -p "$HOME/.termux"
@@ -683,45 +426,88 @@ run_config() {
     echo -e "${BLUE}====================================================${RESET}"
 
     if [ ! -f "$MANIFEST_FILE" ]; then
-        log_error "未找到清单文件: $MANIFEST_FILE"
+        log_error "未找到声明清单: $MANIFEST_FILE"
         exit 1
     fi
 
+    log_info "声明清单: ${CYAN}$MANIFEST_FILE${RESET}"
     log_info "目标配置环境: ${GREEN}${TARGET_OS}${RESET}"
     [ "$FORCE" -eq 1 ] && log_info "已开启强制覆盖模式 (-f / --force)。"
+
+    # 子脚本 (scripts/configs/*.sh) 需要的上下文
+    export DOTFILES_DIR BACKUP_DIR FORCE PI_MANIFEST_OS="$TARGET_OS"
 
     # 1. Oh My Zsh 插件与 Spaceship 主题
     run_step "部署 Oh My Zsh 插件与 Spaceship 主题" setup_omz_plugins
 
-    # 2. 用户家目录基础文件 (~/.zshrc, ~/.vimrc)
-    run_step "部署 ~/.zshrc 配置文件" link_file "$DOTFILES_DIR/.zshrc" "$HOME/.zshrc"
-    if [ -f "$DOTFILES_DIR/.vimrc" ]; then
-        run_step "部署 ~/.vimrc 配置文件" link_file "$DOTFILES_DIR/.vimrc" "$HOME/.vimrc"
-    fi
+    # 2. 按 manifest.json 的 configs 秩序逐条派发
+    local name method source targets exclude ifmissing when
+    while IFS=$'\t' read -r name method source targets exclude ifmissing when; do
+        [ -z "$name" ] && continue
+        _dispatch_config "$name" "$method" "$source" "$targets" "$exclude" "$ifmissing" "$when"
+    done < <(manifest_plan "$TARGET_OS")
 
-    # 3. 读取 manifest.toml 部署应用配置目录
-    readarray -t config_apps < <(parse_toml_array "$TARGET_OS" "configs" "$MANIFEST_FILE")
-    readarray -t pi_packages < <(parse_toml_array "$TARGET_OS" "pi_packages" "$MANIFEST_FILE")
-    readarray -t pi_extensions < <(parse_toml_array "$TARGET_OS" "pi_extensions" "$MANIFEST_FILE")
-
-    for app in "${config_apps[@]}"; do
-        if [ "$app" = "mcp" ]; then
-            run_step "部署 [mcp] 配置 (~/.config/mcp/mcp.json, 文件复制模式)" deploy_mcp_config
-        elif [ "$app" = "pi" ]; then
-            run_step "部署 Pi Coding Agent 规则/扩展/技能体系" do_deploy_pi_stack pi_packages[@] pi_extensions[@]
-        else
-            if [ -d "$DOTFILES_DIR/$app" ]; then
-                run_step "部署 [$app] 配置文件软链接" link_file "$DOTFILES_DIR/$app" "$HOME/.config/$app"
-            else
-                log_warn "未在仓库中找到配置目录: $DOTFILES_DIR/$app"
-            fi
-        fi
-    done
-
-    # 4. Termux 专属字体与外观适配
+    # 3. Termux 专属字体与外观适配
     if [ "$TARGET_OS" = "termux" ]; then
         run_step "部署 Termux Nerd Font (MesloLGS NF) 字体" do_deploy_termux_font
     fi
+}
+
+# 单条 config 的派发。只认三个动词: link / copy / custom
+_dispatch_config() {
+    local name="$1" method="$2" source="$3" targets="$4" exclude="$5" ifmissing="$6" when="$7"
+
+    # when: 条件路径不存在则整条跳过（例如 Scoop 尚未安装 btop）
+    if [ -n "$when" ]; then
+        local when_path
+        when_path="$(expand_path "$when")"
+        if [ ! -e "$when_path" ]; then
+            log_info "[$name] 条件未满足，跳过 ($when)"
+            return 0
+        fi
+    fi
+
+    case "$method" in
+        custom)
+            local script
+            script="$(custom_script_path "$name")"
+            if [ ! -f "$script" ]; then
+                log_error "[$name] 找不到自定义部署脚本: $script"
+                return 1
+            fi
+            run_step "[$name] 自定义部署" bash "$script"
+            ;;
+
+        link|copy)
+            if [ ! -e "$(config_source_path "$source")" ]; then
+                log_warn "[$name] 仓库内源不存在，跳过: $source"
+                return 1
+            fi
+
+            local target_list
+            target_list="$(printf '%s' "$targets" | tr '|' '\n')"
+            if [ -z "$target_list" ]; then
+                log_warn "[$name] 未声明 target/targets，跳过"
+                return 1
+            fi
+
+            local t dest
+            while IFS= read -r t; do
+                [ -z "$t" ] && continue
+                dest="$(expand_path "$t")"
+                if [ "$method" = "link" ]; then
+                    run_step "[$name] 链接 -> $t" link_item "$(config_source_path "$source")" "$dest" "$exclude"
+                else
+                    run_step "[$name] 复制 -> $t" copy_item "$(config_source_path "$source")" "$dest" "$ifmissing"
+                fi
+            done <<< "$target_list"
+            ;;
+
+        *)
+            log_warn "[$name] 未知 method: $method（应为 link | copy | custom）"
+            return 1
+            ;;
+    esac
 }
 
 # ------------------------------------------------------------------

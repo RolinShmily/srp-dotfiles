@@ -1,0 +1,502 @@
+{
+  "_readme": [
+    "SrP-Dotfiles 唯一声明清单。改配置只改这里，不改 launch.sh / start.ps1。",
+    "",
+    "每个 OS 段包含两部分：",
+    "  1. 安装声明：packages / npmGlobals / skillsAdd / wingetPackages / scoop* / pythonManager",
+    "  2. 部署声明：configs —— 每项一条，自描述",
+    "  3. Pi 专属：piExtensions（扩展白名单）/ piPackages（Pi 包列表）",
+    "",
+    "configs 条目字段：",
+    "  name    必填。条目名，仅用于日志与 --only 选择",
+    "  method  必填。link | copy | custom",
+    "  source  可选。仓库内相对路径（custom 不需要）",
+    "  target  可选。单个目标（link/copy 必填其一）",
+    "  targets 可选。多目标数组，与 target 二选一",
+    "  exclude 可选。link 目录时跳过这些顶层项",
+    "  ifMissing 可选。copy 专用：目标已存在则跳过（-f 时仍覆盖）",
+    "  when    可选。该路径不存在则整条跳过（条件部署）",
+    "",
+    "路径占位符：~ 家目录 | %APPDATA% AppData | $SCOOP Scoop 根 | $PROFILE PowerShell profile",
+    "",
+    "方法语义：",
+    "  link   -> 软链，改仓库即时生效。目标冲突时归档到 ~/.dotfiles_backup/",
+    "  copy   -> 覆盖式复制，目标已存在则直接删除重写，不备份",
+    "  custom -> 执行 scripts/configs/<name>.sh（Windows 为 .ps1）",
+    "ifMissing 是 copy 的唯一例外开关：目标存在则跳过（-f 时仍覆盖）。",
+    "",
+    "加一个新软件配置：在对应 OS 的 configs 里加一条即可。",
+    "只有需要多路分发/名称解析等特殊逻辑时，才额外写 scripts/configs/<name>.sh。",
+    "",
+    "注意：Pi 的包列表来自本文件的 piPackages，部署时由 scripts/lib/pi-inject-packages.js",
+    "      写入 ~/.pi/agent/settings.json 的 packages 字段（只覆盖该字段，其余字段原样保留）。",
+    "",
+    "Pi 的 settings.json / mcp.json 不在此登记，由 scripts/configs/pi.sh 直接部署：",
+    "  pi/settings.json.example -> ~/.pi/agent/settings.json   (copy 覆盖)",
+    "  pi/mcp.json.example      -> ~/.pi/agent/mcp.json        (copy 覆盖, pi 内置 MCP 读此路径)",
+    "",
+    "piPackages 路径令牌（部署时展开，避免硬编码 clone 位置）：",
+    "  @repo/...  仓库根 + 相对路径，例如 @repo/pi/packages/pi-learn",
+    "  ~/...      家目录 + 相对路径",
+    "  npm: / git: / https: 等原样保留。",
+    "本地包（@repo 或 ~ 开头）Pi 会直接从该路径加载，不做复制，改仓库即时生效。"
+  ],
+  "arch": {
+    "packageManager": "pacman",
+    "packages": [
+      "zsh",
+      "zsh-autosuggestions",
+      "zsh-syntax-highlighting",
+      "eza",
+      "zoxide",
+      "fzf",
+      "bat",
+      "fd",
+      "ripgrep",
+      "diff-so-fancy",
+      "github-cli",
+      "lazygit",
+      "jq",
+      "tldr",
+      "nodejs",
+      "npm",
+      "python",
+      "uv",
+      "yazi",
+      "file",
+      "chafa",
+      "imagemagick",
+      "poppler",
+      "ffmpeg",
+      "sox",
+      "7zip",
+      "unarchiver",
+      "perl-image-exiftool",
+      "mediainfo",
+      "zathura",
+      "zathura-pdf-poppler",
+      "miller",
+      "resvg",
+      "xdg-utils",
+      "xclip",
+      "wl-clipboard",
+      "vim",
+      "git",
+      "base-devel",
+      "gcc",
+      "unzip",
+      "zellij",
+      "fastfetch",
+      "btop"
+    ],
+    "npmGlobals": [
+      "@earendil-works/pi-coding-agent",
+      "@antfu/ni",
+      "live-server"
+    ],
+    "skillsAdd": [],
+    "piExtensions": [
+      "srp-ask.ts",
+      "srp-continue.ts",
+      "srp-prompt.ts",
+      "srp-theme.ts",
+      "srp-voice.ts",
+      "srp-web.ts",
+      "windows-screenshot.ts",
+      "srp-memory",
+      "srp-subagent"
+    ],
+    "piPackages": [
+      "@repo/pi/packages/pi-learn",
+      "npm:@narumitw/pi-goal",
+      "npm:@upstash/context7-pi",
+      "npm:@narumitw/pi-btw",
+      "npm:pi-antigravity",
+      "npm:pi-wakatime",
+      "https://github.com/cathrynlavery/diagram-design"
+    ],
+    "configs": [
+      {
+        "name": "zshrc",
+        "method": "link",
+        "source": ".zshrc",
+        "target": "~/.zshrc"
+      },
+      {
+        "name": "vimrc",
+        "method": "link",
+        "source": ".vimrc",
+        "target": "~/.vimrc"
+      },
+      {
+        "name": "btop",
+        "method": "link",
+        "source": "btop",
+        "target": "~/.config/btop"
+      },
+      {
+        "name": "fastfetch",
+        "method": "link",
+        "source": "fastfetch",
+        "target": "~/.config/fastfetch"
+      },
+      {
+        "name": "yazi",
+        "method": "link",
+        "source": "yazi",
+        "target": "~/.config/yazi"
+      },
+      {
+        "name": "zellij",
+        "method": "link",
+        "source": "zellij",
+        "target": "~/.config/zellij"
+      },
+      {
+        "name": "pi",
+        "method": "custom"
+      }
+    ]
+  },
+  "debian": {
+    "packageManager": "apt",
+    "packages": [
+      "zsh",
+      "zsh-autosuggestions",
+      "zsh-syntax-highlighting",
+      "eza",
+      "zoxide",
+      "fzf",
+      "bat",
+      "fd-find",
+      "ripgrep",
+      "gh",
+      "lazygit",
+      "jq",
+      "tealdeer",
+      "nodejs",
+      "python3",
+      "python3-pip",
+      "python3-venv",
+      "vim",
+      "git",
+      "build-essential",
+      "gcc",
+      "unzip",
+      "fastfetch",
+      "btop"
+    ],
+    "npmGlobals": [
+      "@earendil-works/pi-coding-agent",
+      "@agegr/pi-web@latest",
+      "skills"
+    ],
+    "skillsAdd": [
+      "mvanhorn/last30days-skill",
+      "K-Dense-AI/scientific-agent-skills",
+      "https://github.com/WEIFENG2333/VideoCaptioner/",
+      "https://github.com/Leonxlnx/taste-skill",
+      "tt-a1i/archify",
+      "https://github.com/Panniantong/agent-reach"
+    ],
+    "piExtensions": [
+      "srp-ask.ts",
+      "srp-continue.ts",
+      "srp-prompt.ts",
+      "srp-theme.ts",
+      "srp-memory"
+    ],
+    "piPackages": [
+      "@repo/pi/packages/pi-learn",
+      "npm:pi-web-access",
+      "npm:pi-subagents",
+      "npm:pi-background-tasks",
+      "npm:@xjuai/pi-feishu-lark",
+      "npm:pi-memory",
+      "npm:pi-antigravity",
+      "npm:context-mode",
+      "npm:pi-wakatime",
+      "https://github.com/cathrynlavery/diagram-design"
+    ],
+    "configs": [
+      {
+        "name": "zshrc",
+        "method": "link",
+        "source": ".zshrc",
+        "target": "~/.zshrc"
+      },
+      {
+        "name": "vimrc",
+        "method": "link",
+        "source": ".vimrc",
+        "target": "~/.vimrc"
+      },
+      {
+        "name": "btop",
+        "method": "link",
+        "source": "btop",
+        "target": "~/.config/btop"
+      },
+      {
+        "name": "fastfetch",
+        "method": "link",
+        "source": "fastfetch",
+        "target": "~/.config/fastfetch"
+      },
+      {
+        "name": "pi",
+        "method": "custom"
+      }
+    ]
+  },
+  "termux": {
+    "packageManager": "pkg",
+    "packages": [
+      "zsh",
+      "eza",
+      "zoxide",
+      "fzf",
+      "bat",
+      "fd",
+      "ripgrep",
+      "diff-so-fancy",
+      "gh",
+      "lazygit",
+      "jq",
+      "tealdeer",
+      "nodejs",
+      "python",
+      "uv",
+      "yazi",
+      "file",
+      "chafa",
+      "imagemagick",
+      "poppler",
+      "ffmpeg",
+      "7zip",
+      "unar",
+      "exiftool",
+      "mediainfo",
+      "miller",
+      "git",
+      "clang",
+      "make",
+      "unzip",
+      "tree-sitter",
+      "zellij",
+      "fastfetch",
+      "htop",
+      "termux-api"
+    ],
+    "npmGlobals": [
+      "@earendil-works/pi-coding-agent",
+      "@antfu/ni",
+      "live-server"
+    ],
+    "skillsAdd": [],
+    "piExtensions": [
+      "srp-ask.ts",
+      "srp-continue.ts",
+      "srp-prompt.ts",
+      "srp-theme.ts",
+      "srp-web.ts",
+      "srp-memory",
+      "srp-subagent"
+    ],
+    "piPackages": [
+      "@repo/pi/packages/pi-learn",
+      "npm:@narumitw/pi-goal",
+      "npm:@upstash/context7-pi",
+      "npm:@narumitw/pi-btw",
+      "npm:pi-antigravity",
+      "npm:pi-wakatime",
+      "https://github.com/cathrynlavery/diagram-design"
+    ],
+    "configs": [
+      {
+        "name": "zshrc",
+        "method": "link",
+        "source": ".zshrc",
+        "target": "~/.zshrc"
+      },
+      {
+        "name": "vimrc",
+        "method": "link",
+        "source": ".vimrc",
+        "target": "~/.vimrc"
+      },
+      {
+        "name": "fastfetch",
+        "method": "link",
+        "source": "fastfetch",
+        "target": "~/.config/fastfetch"
+      },
+      {
+        "name": "yazi",
+        "method": "link",
+        "source": "yazi",
+        "target": "~/.config/yazi"
+      },
+      {
+        "name": "zellij",
+        "method": "link",
+        "source": "zellij",
+        "target": "~/.config/zellij"
+      },
+      {
+        "name": "pi",
+        "method": "custom"
+      }
+    ]
+  },
+  "windows": {
+    "packageManagers": [
+      "winget",
+      "scoop"
+    ],
+    "wingetPackages": [
+      "wez.wezterm",
+      "Microsoft.PowerShell",
+      "Git.Git",
+      "JanDeDobbeleer.OhMyPosh",
+      "GitHub.cli",
+      "Fastfetch-cli.Fastfetch",
+      "sxyazi.yazi",
+      "Gyan.FFmpeg",
+      "7zip.7zip",
+      "jqlang.jq",
+      "oschwartz10612.Poppler",
+      "sharkdp.fd",
+      "BurntSushi.ripgrep.MSVC",
+      "junegunn.fzf",
+      "ajeetdsouza.zoxide",
+      "ImageMagick.ImageMagick",
+      "sharkdp.bat",
+      "tldr-pages.tlrc"
+    ],
+    "scoopBuckets": [
+      "main = https://mirror.nju.edu.cn/git/scoop-main.git",
+      "extras = https://mirror.nju.edu.cn/git/scoop-extras.git",
+      "versions = https://mirror.nju.edu.cn/git/scoop-versions.git",
+      "nerd-fonts = https://mirror.nju.edu.cn/git/scoop-nerd-fonts.git/",
+      "dorado = https://github.com/chawyehsu/dorado"
+    ],
+    "scoopPackages": [
+      "aria2",
+      "vim",
+      "nodejs-lts",
+      "sox",
+      "Maple-Mono-NF-CN",
+      "btop",
+      "zellij",
+      "notepad3",
+      "vscode",
+      "eza",
+      "lazygit"
+    ],
+    "npmGlobals": [
+      "@earendil-works/pi-coding-agent",
+      "@antfu/ni",
+      "live-server"
+    ],
+    "pythonManager": "uv",
+    "skillsAdd": [],
+    "piExtensions": [
+      "srp-ask.ts",
+      "srp-continue.ts",
+      "srp-prompt.ts",
+      "srp-theme.ts",
+      "srp-voice.ts",
+      "srp-web.ts",
+      "windows-screenshot.ts",
+      "srp-memory",
+      "srp-subagent"
+    ],
+    "piPackages": [
+      "@repo/pi/packages/pi-learn",
+      "npm:@narumitw/pi-goal",
+      "npm:@upstash/context7-pi",
+      "npm:@narumitw/pi-btw",
+      "npm:pi-antigravity",
+      "npm:pi-wakatime",
+      "https://github.com/cathrynlavery/diagram-design"
+    ],
+    "configs": [
+      {
+        "name": "vimrc",
+        "method": "copy",
+        "source": ".vimrc",
+        "target": "~/_vimrc"
+      },
+      {
+        "name": "wezterm-bg",
+        "method": "copy",
+        "source": "wezterm/background.png",
+        "target": "~/.config/wezterm/background.png"
+      },
+      {
+        "name": "wezterm-conf",
+        "method": "copy",
+        "source": "wezterm/.wezterm.lua",
+        "target": "~/.config/wezterm/wezterm.lua"
+      },
+      {
+        "name": "powershell",
+        "method": "copy",
+        "source": "powershell/profile.ps1",
+        "target": "$PROFILE"
+      },
+      {
+        "name": "zellij",
+        "method": "copy",
+        "source": "zellij",
+        "target": "%APPDATA%/Zellij/config"
+      },
+      {
+        "name": "yazi",
+        "method": "copy",
+        "source": "yazi",
+        "target": "%APPDATA%/yazi/config"
+      },
+      {
+        "name": "fastfetch",
+        "method": "copy",
+        "source": "fastfetch",
+        "target": "~/.config/fastfetch"
+      },
+      {
+        "name": "btop-persist-conf",
+        "method": "copy",
+        "source": "btop/btop.conf",
+        "target": "$SCOOP/persist/btop/btop.conf",
+        "when": "$SCOOP/persist/btop"
+      },
+      {
+        "name": "btop-persist-themes",
+        "method": "copy",
+        "source": "btop/themes",
+        "target": "$SCOOP/persist/btop/themes",
+        "when": "$SCOOP/persist/btop"
+      },
+      {
+        "name": "code-resources",
+        "method": "copy",
+        "source": "code",
+        "exclude": [
+          "settings.json.example"
+        ],
+        "target": "~/.config/code"
+      },
+      {
+        "name": "code-settings",
+        "method": "copy",
+        "source": "code/settings.json.example",
+        "target": "%APPDATA%/Code/User/settings.json"
+      },
+      {
+        "name": "pi",
+        "method": "custom"
+      }
+    ]
+  }
+}

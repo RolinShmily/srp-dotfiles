@@ -1,32 +1,32 @@
 ﻿<#
 .SYNOPSIS
-    SrP-Dotfiles - Windows 统一环境一键管理总控引擎 (基于 manifest.toml 声明式驱动)
+    SrP-Dotfiles - Windows 统一环境一键管理总控引擎 (基于 manifest.json 声明式驱动)
 
 .DESCRIPTION
     高度对标 Unix 体系 (launch.sh) 的 Windows 自动化管理脚本。
-    严格贯彻【Install (软件安装)】与【Config (配置软链部署)】职责解耦设计：
+    严格贯彻【Install (软件安装)】与【Config (配置部署)】职责解耦设计：
     
     1. 交互式启动菜单 (launch 入口)
     2. 软件与环境安装模块 (install):
        - PowerShell 远程签名策略 (前置环境准入)
-       - Winget 系统核心套件安装 (从 manifest.toml.windows.winget_packages 读取)
-       - Scoop 环境安装与镜像源配置 (从 manifest.toml.windows.scoop_buckets 读取)
+       - Winget 系统核心套件安装 (从 manifest.json 的 windows.wingetPackages 读取)
+       - Scoop 环境安装与镜像源配置 (从 manifest.json 的 windows.scoopBuckets 读取)
        - Aria2 多线程下载加速配置 (包管理器性能优化)
-       - Scoop 扩展软件与字体安装 (从 manifest.toml.windows.scoop_packages 读取)
-       - 现代 Python 运行时安装 (从 manifest.toml.windows.python_manager 读取)
-    3. 符号链接配置部署模块 (config):
+       - Scoop 扩展软件与字体安装 (从 manifest.json 的 windows.scoopPackages 读取)
+       - 现代 Python 运行时安装 (从 manifest.json 的 windows.pythonManager 读取)
+    3. 配置部署模块 (config - 只做派发):
        - Windows 用户级环境变量配置 (SHELL -> pwsh.exe，保障 Zellij 等多端识别)
-       - 自动根据 manifest.toml.windows.configs 分发软链接与安全备份：
+       - 自动根据 manifest.json 的 windows.configs 覆盖式复制（全部使用 copy，不用软链）：
          * Vim 原生配置与 Windows 兼容配置 (%USERPROFILE%\.vimrc & %USERPROFILE%\_vimrc)
          * WezTerm 工业级配置与专属背景图 (%USERPROFILE%\.config\wezterm\)
          * PowerShell 7 全局 Profile ($PROFILE)
          * MCP 服务统一配置 (%USERPROFILE%\.config\mcp 及 %APPDATA%\mcp)
          * 通用应用配置目录 (%USERPROFILE%\.config\<app> 如 fastfetch, zellij)
-       - 权限自动降级 (无开发者模式时优雅回退为安全拷贝)
+       - 覆盖语义: 目标已存在则直接删除重写，不备份
 
 .EXAMPLE
     .\start.ps1                  # 启动交互式控制台菜单 (默认)
-    .\start.ps1 all              # 自动非交互执行全部 (依赖安装 + 符号链接部署)
+    .\start.ps1 all              # 自动非交互执行全部 (依赖安装 + 配置部署)
     .\start.ps1 install          # 仅执行系统环境与依赖安装 (不触碰任何配置文件)
     .\start.ps1 config           # 仅部署与同步 Dotfiles 配置文件 (不安装任何软件)
     .\start.ps1 config -f        # 强制覆盖部署当前配置 (-f 或 -Force)
@@ -46,9 +46,21 @@ param (
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $OutputEncoding = [System.Text.Encoding]::UTF8
 
-# 基础目录与常量定义
+# =========================================================================
+# start.ps1 - SrP-Dotfiles Windows 统一环境一键管理总控引擎
+# 集成: 交互式启动菜单 (Launch) + 依赖安装 (Install) + 配置部署与备份 (Config)
+# 特性: 遇错拦截询问 (重试/跳过/终止) + 执行审计账本 + 部署汇总报告
+# 配置清单来源: manifest.json [windows]
+#
+# 章节索引 (与 launch.sh 逐节对齐，便于两边对照阅读)
+#   0. 全局执行账本与受控步骤执行器    1. 声明清单读取    2. 运行环境探测
+#   3. 模块一：环境与软件包检测安装    4. 模块二：配置部署 (只做派发)
+#   5. CLI 帮助信息                    6. CLI 参数解析    7. 交互式启动菜单
+# =========================================================================
+
+# 基础目录与常量定义 (无编号前导，与 launch.sh 一致)
 $DotfilesDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
-$ManifestFile = Join-Path $DotfilesDir "manifest.toml"
+$ManifestFile = Join-Path $DotfilesDir "manifest.json"
 $UserHome = $env:USERPROFILE
 
 # 日志输出助手 (格式对标 Unix bash)
@@ -247,62 +259,26 @@ function Show-Summary-Report {
 }
 
 # -------------------------------------------------------------------------
-# 1. 零依赖原生 TOML 解析器 (纯正则表达式实现)
+# 1. 声明清单读取 (唯一事实源: manifest.json)
 # -------------------------------------------------------------------------
+# 清单由 scripts/lib/manifest.ps1 读取 (PowerShell 原生 ConvertFrom-Json)，
+# 不依赖 node，因此 install 阶段也能直接读。部署动词来自 scripts/lib/deploy.ps1。
 
-function Get-TomlSection {
-    param (
-        [string]$FilePath,
-        [string]$Section
-    )
-    if (-not (Test-Path $FilePath)) { return "" }
-    $content = Get-Content $FilePath -Raw -Encoding UTF8
-    
-    # 匹配目标 Section，直到下一个以 [ 开头的 section 标题或文件结束
-    $pattern = "(?ms)^\s*\[\s*$([regex]::Escape($Section))\s*\]\s*`r?`n(.*?)(?=^\s*\[[^\]]+\]|\z)"
-    if ($content -match $pattern) {
-        return $matches[1]
-    }
-    return ""
-}
-
-function Get-TomlArray {
-    param (
-        [string]$FilePath,
-        [string]$Section,
-        [string]$Key
-    )
-    $sectionContent = Get-TomlSection -FilePath $FilePath -Section $Section
-    if ([string]::IsNullOrWhiteSpace($sectionContent)) { return @() }
-
-    $keyPattern = "(?ms)^\s*$([regex]::Escape($Key))\s*=\s*\[(.*?)\]"
-    if ($sectionContent -match $keyPattern) {
-        $rawArray = $matches[1]
-        $matchesList = [regex]::Matches($rawArray, '"([^"]+)"')
-        $results = @($matchesList | ForEach-Object { $_.Groups[1].Value })
-        return $results
-    }
-    return @()
-}
-
-function Get-TomlString {
-    param (
-        [string]$FilePath,
-        [string]$Section,
-        [string]$Key
-    )
-    $sectionContent = Get-TomlSection -FilePath $FilePath -Section $Section
-    if ([string]::IsNullOrWhiteSpace($sectionContent)) { return "" }
-
-    $keyPattern = "(?ms)^\s*$([regex]::Escape($Key))\s*=\s*""([^""]*)"""
-    if ($sectionContent -match $keyPattern) {
-        return $matches[1]
-    }
-    return ""
-}
+$Global:DF_DotfilesDir = $DotfilesDir
+. (Join-Path $DotfilesDir "scripts\lib\manifest.ps1")
+. (Join-Path $DotfilesDir "scripts\lib\deploy.ps1")
 
 # -------------------------------------------------------------------------
-# 模块一：环境与软件包检测安装 (Install - 仅负责软件安装)
+# 2. 运行环境探测
+# -------------------------------------------------------------------------
+# Windows 无 OS 探测分支: 固定使用 manifest.json 的 windows 段。
+# 对应 launch.sh 的 $TARGET_OS (arch | debian | termux)。
+
+$ManifestOs = "windows"
+$Global:MANIFEST_OS = $ManifestOs
+
+# -------------------------------------------------------------------------
+# 3. 模块一：环境与软件包检测安装 (Install)
 # -------------------------------------------------------------------------
 
 function Set-Pwsh-ExecutionPolicy {
@@ -319,9 +295,9 @@ function Install-Winget-Packages {
         return
     }
 
-    $packages = Get-TomlArray -FilePath $ManifestFile -Section "windows" -Key "winget_packages"
+    $packages = Get-ManifestArray -Os "windows" -Key "wingetPackages"
     if ($packages.Count -eq 0) {
-        Write-LogWarn "manifest.toml 中未定义 winget_packages，跳过本阶段。"
+        Write-LogWarn "manifest.json 中未定义 winget_packages，跳过本阶段。"
         return
     }
 
@@ -348,8 +324,8 @@ function Install-And-Configure-Scoop {
         }
     }
 
-    # 2. 从 manifest.toml 读取并配置 Buckets
-    $bucketEntries = Get-TomlArray -FilePath $ManifestFile -Section "windows" -Key "scoop_buckets"
+    # 2. 从 manifest.json 读取并配置 Buckets
+    $bucketEntries = Get-ManifestArray -Os "windows" -Key "scoopBuckets"
     $installedBuckets = scoop bucket list 2>$null
 
     foreach ($entry in $bucketEntries) {
@@ -373,7 +349,7 @@ function Install-And-Configure-Scoop {
     }
 
     # 3. 如果包含 aria2，则配置多线程下载优化 (包管理器基础能力加速与防错加固)
-    $scoopPkgs = Get-TomlArray -FilePath $ManifestFile -Section "windows" -Key "scoop_packages"
+    $scoopPkgs = Get-ManifestArray -Os "windows" -Key "scoopPackages"
     if ($scoopPkgs -contains "aria2") {
         Invoke-Step -Name "Aria2 多线程下载优化配置" -ScriptBlock {
             scoop install aria2
@@ -396,7 +372,7 @@ function Install-And-Configure-Scoop {
 function Install-Scoop-Packages {
     Write-Host "`n--- [阶段 3/4] 安装 Scoop 扩展软件包与字体 ---" -ForegroundColor Cyan
 
-    $packages = Get-TomlArray -FilePath $ManifestFile -Section "windows" -Key "scoop_packages"
+    $packages = Get-ManifestArray -Os "windows" -Key "scoopPackages"
     foreach ($pkg in $packages) {
         if ($pkg -eq "aria2") { continue }
         Invoke-Step -Name "Scoop 扩展软件/字体 [$pkg]" -ScriptBlock {
@@ -408,7 +384,7 @@ function Install-Scoop-Packages {
 function Install-Python-Runtime {
     Write-Host "`n--- [阶段 4/5] 安装现代 Python 环境与管理器 ---" -ForegroundColor Cyan
 
-    $pyManager = Get-TomlString -FilePath $ManifestFile -Section "windows" -Key "python_manager"
+    $pyManager = Get-ManifestValue -Os "windows" -Key "pythonManager"
     if ($pyManager -eq "uv") {
         Invoke-Step -Name "Astral uv 现代 Python 包管理器" -ScriptBlock {
             if (-not (Get-Command "uv" -ErrorAction SilentlyContinue)) {
@@ -436,9 +412,9 @@ function Install-Npm-Globals {
         return
     }
 
-    $npmPackages = Get-TomlArray -FilePath $ManifestFile -Section "windows" -Key "npm_globals"
+    $npmPackages = Get-ManifestArray -Os "windows" -Key "npmGlobals"
     if ($npmPackages.Count -eq 0) {
-        Write-LogInfo "manifest.toml 中未定义 windows.npm_globals，跳过本阶段。"
+        Write-LogInfo "manifest.json 中未定义 windows.npm_globals，跳过本阶段。"
         return
     }
 
@@ -451,7 +427,7 @@ function Install-Npm-Globals {
 
 function Run-Install {
     Write-Host "==========================================================" -ForegroundColor Cyan
-    Write-Host "       执行 Windows 依赖软件包全量安装 (manifest.toml)       " -ForegroundColor Cyan
+    Write-Host "       执行 Windows 依赖软件包全量安装 (manifest.json)       " -ForegroundColor Cyan
     Write-Host "==========================================================" -ForegroundColor Cyan
 
     Set-Pwsh-ExecutionPolicy
@@ -463,95 +439,6 @@ function Run-Install {
 
     Write-Host ""
     Write-LogSuccess "Windows 软件包安装流水线全部完成！(未更改任何配置文件)"
-}
-
-# -------------------------------------------------------------------------
-# 模块二：符号链接配置部署与安全备份 (Config - 仅负责配置与软链)
-# -------------------------------------------------------------------------
-
-function Deploy-Link-Item {
-    param (
-        [string]$Source,
-        [string]$Target,
-        [string]$Name,
-        [string]$BackupDir
-    )
-
-    if (-not (Test-Path $Source)) {
-        Write-LogError "未在仓库中找到源配置: $Source"
-        throw "源文件不存在: $Source"
-    }
-
-    $isDir = (Get-Item $Source).PSIsContainer
-    $parentDir = Split-Path -Parent $Target
-    if (-not (Test-Path $parentDir)) {
-        New-Item -ItemType Directory -Path $parentDir -Force | Out-Null
-    }
-
-    if (Test-Path $Target) {
-        $item = Get-Item $Target -Force
-        $isLinked = $false
-        if ($item.LinkType -in @('SymbolicLink', 'Junction')) {
-            if ($item.Target -eq $Source -or $item.Target -contains $Source) {
-                $isLinked = $true
-            }
-        }
-
-        if ($isLinked) {
-            Write-LogSuccess "$Name 已经建立链接，状态健康。"
-            return
-        }
-
-        if (-not (Test-Path $BackupDir)) {
-            New-Item -ItemType Directory -Path $BackupDir -Force | Out-Null
-            Write-LogInfo "创建旧配置安全备份目录: $BackupDir"
-        }
-        $backupPath = Join-Path $BackupDir (Split-Path -Leaf $Target)
-        try {
-            Move-Item -Path $Target -Destination $backupPath -Force -ErrorAction Stop
-            Write-LogWarn "已安全归档旧配置至: $backupPath"
-        } catch {
-            Remove-Item -Path $Target -Recurse -Force -ErrorAction SilentlyContinue
-        }
-    }
-
-    # 1. 优先尝试创建符号链接 (SymbolicLink)
-    try {
-        New-Item -ItemType SymbolicLink -Path $Target -Target $Source -Force -ErrorAction Stop | Out-Null
-        Write-LogSuccess "$Name 成功创建符号链接 -> $Target"
-        return
-    } catch {
-        # 权限不足或未开开发者模式时继续尝试
-    }
-
-    # 2. 如果是目录，尝试创建 Windows 原生免特权联接点 (Junction)
-    if ($isDir) {
-        try {
-            New-Item -ItemType Junction -Path $Target -Target $Source -Force -ErrorAction Stop | Out-Null
-            Write-LogSuccess "$Name 成功创建目录联接点 (Junction) -> $Target"
-            return
-        } catch {
-            # Junction 失败时继续降级
-        }
-    } else {
-        # 如果是单文件且 SymbolicLink 失败，尝试免特权硬链接 (HardLink)
-        try {
-            New-Item -ItemType HardLink -Path $Target -Target $Source -Force -ErrorAction Stop | Out-Null
-            Write-LogSuccess "$Name 成功创建硬链接 (HardLink) -> $Target"
-            return
-        } catch {
-            # HardLink 失败时继续降级
-        }
-    }
-
-    # 3. 最终降级模式：文件/目录递归安全复制
-    Write-LogWarn "系统未开启开发者模式且无法创建联接点，自动降级为文件复制模式。"
-    if ($isDir) {
-        Copy-Item -Path $Source -Destination $Target -Recurse -Force
-    } else {
-        Copy-Item -Path $Source -Destination $Target -Force
-    }
-    Write-LogSuccess "$Name 成功部署为独立文件 -> $Target"
 }
 
 function Configure-User-Environment {
@@ -573,125 +460,80 @@ function Configure-User-Environment {
     }
 }
 
-function Deploy-Pi-Stack {
+# -------------------------------------------------------------------------
+# 4. 模块二：配置部署 (Config - 只做派发)
+# -------------------------------------------------------------------------
+
+# 单条 config 的派发。只认三个动词: link / copy / custom
+function Invoke-ConfigEntry {
     param (
+        [Parameter(Mandatory)]$Entry,
         [string]$BackupDir
     )
 
-    Write-Host ""
-    Write-LogInfo "--- 正在部署 Pi Coding Agent 智能体体系 ---"
+    $name   = [string]$Entry.name
+    $method = [string]$Entry.method
 
-    $piAgentDir = Join-Path $UserHome ".pi\agent"
-    if (-not (Test-Path $piAgentDir)) {
-        New-Item -ItemType Directory -Path $piAgentDir -Force | Out-Null
+    if ([string]::IsNullOrWhiteSpace($name) -or [string]::IsNullOrWhiteSpace($method)) {
+        Write-LogWarn "跳过无效 config 条目（缺少 name/method）"
+        return
     }
 
-    # 1. 检查 node 命令是否就绪 (用于安全合并 JSON)
-    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "User") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "Machine")
-    if (-not (Get-Command "node" -ErrorAction SilentlyContinue)) {
-        Write-LogWarn "未检测到 node 命令，跳过 Pi settings.json 安全合并。请先安装 nodejs-lts。"
-    } else {
-        $piPackages = Get-TomlArray -FilePath $ManifestFile -Section "windows" -Key "pi_packages"
-        $mergeScript = Join-Path $DotfilesDir "scripts\merge_pi_settings.js"
-        $targetSettings = Join-Path $piAgentDir "settings.json"
-        $exampleSettings = Join-Path $DotfilesDir "pi\settings.json.example"
-
-        Invoke-Step -Name "Pi settings.json 配置安全合并与 packages 注入" -ScriptBlock {
-            $nodeArgs = @($mergeScript, $targetSettings, $exampleSettings, $BackupDir) + $piPackages
-            & node @nodeArgs
+    # when: 条件路径不存在则整条跳过（例如 Scoop 尚未安装 btop）
+    if ($Entry.when) {
+        $whenPath = Expand-PathToken ([string]$Entry.when)
+        if (-not (Test-Path -LiteralPath $whenPath)) {
+            Write-LogInfo "[$name] 条件未满足，跳过 ($($Entry.when))"
+            return
         }
     }
 
-    # 2. 部署 AGENTS.md 全局规范
-    $agentsSource = Join-Path $DotfilesDir "pi\AGENTS.md"
-    $agentsTarget = Join-Path $piAgentDir "AGENTS.md"
-    if (Test-Path $agentsSource) {
-        Invoke-Step -Name "部署 Pi 全局规范 (AGENTS.md)" -ScriptBlock {
-            Deploy-Link-Item -Source $agentsSource -Target $agentsTarget -Name "Pi AGENTS.md" -BackupDir $BackupDir
+    # ---- custom: 执行 scripts\configs\<name>.ps1 ----
+    if ($method -eq "custom") {
+        $customScript = Get-CustomScriptPath $name
+        if (-not (Test-Path -LiteralPath $customScript)) {
+            Write-LogError "[$name] 找不到自定义部署脚本: $customScript"
+            return
         }
+        Invoke-Step -Name "[$name] 自定义部署" -ScriptBlock {
+            & $customScript -DotfilesDir $Global:DF_DotfilesDir -BackupDir $BackupDir -ManifestOs $ManifestOs -Force:([bool]$Global:DF_Force)
+        }
+        return
     }
 
-    # 3. 部署指定扩展 (pi_extensions)
-    $piExts = Get-TomlArray -FilePath $ManifestFile -Section "windows" -Key "pi_extensions"
-    $extsSourceDir = Join-Path $DotfilesDir "pi\extensions"
-    $extsTargetDir = Join-Path $piAgentDir "extensions"
+    if ($method -notin @("link", "copy")) {
+        Write-LogWarn "[$name] 未知 method: $method（应为 link | copy | custom）"
+        return
+    }
 
-    if (Test-Path $extsSourceDir) {
-        if (-not (Test-Path $extsTargetDir)) {
-            New-Item -ItemType Directory -Path $extsTargetDir -Force | Out-Null
-        }
+    # ---- link / copy: 读 source + targets ----
+    $source = Get-ConfigSourcePath ([string]$Entry.source)
+    if (-not (Test-Path -LiteralPath $source)) {
+        Write-LogWarn "[$name] 仓库内源不存在，跳过: $($Entry.source)"
+        return
+    }
 
-        Invoke-Step -Name "部署 Pi Extensions 扩展套件 ($($piExts.Count) 个)" -ScriptBlock {
-            foreach ($ext in $piExts) {
-                $src = Join-Path $extsSourceDir $ext
-                $dst = Join-Path $extsTargetDir $ext
-                if (Test-Path $src) {
-                    Deploy-Link-Item -Source $src -Target $dst -Name "Pi 扩展 [$ext]" -BackupDir $BackupDir
-                }
+    $targets = @()
+    if ($Entry.targets) { $targets = @($Entry.targets) }
+    elseif ($Entry.target) { $targets = @($Entry.target) }
+    if ($targets.Count -eq 0) {
+        Write-LogWarn "[$name] 未声明 target/targets，跳过"
+        return
+    }
+
+    $exclude = @()
+    if ($Entry.exclude) { $exclude = @($Entry.exclude) }
+    $ifMissing = [bool]$Entry.ifMissing
+
+    foreach ($t in $targets) {
+        $dest = Expand-PathToken ([string]$t)
+        if ($method -eq "link") {
+            Invoke-Step -Name "[$name] 链接 -> $t" -ScriptBlock {
+                Deploy-LinkItem -Source $source -Target $dest -Name $name -BackupDir $BackupDir -Exclude $exclude | Out-Null
             }
-        }
-    }
-
-    # 4. 部署 skills, prompts, agents 资源目录
-    $resourceTypes = @(
-        @{ Dir = "skills"; Name = "技能库" },
-        @{ Dir = "prompts"; Name = "提示词模板" },
-        @{ Dir = "agents"; Name = "子智能体角色" }
-    )
-
-    foreach ($res in $resourceTypes) {
-        $rDir = $res.Dir
-        $rName = $res.Name
-        $srcDir = Join-Path $DotfilesDir "pi\$rDir"
-        $dstDir = Join-Path $piAgentDir $rDir
-
-        if (Test-Path $srcDir) {
-            if (-not (Test-Path $dstDir)) {
-                New-Item -ItemType Directory -Path $dstDir -Force | Out-Null
-            }
-            Invoke-Step -Name "部署 Pi $rName ($rDir)" -ScriptBlock {
-                Get-ChildItem -Path $srcDir | ForEach-Object {
-                    $itemSrc = $_.FullName
-                    $itemDst = Join-Path $dstDir $_.Name
-                    Deploy-Link-Item -Source $itemSrc -Target $itemDst -Name "Pi $rName [$_]" -BackupDir $BackupDir
-                }
-            }
-        }
-    }
-
-    # 5. 部署 packages 本地包目录
-    $pkgsSourceDir = Join-Path $DotfilesDir "pi\packages"
-    $pkgsTargetDir = Join-Path $piAgentDir "packages"
-
-    if (Test-Path $pkgsSourceDir) {
-        if (-not (Test-Path $pkgsTargetDir)) {
-            New-Item -ItemType Directory -Path $pkgsTargetDir -Force | Out-Null
-        }
-
-        Invoke-Step -Name "部署 Pi 本地包套件 (packages)" -ScriptBlock {
-            Get-ChildItem -Path $pkgsSourceDir -Directory | ForEach-Object {
-                $pkgFolder = $_
-                $targetName = $pkgFolder.Name
-                $pkgJsonPath = Join-Path $pkgFolder.FullName "package.json"
-                if (Test-Path $pkgJsonPath) {
-                    try {
-                        $json = Get-Content $pkgJsonPath -Raw | ConvertFrom-Json
-                        if ($json.name) {
-                            $targetName = $json.name
-                        }
-                    } catch {}
-                }
-
-                $itemSrc = $pkgFolder.FullName
-                $itemDst = Join-Path $pkgsTargetDir $targetName
-                Deploy-Link-Item -Source $itemSrc -Target $itemDst -Name "Pi 本地包 [$targetName]" -BackupDir $BackupDir
-
-                if ($targetName -ne $pkgFolder.Name) {
-                    $aliasDst = Join-Path $pkgsTargetDir $pkgFolder.Name
-                    if (-not (Test-Path $aliasDst)) {
-                        Deploy-Link-Item -Source $itemSrc -Target $aliasDst -Name "Pi 本地包别名 [$($pkgFolder.Name)]" -BackupDir $BackupDir
-                    }
-                }
+        } else {
+            Invoke-Step -Name "[$name] 复制 -> $t" -ScriptBlock {
+                Deploy-CopyItem -Source $source -Target $dest -Name $name -BackupDir $BackupDir -Exclude $exclude -IfMissing:$ifMissing | Out-Null
             }
         }
     }
@@ -703,352 +545,54 @@ function Run-Config {
     )
 
     Write-Host "==========================================================" -ForegroundColor Cyan
-    Write-Host "         正在部署 Dotfiles 符号链接配置 (manifest.toml)         " -ForegroundColor Cyan
+    Write-Host "          正在部署 Dotfiles 配置 (manifest.json)            " -ForegroundColor Cyan
     Write-Host "==========================================================" -ForegroundColor Cyan
 
     $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
     $backupDir = Join-Path $UserHome ".dotfiles_backup_$timestamp"
-    $configsToDeploy = Get-TomlArray -FilePath $ManifestFile -Section "windows" -Key "configs"
 
-    if ($configsToDeploy.Count -eq 0) {
-        Write-LogWarn "manifest.toml 中未定义要部署的 configs 项。"
+    $Global:DF_DotfilesDir = $DotfilesDir
+    $Global:DF_BackupDir   = $backupDir
+    $Global:DF_Force       = [bool]$ForceDeploy
+
+    Write-LogInfo "声明清单: $ManifestFile"
+    if ($ForceDeploy) { Write-LogInfo "已开启强制覆盖模式 (-f / -Force)。" }
+
+    $configs = @(Get-ManifestArray -Os $ManifestOs -Key "configs")
+    if ($configs.Count -eq 0) {
+        Write-LogWarn "manifest.json 中未定义 windows.configs 部署项。"
         return
     }
 
-    # 1. 配置 Windows 终端环境变量适配
+    # 1. 终端环境变量适配（一次性前置，非配置项）
     Configure-User-Environment
 
-    # 2. 部署 Vim 现代化原生配置体系
-    if ($configsToDeploy -contains "vim" -or $configsToDeploy -contains "vimrc") {
-        Write-Host ""
-        Write-LogInfo "--- 正在部署 Vim 基础配置 ---"
-        $vimrcSource = Join-Path $DotfilesDir ".vimrc"
-        $vimrcTarget = Join-Path $UserHome ".vimrc"
-        $winVimrcTarget = Join-Path $UserHome "_vimrc"
-
-        if (Test-Path $vimrcSource) {
-            Invoke-Step -Name "部署 Vim 主配置文件 (.vimrc)" -ScriptBlock {
-                Deploy-Link-Item -Source $vimrcSource -Target $vimrcTarget -Name "Vim 主配置 (.vimrc)" -BackupDir $backupDir
-            }
-            Invoke-Step -Name "部署 Windows Vim 兼容配置文件 (_vimrc)" -ScriptBlock {
-                Deploy-Link-Item -Source $vimrcSource -Target $winVimrcTarget -Name "Windows Vim 兼容配置 (_vimrc)" -BackupDir $backupDir
-            }
-        } else {
-            Write-LogWarn "未在仓库根目录找到 .vimrc 文件: $vimrcSource"
-        }
-    }
-
-    # 3. 部署 WezTerm 工业级配置体系
-    if ($configsToDeploy -contains "wezterm") {
-        Write-Host ""
-        Write-LogInfo "--- 正在部署 WezTerm 终端配置 ---"
-        $weztermDirSource = Join-Path $DotfilesDir "wezterm"
-        $weztermLuaSource = Join-Path $weztermDirSource ".wezterm.lua"
-        $weztermBgSource = Join-Path $weztermDirSource "background.png"
-
-        $weztermConfigTargetDir = Join-Path $UserHome ".config\wezterm"
-        $weztermLuaTarget = Join-Path $weztermConfigTargetDir "wezterm.lua"
-        $weztermBgTarget = Join-Path $weztermConfigTargetDir "background.png"
-        $weztermCompatTarget = Join-Path $UserHome ".wezterm.lua"
-
-        Invoke-Step -Name "部署 WezTerm 背景图 (background.png)" -ScriptBlock {
-            Deploy-Link-Item -Source $weztermBgSource -Target $weztermBgTarget -Name "WezTerm 背景图" -BackupDir $backupDir
-        }
-
-        Invoke-Step -Name "部署 WezTerm 主配置 (wezterm.lua)" -ScriptBlock {
-            Deploy-Link-Item -Source $weztermLuaSource -Target $weztermLuaTarget -Name "WezTerm 主配置" -BackupDir $backupDir
-        }
-
-        Invoke-Step -Name "部署 WezTerm 根目录兼容链接 (.wezterm.lua)" -ScriptBlock {
-            Deploy-Link-Item -Source $weztermLuaSource -Target $weztermCompatTarget -Name "WezTerm 根目录兼容链接" -BackupDir $backupDir
-        }
-    }
-
-    # 4. 部署 PowerShell Profile 全局配置
-    # 4. 部署 PowerShell Profile 全局配置
-    if ($configsToDeploy -contains "powershell") {
-        Write-Host ""
-        Write-LogInfo "--- 正在部署 PowerShell Profile 全局配置 ---"
-        $pwshProfileSource = Join-Path $DotfilesDir "powershell\profile.ps1"
-        
-        $pwshProfileTarget = $PROFILE
-        if ([string]::IsNullOrWhiteSpace($pwshProfileTarget)) {
-            $pwshProfileTarget = Join-Path ([Environment]::GetFolderPath('MyDocuments')) "PowerShell\Microsoft.PowerShell_profile.ps1"
-        }
-
-        Invoke-Step -Name "部署 PowerShell Profile ($($pwshProfileTarget | Split-Path -Leaf))" -ScriptBlock {
-            Deploy-Link-Item -Source $pwshProfileSource -Target $pwshProfileTarget -Name "PowerShell Profile" -BackupDir $backupDir
-        }
-    }
-
-    # 5. 部署 Zellij 终端复用器 (Windows 原生 %APPDATA%\Zellij\config + ~/.config/zellij)
-    if ($configsToDeploy -contains "zellij") {
-        Write-Host ""
-        Write-LogInfo "--- 正在部署 Zellij 终端复用器配置 ---"
-        $zellijSourceDir = Join-Path $DotfilesDir "zellij"
-        $zellijWinTarget = Join-Path ([Environment]::GetFolderPath('ApplicationData')) "Zellij\config"
-        $zellijCompatTarget = Join-Path $UserHome ".config\zellij"
-
-        Invoke-Step -Name "部署 Zellij Windows 原生配置目录 (%APPDATA%\Zellij\config)" -ScriptBlock {
-            Deploy-Link-Item -Source $zellijSourceDir -Target $zellijWinTarget -Name "Zellij Windows 配置目录" -BackupDir $backupDir
-        }
-        Invoke-Step -Name "部署 Zellij 兼容配置目录 (~/.config/zellij)" -ScriptBlock {
-            Deploy-Link-Item -Source $zellijSourceDir -Target $zellijCompatTarget -Name "Zellij ~/.config 配置目录" -BackupDir $backupDir
-        }
-    }
-
-    # 6. 部署 btop 监控器 (Scoop 持久化目录 + current 目录 + ~/.config/btop)
-    if ($configsToDeploy -contains "btop") {
-        Write-Host ""
-        Write-LogInfo "--- 正在部署 btop 现代系统监控配置 ---"
-        $btopSourceDir = Join-Path $DotfilesDir "btop"
-        $btopConfSource = Join-Path $btopSourceDir "btop.conf"
-        $btopThemesSource = Join-Path $btopSourceDir "themes"
-        $btopCompatTarget = Join-Path $UserHome ".config\btop"
-
-        $scoopDir = if ($env:SCOOP) { $env:SCOOP } else { Join-Path $UserHome "scoop" }
-        $btopPersistDir = Join-Path $scoopDir "persist\btop"
-
-        if (Test-Path $scoopDir) {
-            $btopPersistConf = Join-Path $btopPersistDir "btop.conf"
-            $btopPersistThemes = Join-Path $btopPersistDir "themes"
-
-            Invoke-Step -Name "部署 btop Scoop 持久化主配置 (persist\btop\btop.conf)" -ScriptBlock {
-                Deploy-Link-Item -Source $btopConfSource -Target $btopPersistConf -Name "btop 主配置 (Scoop Persist)" -BackupDir $backupDir
-            }
-            Invoke-Step -Name "部署 btop Scoop 主题包目录 (persist\btop\themes)" -ScriptBlock {
-                Deploy-Link-Item -Source $btopThemesSource -Target $btopPersistThemes -Name "btop 主题目录 (Scoop Persist)" -BackupDir $backupDir
-            }
-
-            # 确保 apps\btop\current 存在时也能直接更新
-            $btopCurrentConf = Join-Path $scoopDir "apps\btop\current\btop.conf"
-            if (Test-Path (Split-Path -Parent $btopCurrentConf)) {
-                Invoke-Step -Name "部署 btop 当前运行主配置 (apps\btop\current\btop.conf)" -ScriptBlock {
-                    Deploy-Link-Item -Source $btopConfSource -Target $btopCurrentConf -Name "btop 主配置 (Scoop Current)" -BackupDir $backupDir
-                }
-            }
-        }
-
-        Invoke-Step -Name "部署 btop 兼容配置目录 (~/.config/btop)" -ScriptBlock {
-            Deploy-Link-Item -Source $btopSourceDir -Target $btopCompatTarget -Name "btop ~/.config 配置目录" -BackupDir $backupDir
-        }
-    }
-
-    # 7. 部署 Yazi 终端文件管理器 (Windows 原生 %APPDATA%\yazi\config + ~/.config/yazi)
-    if ($configsToDeploy -contains "yazi") {
-        Write-Host ""
-        Write-LogInfo "--- 正在部署 Yazi 终端文件管理器配置 ---"
-        $yaziSourceDir = Join-Path $DotfilesDir "yazi"
-        $yaziWinTarget = Join-Path ([Environment]::GetFolderPath('ApplicationData')) "yazi\config"
-        $yaziCompatTarget = Join-Path $UserHome ".config\yazi"
-
-        Invoke-Step -Name "部署 Yazi Windows 原生配置目录 (%APPDATA%\yazi\config)" -ScriptBlock {
-            Deploy-Link-Item -Source $yaziSourceDir -Target $yaziWinTarget -Name "Yazi Windows 配置目录" -BackupDir $backupDir
-        }
-        Invoke-Step -Name "部署 Yazi 兼容配置目录 (~/.config/yazi)" -ScriptBlock {
-            Deploy-Link-Item -Source $yaziSourceDir -Target $yaziCompatTarget -Name "Yazi ~/.config 配置目录" -BackupDir $backupDir
-        }
-    }
-
-    # 8. 部署 Fastfetch 系统信息展示工具
-    if ($configsToDeploy -contains "fastfetch") {
-        Write-Host ""
-        Write-LogInfo "--- 正在部署 Fastfetch 系统信息工具配置 ---"
-        $fastfetchSourceDir = Join-Path $DotfilesDir "fastfetch"
-        $fastfetchTarget = Join-Path $UserHome ".config\fastfetch"
-        $fastfetchWinTarget = Join-Path ([Environment]::GetFolderPath('ApplicationData')) "fastfetch"
-
-        Invoke-Step -Name "部署 Fastfetch 主配置目录 (~/.config/fastfetch)" -ScriptBlock {
-            Deploy-Link-Item -Source $fastfetchSourceDir -Target $fastfetchTarget -Name "Fastfetch ~/.config 配置目录" -BackupDir $backupDir
-        }
-        Invoke-Step -Name "部署 Fastfetch AppData 兼容目录 (%APPDATA%\fastfetch)" -ScriptBlock {
-            Deploy-Link-Item -Source $fastfetchSourceDir -Target $fastfetchWinTarget -Name "Fastfetch AppData 配置目录" -BackupDir $backupDir
-        }
-    }
-
-    # 9. 部署 VS Code 体系配置 (code)
-    if ($configsToDeploy -contains "code") {
-        Write-Host ""
-        Write-LogInfo "--- 正在部署 VS Code 体系配置 ---"
-        $codeSourceDir = Join-Path $DotfilesDir "code"
-        $codeTargetDir = Join-Path $UserHome ".config\code"
-        $codeUserSettingsDir = Join-Path ([Environment]::GetFolderPath('ApplicationData')) "Code\User"
-        $codeUserSettingsFile = Join-Path $codeUserSettingsDir "settings.json"
-        $codeSettingsExample = Join-Path $codeSourceDir "settings.json.example"
-
-        if (Test-Path $codeSourceDir) {
-            # 1. 部署 ~/.config/code/ 静态资源 (排除 settings.json.example)
-            Invoke-Step -Name "部署 Code 静态资源目录 (~/.config/code)" -ScriptBlock {
-                if (-not (Test-Path $codeTargetDir)) {
-                    New-Item -ItemType Directory -Path $codeTargetDir -Force | Out-Null
-                }
-
-                $resourceItems = Get-ChildItem -Path $codeSourceDir | Where-Object { $_.Name -ne "settings.json.example" }
-                if ($resourceItems.Count -eq 0) {
-                    Write-LogWarn "code 目录中未找到需要分发的静态资源文件。"
-                } else {
-                    foreach ($item in $resourceItems) {
-                        $targetItemPath = Join-Path $codeTargetDir $item.Name
-                        Deploy-Link-Item -Source $item.FullName -Target $targetItemPath -Name "Code 静态资源 [$($item.Name)]" -BackupDir $backupDir
-                    }
-                }
-            }
-
-            # 2. 同步与对比 VS Code 用户配置 (%APPDATA%\Code\User\settings.json)
-            if (Test-Path $codeSettingsExample) {
-                Invoke-Step -Name "同步 VS Code 用户配置 (settings.json)" -ScriptBlock {
-                    if (-not (Test-Path $codeUserSettingsDir)) {
-                        New-Item -ItemType Directory -Path $codeUserSettingsDir -Force | Out-Null
-                    }
-
-                    if (-not (Test-Path $codeUserSettingsFile)) {
-                        # 默认情况下不存在 settings.json：直接以 example 模板生成
-                        Copy-Item -Path $codeSettingsExample -Destination $codeUserSettingsFile -Force
-                        Write-LogSuccess "未检测到现有 settings.json，已根据 settings.json.example 直接生成配置。"
-                    } else {
-                        # 文件已存在：对比 settings.json.example 与现有 settings.json
-                        $exampleLines = Get-Content -Path $codeSettingsExample -Encoding UTF8
-                        $targetLines = Get-Content -Path $codeUserSettingsFile -Encoding UTF8
-                        $diff = Compare-Object -ReferenceObject $exampleLines -DifferenceObject $targetLines
-
-                        if ($null -eq $diff -or $diff.Count -eq 0) {
-                            Write-LogSuccess "VS Code settings.json 与模板内容完全一致，无需更新。"
-                        } else {
-                            Write-LogWarn "检测到 VS Code settings.json 与 settings.json.example 存在差异 ($($diff.Count) 处差异)："
-                            Write-Host "----------------- [配置差异对比 (<= 模板 | => 当前)] -----------------" -ForegroundColor DarkYellow
-                            $maxDisplay = 40
-                            $displayItems = $diff | Select-Object -First $maxDisplay
-                            $displayItems | ForEach-Object {
-                                $indicator = if ($_.SideIndicator -eq "<=") { "[+ 模板独有]" } else { "[- 当前独有]" }
-                                $color = if ($_.SideIndicator -eq "<=") { "Green" } else { "Magenta" }
-                                Write-Host "$indicator $($_.InputObject)" -ForegroundColor $color
-                            }
-                            if ($diff.Count -gt $maxDisplay) {
-                                Write-Host "... 剩余 $($diff.Count - $maxDisplay) 处差异未展开 ..." -ForegroundColor DarkGray
-                            }
-                            Write-Host "----------------------------------------------------------------------" -ForegroundColor DarkYellow
-
-                            if ($ForceDeploy) {
-                                if (-not (Test-Path $backupDir)) {
-                                    New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
-                                    Write-LogInfo "创建旧配置安全备份目录: $backupDir"
-                                }
-                                $backupSettingsPath = Join-Path $backupDir "settings.json"
-                                Move-Item -Path $codeUserSettingsFile -Destination $backupSettingsPath -Force
-                                Write-LogWarn "已安全归档原 settings.json 至: $backupSettingsPath"
-
-                                Copy-Item -Path $codeSettingsExample -Destination $codeUserSettingsFile -Force
-                                Write-LogSuccess "已在 -f / -Force 参数下强制以 settings.json.example 覆盖配置！"
-                            } else {
-                                Write-LogWarn "当前存在配置差异但未传入 -f / -Force 参数，已保留现有 settings.json 不动。"
-                                Write-Host " 💡 提示: 若需强制覆盖现有配置，请使用: .\start.ps1 config -f" -ForegroundColor Yellow
-                            }
-                        }
-                    }
-                }
-            } else {
-                Write-LogWarn "未在仓库 code 目录找到 settings.json.example 文件: $codeSettingsExample"
-            }
-        } else {
-            Write-LogWarn "未在仓库中找到 code 目录: $codeSourceDir"
-        }
-    }
-
-    # 10. 部署 MCP (Model Context Protocol) 统一配置体系 (~/.config/mcp/mcp.json)
-    #     仅以文件级复制方式部署 mcp.json：仓库侧只保留占位符，本地副本可安全写入密钥。
-    #     覆盖前会把已存在的 mcp.json 原地改名为 mcp.json.backup-<时间戳>。
-    if ($configsToDeploy -contains "mcp") {
-        Write-Host ""
-        Write-LogInfo "--- 正在部署 MCP 统一服务配置 (~/.config/mcp, 文件复制模式) ---"
-        $mcpSourceFile = Join-Path $DotfilesDir "mcp\mcp.json"
-        $mcpTargetDir = Join-Path $UserHome ".config\mcp"
-        $mcpTargetFile = Join-Path $mcpTargetDir "mcp.json"
-
-        Invoke-Step -Name "部署 MCP 配置 (~/.config/mcp/mcp.json)" -ScriptBlock {
-            if (-not (Test-Path $mcpSourceFile)) {
-                throw "未在仓库中找到 MCP 配置文件: $mcpSourceFile"
-            }
-
-            # 目录若仍是历史符号链接/联接点，仅摘除重解析点，避免把文件写回仓库源
-            if (Test-Path $mcpTargetDir) {
-                $dirItem = Get-Item $mcpTargetDir -Force
-                if ($dirItem.LinkType -in @('SymbolicLink', 'Junction')) {
-                    [System.IO.Directory]::Delete($mcpTargetDir, $false)
-                    Write-LogWarn "检测到历史链接 ~/.config/mcp，已摘除（不触碰仓库源）。"
-                }
-            }
-            if (-not (Test-Path $mcpTargetDir)) {
-                New-Item -ItemType Directory -Path $mcpTargetDir -Force | Out-Null
-            }
-
-            # 覆盖前先将同名文件原地改名为 mcp.json.backup-<时间戳>，不丢本地密钥
-            if (Test-Path $mcpTargetFile) {
-                $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-                $archivePath = "$mcpTargetFile.backup-$stamp"
-                $seq = 1
-                while (Test-Path $archivePath) {
-                    $archivePath = "$mcpTargetFile.backup-$stamp-$seq"
-                    $seq++
-                }
-                Move-Item -Path $mcpTargetFile -Destination $archivePath -ErrorAction Stop
-                Write-LogWarn "旧配置已原地归档为: $archivePath"
-            }
-
-            Copy-Item -Path $mcpSourceFile -Destination $mcpTargetFile -Force -ErrorAction Stop
-            Write-LogSuccess "MCP 配置已复制到: $mcpTargetFile"
-        }
-    }
-
-    # 11. 部署通用应用配置目录 (~/.config/<app>) 与 Pi 体系
-    $hasCommon = $false
-    $specializedApps = @("wezterm", "powershell", "vim", "vimrc", "zellij", "btop", "yazi", "fastfetch", "code", "mcp")
-    foreach ($app in $configsToDeploy) {
-        if ($app -in $specializedApps) { continue }
-
-        if ($app -eq "pi") {
-            Deploy-Pi-Stack -BackupDir $backupDir
-            continue
-        }
-
-        if (-not $hasCommon) {
-            Write-Host ""
-            Write-LogInfo "--- 正在部署通用应用配置目录 (~/.config/<app>) ---"
-            $hasCommon = $true
-        }
-
-        $sourceAppDir = Join-Path $DotfilesDir $app
-        $targetAppDir = Join-Path $UserHome ".config\$app"
-
-        if (Test-Path $sourceAppDir) {
-            Invoke-Step -Name "部署 [$app] 应用配置目录" -ScriptBlock {
-                Deploy-Link-Item -Source $sourceAppDir -Target $targetAppDir -Name "[$app] 配置目录" -BackupDir $backupDir
-            }
-        } else {
-            Write-LogWarn "未在仓库中找到配置目录: $sourceAppDir"
-        }
+    # 2. 按 manifest.json 的 configs 顺序逐条派发
+    foreach ($entry in $configs) {
+        Invoke-ConfigEntry -Entry $entry -BackupDir $backupDir
     }
 
     Write-Host ""
-    Write-LogSuccess "所有在 manifest.toml 中声明的配置文件均已完成软链接同步！"
+    Write-LogSuccess "所有在 manifest.json 中声明的配置项均已完成部署！"
     Write-Host " 💡 提示: 在仓库中修改文件即可直接对 Windows 系统产生实时作用。"
 }
 
 # -------------------------------------------------------------------------
-# 模块三：交互式启动菜单 (Launch 入口)
+# 5. CLI 帮助信息
 # -------------------------------------------------------------------------
 
 function Show-Help {
     Write-Host @"
 SrP-Dotfiles Windows 声明式一键配置总控脚本 (start.ps1)
-配置来源: manifest.toml [windows]
+配置来源: manifest.json [windows]
 
 用法:
   .\start.ps1 [子命令] [选项]
 
 子命令:
-  all         全量执行：系统依赖安装 + 符号链接配置部署 (默认推荐流水线)
-  install     仅安装系统软件与依赖 (基于 manifest.toml, 不触碰任何配置文件)
-  config      仅部署并同步符号链接配置文件 (基于 manifest.toml, 不安装任何软件)
+  all         全量执行：系统依赖安装 + 配置覆盖部署 (默认推荐流水线)
+  install     仅安装系统软件与依赖 (基于 manifest.json, 不触碰任何配置文件)
+  config      仅部署并同步配置文件 (基于 manifest.json, 不安装任何软件)
   launch      启动交互式彩色菜单 (无参数时的默认行为)
   help        显示本帮助信息
 
@@ -1068,6 +612,10 @@ SrP-Dotfiles Windows 声明式一键配置总控脚本 (start.ps1)
 "@
 }
 
+# -------------------------------------------------------------------------
+# 6. CLI 参数解析
+# -------------------------------------------------------------------------
+
 # 处理明确的 CLI 参数命令
 if ($Action -ne '' -and $Action -ne 'launch') {
     switch ($Action) {
@@ -1080,7 +628,7 @@ if ($Action -ne '' -and $Action -ne 'launch') {
 }
 
 # -------------------------------------------------------------------------
-# 无参数或 Action 为 launch 时：启动交互式欢迎菜单
+# 7. 交互式启动菜单 (无参数直接运行时)
 # -------------------------------------------------------------------------
 Clear-Host
 Write-Host "====================================================" -ForegroundColor Cyan
@@ -1092,9 +640,9 @@ Write-Host " 💻 PowerShell:   PS $($PSVersionTable.PSVersion.ToString())" -For
 Write-Host " 📄 规则清单文件: $ManifestFile" -ForegroundColor Magenta
 Write-Host "----------------------------------------------------" -ForegroundColor Cyan
 Write-Host " 请选择要执行的操作："
-Write-Host "   1) 全部执行 (安装全套环境依赖 + 部署符号链接配置) " -NoNewline; Write-Host "[推荐/默认]" -ForegroundColor Green
+Write-Host "   1) 全部执行 (安装全套环境依赖 + 部署配置) " -NoNewline; Write-Host "[推荐/默认]" -ForegroundColor Green
 Write-Host "   2) 仅安装系统依赖与软件包 (Install Packages - 纯软件安装)"
-Write-Host "   3) 仅部署与同步配置文件 (Deploy Configs - 纯符号链接同步)"
+Write-Host "   3) 仅部署与同步配置文件 (Deploy Configs - 纯覆盖复制)"
 Write-Host "   0) 退出"
 Write-Host "----------------------------------------------------" -ForegroundColor Cyan
 
