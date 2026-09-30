@@ -9,13 +9,18 @@
 
 ---
 
-SrP-Dotfiles utilizes a **Single Branch (`main`) + Declarative Manifest (`manifest.toml`) + Twin Master Control Engines (`launch.sh` / `start.ps1`)** architecture. It provides first-class native support for both **Unix-like environments (Arch Linux, WSL 2, Debian/Ubuntu, Android Termux)** and **Windows host systems (Windows 10/11)**.
+SrP-Dotfiles utilizes a **Single Branch (`main`) + Declarative Manifest (`manifest.json`) + Thin Dispatch Entrypoints (`launch.sh` / `start.ps1`) + Declarative Deploy Layer (`scripts/`)** architecture. It provides first-class native support for both **Unix-like environments (Arch Linux, WSL 2, Debian/Ubuntu, Android Termux)** and **Windows host systems (Windows 10/11)**.
+
+> **Design principle: entrypoints only dispatch, the manifest only declares, and only special cases get a script.**
+> Adding a new app config = adding one entry to `configs` in `manifest.json`; a dedicated deploy script is needed only for multi-target routing or other special logic.
 
 ---
 
 ## ✨ Key Features
 
-- 🎯 **Single Source of Truth (`manifest.toml`)**: Centralized declaration of system packages, domestic mirrors, global npm tools, and symlink targets across Arch, Debian, Termux, and Windows. Add or remove dependencies without modifying any shell scripts.
+- 🎯 **Single Source of Truth (`manifest.json`)**: Packages, domestic mirrors, global npm tools and **deployment instructions** declared in one place. New packages need zero script changes; new config entries need exactly one line.
+- 🧩 **Three Deploy Verbs**: Every config entry collapses into `link` (symlink, edits apply live), `copy` (overwrite copy, no backup), or `custom` (special-case script). The entrypoints never grow.
+- 📖 **Fully Controllable**: To answer “what exists, where does it go, how do I change it”, you only read `manifest.json`.
 - 🛡️ **Resilient Pipeline & Execution Audit**:
   - **Fail-and-Ask Error Handling**: When network timeouts or command errors occur, choose `[s] Skip`, `[r] Retry`, or `[a] Abort` on the fly to prevent pipeline crashes.
   - **Two-Stage `Ctrl + C` Interrupt**: Single press `Ctrl + C` skips the current hanging step and continues the pipeline; press `Ctrl + C` twice within 1.2s to cleanly abort and immediately print the full audit summary.
@@ -38,11 +43,23 @@ SrP-Dotfiles utilizes a **Single Branch (`main`) + Declarative Manifest (`manife
 
 ```text
 srp-dotfiles/
-├── manifest.toml          # 🧠 Central brain: declarative packages, buckets & symlinks
+├── manifest.json          # 🧠 Central brain: packages, buckets & deploy instructions
 │
-├── 🚀 Cross-Platform Twin Engines
-│   ├── launch.sh          # Unix master engine (Interactive menu, install, symlink & audit)
-│   └── start.ps1          # Windows master engine (Interactive menu, Winget/Scoop, symlink & audit)
+├── 🚀 Thin Dispatch Entrypoints (parse manifest → dispatch → audit ledger)
+│   ├── launch.sh          # Unix entrypoint (~650 lines)
+│   └── start.ps1          # Windows entrypoint (~640 lines)
+│
+├── 🧩 Declarative Deploy Layer (how the entrypoints execute each config)
+│   └── scripts/
+│       ├── lib/                      # Deploy primitives ("how", reusable, never run alone)
+│       │   ├── deploy.sh             # Unix deploy verbs: link / copy
+│       │   ├── deploy.ps1            # Windows deploy verbs: link / copy
+│       │   ├── manifest.js           # Unix manifest reader (node)
+│       │   ├── manifest.ps1          # Windows manifest reader (ConvertFrom-Json)
+│       │   └── pi-inject-packages.js # Expands @repo tokens into settings.packages
+│       └── configs/                  # Special-case configs ("who"; one per method:custom)
+│           ├── pi.sh                 # Matches { "name": "pi", "method": "custom" }
+│           └── pi.ps1
 │
 ├── 🐧 Unix Configuration Suite
 │   ├── .zshrc             # Zsh entrypoint (symlinked to ~/.zshrc)
@@ -65,12 +82,13 @@ srp-dotfiles/
 │   └── code/              # VS Code settings template & custom styling assets
 │
 └── 🤖 Pi Agent Architecture
-    ├── pi/settings.json.example # Secure runtime configuration template
+    ├── pi/settings.json.example # Runtime template (copied over ~/.pi/agent/settings.json)
+    ├── pi/mcp.json.example # MCP server template (copied over ~/.pi/agent/mcp.json)
     ├── pi/AGENTS.md       # Global agent behavioral & safety rules
-    ├── pi/extensions/     # Custom extensions (srp-image, srp-voice, srp-memory, etc.)
+    ├── pi/extensions/     # Custom extensions (srp-voice, srp-memory, srp-subagent, etc.)
     ├── pi/skills/         # Custom agent skills
     ├── pi/prompts/        # Structured prompt templates
-    └── scripts/merge_pi_settings.js # Safe settings.json merge tool
+    └── pi/packages/pi-learn  # Local Pi package (**not deployed**; referenced in place via @repo)
 ```
 
 ---
@@ -129,13 +147,13 @@ In PowerShell 7, navigate to the cloned directory:
 Or run directly with subcommands:
 
 ```powershell
-# Full pipeline: install tools & deploy symlinks
+# Full pipeline: install tools & deploy configs (overwrite copy)
 .\start.ps1 all
 
-# Install tools only (based on manifest.toml [windows])
+# Install tools only (based on the windows section of manifest.json)
 .\start.ps1 install
 
-# Deploy configuration symlinks only (WezTerm, PowerShell Profile, configs)
+# Deploy configs only (WezTerm, PowerShell Profile, etc.)
 .\start.ps1 config
 
 # Force overwrite mode
@@ -182,24 +200,110 @@ Or run directly with subcommands:
 
 ## 🛠️ Advanced Customization
 
-### 1. Declarative Package Management (`manifest.toml`)
-To install new packages on any platform, append the package identifier to `manifest.toml` without touching any script:
+### 1. Add a Package (`manifest.json` → per-OS `packages` / `scoopPackages` …)
 
-```toml
-[windows]
-winget_packages = [ "wez.wezterm", "Git.Git" ]
-scoop_packages  = [ "sox", "neovim", "fzf" ]
-
-[arch]
-packages = [ "zsh", "eza", "ripgrep" ]
+```json
+"arch":    { "packages": ["zsh", "eza", "ripgrep"] }
+"windows": { "wingetPackages": ["wez.wezterm"], "scoopPackages": ["sox", "fzf"] }
 ```
 
-### 2. Intelligent Two-Stage `Ctrl + C` Interrupt
+### 2. Add an App Config (`manifest.json` → per-OS `configs`)
+
+Append one entry to that OS's `configs` array — **no script changes required**:
+
+```json
+{ "name": "starship", "method": "link", "source": "starship", "target": "~/.config/starship" }
+```
+
+Three deploy verbs:
+
+| `method` | Meaning | Required fields |
+| :--- | :--- | :--- |
+| `link` | Symlink (repo edits apply live). Conflicting targets are archived to `~/.dotfiles_backup/` | `source` + `target` or `targets` |
+| `copy` | **Overwrite copy**: an existing target is deleted and rewritten, **no backup** | `source` + `target` |
+| `custom` | Run `scripts/configs/<name>.sh` / `.ps1` | none |
+
+Optional fields:
+
+| Field | Purpose |
+| :--- | :--- |
+| `targets` | Multiple targets instead of `target`, e.g. `~/.config` **and** `%APPDATA%` on Windows |
+| `exclude` | Top-level entries to skip when linking a directory |
+| `ifMissing` | The only exception switch for `copy`: skip when the target exists (`-f` still overwrites) |
+| `when` | Skip the whole entry when this path is absent (e.g. btop not yet installed by Scoop) |
+
+Path placeholders: `~`, `%APPDATA%`, `$SCOOP`, `$PROFILE`.
+
+### 3. Add a Special-Case Config (multi-target routing / name resolution)
+
+Write a script only when `link` / `copy` cannot express what you need (e.g. Pi fans out to 5 locations and allowlists extensions):
+
+```bash
+scripts/configs/<name>.sh     # Unix
+scripts/configs/<name>.ps1    # Windows
+```
+
+Scripts can reuse the verb library (`source ../lib/deploy.sh` → `link_item` / `copy_item`) and run standalone for debugging:
+
+```bash
+bash scripts/configs/pi.sh
+```
+
+### 4. Deploy Semantics at a Glance
+
+| Config entry | Verb | Resulting form |
+| :--- | :--- | :--- |
+| `.zshrc` / `.vimrc` / `btop` / `fastfetch` / `yazi` / `zellij` | `link` | One symlink under `~/.config/<name>` pointing at the repo; edits apply live |
+| `pi` | `custom` | Everything under `~/.pi/agent/` is a **real copy** (overwrite, no backup) |
+
+How Pi's `settings.json` is produced:
+
+```
+pi/settings.json.example  ──copy (overwrite)──▶  ~/.pi/agent/settings.json
+pi/mcp.json.example       ──copy (overwrite)──▶  ~/.pi/agent/mcp.json
+                                                        │
+        manifest.json → piPackages  ──inject──▶  settings.json's packages field (only that field)
+```
+
+So: **every field except `packages` comes from the template; `packages` comes from the manifest.**
+After deleting a skill/extension from the repo, the stale copy in the target is **not deleted automatically** — the deploy prints a `目标里存在仓库中已不存在的项` line so you can clean it up deliberately.
+
+#### Local Pi packages are not copied
+
+| Package type | Where Pi stores it | What we declare |
+| :--- | :--- | :--- |
+| `npm:` | Pi installs into `~/.pi/agent/npm/node_modules/` | the npm source name |
+| `https://` / `git:` | Pi clones into `~/.pi/agent/git/<host>/<repo>` | the URL |
+| **Local path** | **loaded in place, never copied** | `@repo/pi/packages/pi-learn` |
+
+`@repo/` is a deploy-time token expanded by `pi-inject-packages.js` into the absolute repo path,
+so it survives cloning anywhere. Edit the package in the repo and restart Pi — no redeploy needed.
+
+> Pi does **not** scan something like `~/.pi/agent/packages/` — packages can only be declared through the
+> `packages` field in `settings.json`. Earlier versions copied local packages into that directory; that is now gone.
+
+#### MCP Config Uses pi's Built-in Implementation
+
+pi ships with built-in MCP and reads `~/.pi/agent/mcp.json` (project-level: `.pi/mcp.json`).
+This repo's `pi/mcp.json.example` deploys to that path.
+
+> ⚠️ Installing the `pi-mcp-adapter` extension **replaces the built-in support** — pi then stops
+> reading `mcp.json` and `/mcp` belongs to the extension. That is why `piPackages` no longer includes it.
+> The old `~/.config/mcp/mcp.json` is the **adapter's** path, which the built-in never reads; it is deprecated.
+
+Never commit secrets: `env` supports `${VAR}` references, e.g. `"MINERU_API_TOKEN": "${MINERU_API_TOKEN}"`,
+with the real value in `~/.zshrc.local`. When the variable is unset, `pi mcp list` reports it explicitly
+instead of silently sending a placeholder.
+
+`~/.pi/agent/mcp.json` is also written by pi itself (`/mcp` UI, `pi mcp add/remove`); deploying overwrites
+those edits — move them back into `pi/mcp.json.example` first if you want to keep them.
+
+### 5. Intelligent Two-Stage `Ctrl + C` Interrupt
 Both `./launch.sh` and `.\start.ps1` feature a built-in signal state machine:
 - **Single `Ctrl + C`**: Gracefully interrupts and skips the currently hanging step (e.g. slow network download) and moves seamlessly to the next step.
 - **Double `Ctrl + C` (within 1.2s)**: Completely aborts the execution pipeline and instantly prints the *Deployment Audit Report*.
 
-### 3. Local Private Environment Isolation (`~/.zshrc.local`)
+### 6. Local Private Environment Isolation (`~/.zshrc.local`)
 For machine-specific sensitive variables (API tokens, private proxies) that should never be committed to Git:
 
 ```bash

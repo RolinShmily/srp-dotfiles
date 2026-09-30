@@ -9,13 +9,18 @@
 
 ---
 
-SrP-Dotfiles 采用 **单分支（`main`）+ 声明式清单（`manifest.toml`）+ 跨平台双子星总控引擎（`launch.sh` / `start.ps1`）** 架构，原生深度适配 **类 Unix 系统（Arch Linux / WSL 2 / Debian / Ubuntu / Android Termux）** 与 **Windows 宿主环境（Windows 10/11）**。
+SrP-Dotfiles 采用 **单分支（`main`）+ 声明式清单（`manifest.json`）+ 极薄派发入口（`launch.sh` / `start.ps1`）+ 声明式部署层（`scripts/`）** 架构，原生深度适配 **类 Unix 系统（Arch Linux / WSL 2 / Debian / Ubuntu / Android Termux）** 与 **Windows 宿主环境（Windows 10/11）**。
+
+> **设计原则：入口只做派发，清单只放声明，特例才写脚本。**
+> 新增一个软件配置 = 在 `manifest.json` 的 `configs` 里加一条；只有需要多路分发等特殊逻辑时，才额外写一个部署脚本。
 
 ---
 
 ## ✨ 核心特性
 
-- 🎯 **单一真实数据源 (`manifest.toml`)**：不同平台（Arch、Debian、Termux、Windows）的软件包、国内镜像加速源、npm 全局工具与部署目标集中声明，增删依赖零改动代码。
+- 🎯 **单一真实数据源 (`manifest.json`)**：软件包、国内镜像加速源、npm 全局工具与**部署指示**集中声明。新增软件零改动脚本；新增配置项只需一条声明。
+- 🧩 **三个部署动词**：所有配置项收敛为 `link`（软链，改仓库即时生效）、`copy`（覆盖式复制，不备份）与 `custom`（特例脚本）三种方式，入口永不膨胀。
+- 📖 **完全可控**：想知道“有什么配置、装到哪里、怎么改”，只需读 `manifest.json` 一个文件。
 - 🛡️ **韧性流水线与执行审计报告**：
   - **遇错智能拦截 (Fail-and-Ask)**：网络波动或安装异常时，支持一键 `[s] 跳过`、`[r] 重试` 或 `[a] 终止`，杜绝单点报错导致流程崩溃；
   - **智能两级 `Ctrl + C` 中断**：单次按下 `Ctrl + C` 仅跳过当前卡住的子步骤并平滑继续下一步；1.2 秒内连按两次 `Ctrl + C` 彻底安全终止并立即打印全量审计报表；
@@ -27,9 +32,9 @@ SrP-Dotfiles 采用 **单分支（`main`）+ 声明式清单（`manifest.toml`�
   - **移动端/WSL 适配**：Android Termux 自动注入 Nerd Font，WSL 剪贴板无缝桥接。
 - 🪟 **Windows 工业级工作流 (`start.ps1`)**：
   - **WezTerm 工业级调优**：低功耗 30 FPS 渲染、经典快闪烁方块光标、智能 URL 清洗与全键盘 QuickSelect (`Alt+Ctrl+u`)、专属背景图 / 纯黑底色一键秒切 (`Alt+/`)；
-  - **PowerShell 7 + Oh My Posh**：全局 Profile 模板自动软链部署，100% 对齐 Unix Git/GitHub CLI 工作流（`ghci`, `pr`, `grbom`, `gfrb`, `gcam`, `gst`），集成 `yz`（Yazi 退出同步目录）、`proj`、`clone`、`grt` 等全套提效函数；
+  - **PowerShell 7 + Oh My Posh**：全局 Profile 模板自动覆盖部署，100% 对齐 Unix Git/GitHub CLI 工作流（`ghci`, `pr`, `grbom`, `gfrb`, `gcam`, `gst`），集成 `yz`（Yazi 退出同步目录）、`proj`、`clone`、`grt` 等全套提效函数；
   - **国内镜像源与多线程加速**：Scoop 自动配置南京大学镜像源（main/extras/versions/nerd-fonts）与 Aria2 多线程下载加速；
-  - **权限优雅降级**：优先建立符号链接（支持开发实时双向同步），无开发者模式时自动安全降级为文件复制。
+  - **全覆盖式复制部署**：Windows 端不用符号链接（需开发者模式/管理员权限且行为不一致），所有配置一律覆盖式复制，结果可预期。
 - 🤖 **Pi Coding Agent 深度集成**：内置全局智能体规范（`AGENTS.md`）、自研扩展集（OpenRouter生图、流式语音识别、长期记忆、多Pane子智能体、视觉理解、网页抓取）、提示词与技能工具链。
 
 ---
@@ -38,11 +43,23 @@ SrP-Dotfiles 采用 **单分支（`main`）+ 声明式清单（`manifest.toml`�
 
 ```text
 srp-dotfiles/
-├── manifest.toml          # 🧠 核心大脑：全平台依赖、镜像源与配置声明式清单
+├── manifest.json          # 🧠 核心大脑：全平台依赖、镜像源、部署指示的唯一声明清单
 │
-├── 🚀 跨平台统一引擎
-│   ├── launch.sh          # Unix 总控引擎 (聚合交互菜单、依赖安装、软链部署与审计)
-│   └── start.ps1          # Windows 总控引擎 (聚合交互菜单、Winget/Scoop安装、软链部署与审计)
+├── 🚀 极薄派发入口 (解析清单 → 逐条派发 → 审计账本)
+│   ├── launch.sh          # Unix 入口 (~650 行)
+│   └── start.ps1          # Windows 入口 (~640 行)
+│
+├── 🧩 声明式部署层 (入口借助它执行每一个配置项)
+│   └── scripts/
+│       ├── lib/                      # 部署原语（「怎么做」，可复用，不会自己跑）
+│       │   ├── deploy.sh             # Unix 部署动词: link / copy
+│       │   ├── deploy.ps1            # Windows 部署动词: link / copy
+│       │   ├── manifest.js           # Unix 清单读取 (node)
+│       │   ├── manifest.ps1          # Windows 清单读取 (ConvertFrom-Json)
+│       │   └── pi-inject-packages.js # 展开 @repo 令牌并写入 settings 的 packages
+│       └── configs/                  # 特例配置项（「谁」，每个 method:custom 一条）
+│           ├── pi.sh                 # 对应 manifest 里 { "name": "pi", "method": "custom" }
+│           └── pi.ps1
 │
 ├── 🐧 类 Unix 系统配置体系
 │   ├── .zshrc             # Zsh 主入口 (软链至 ~/.zshrc)
@@ -65,12 +82,13 @@ srp-dotfiles/
 │   └── code/              # VS Code 配置模板与开屏/背景等静态样式资源
 │
 └── 🤖 Pi Agent 智能体体系
-    ├── pi/settings.json.example # 安全运行时配置模板
+    ├── pi/settings.json.example # 运行时配置模板 (部署时直复制覆盖为 ~/.pi/agent/settings.json)
+    ├── pi/mcp.json.example # MCP 服务模板 (部署时直复制覆盖为 ~/.pi/agent/mcp.json)
     ├── pi/AGENTS.md       # 全局智能体通用行为与安全准则
-    ├── pi/extensions/     # 核心扩展体系 (srp-image, srp-voice, srp-memory 等)
+    ├── pi/extensions/     # 核心扩展体系 (srp-voice, srp-memory, srp-subagent 等)
     ├── pi/skills/         # 自定义技能工具库
     ├── pi/prompts/        # 结构化 Prompt 模板
-    └── scripts/merge_pi_settings.js # settings.json 安全合并工具
+    └── pi/packages/pi-learn  # 本地 Pi 包（**不部署**，由 manifest 以 @repo 路径直接引用）
 ```
 
 ---
@@ -129,13 +147,13 @@ cd ~/.dotfiles
 或使用命令行参数直接执行：
 
 ```powershell
-# 全量自动化流水线：环境依赖安装 + 符号链接部署
+# 全量自动化流水线：环境依赖安装 + 配置覆盖部署
 .\start.ps1 all
 
-# 仅安装系统依赖与工具 (基于 manifest.toml [windows])
+# 仅安装系统依赖与工具 (基于 manifest.json 的 windows 段)
 .\start.ps1 install
 
-# 仅部署并同步配置文件 (WezTerm + PowerShell Profile 符号链接)
+# 仅部署并同步配置文件 (WezTerm + PowerShell Profile 等)
 .\start.ps1 config
 
 # 强制覆盖模式
@@ -182,24 +200,108 @@ cd ~/.dotfiles
 
 ## 🛠️ 进阶定制与扩展
 
-### 1. 声明式扩展新软件 (`manifest.toml`)
-无论在哪个平台需要新增软件包，仅需在 `manifest.toml` 对应节中追加名称，无需改动脚本：
+### 1. 加一个软件依赖 (`manifest.json` → 各 OS 段的 `packages` / `scoopPackages` …)
 
-```toml
-[windows]
-winget_packages = [ "wez.wezterm", "Git.Git" ]
-scoop_packages  = [ "sox", "neovim", "fzf" ]
-
-[arch]
-packages = [ "zsh", "eza", "ripgrep" ]
+```json
+"arch":    { "packages": ["zsh", "eza", "ripgrep"] }
+"windows": { "wingetPackages": ["wez.wezterm"], "scoopPackages": ["sox", "fzf"] }
 ```
 
-### 2. 智能两级 `Ctrl + C` 中断与故障审计
+### 2. 加一个配置项 (`manifest.json` → 各 OS 段的 `configs`)
+
+在对应 OS 的 `configs` 数组里追加一条即可，**不需要动任何脚本**：
+
+```json
+{ "name": "starship", "method": "link", "source": "starship", "target": "~/.config/starship" }
+```
+
+三个部署动词：
+
+| `method` | 含义 | 必填字段 |
+| :--- | :--- | :--- |
+| `link` | 软链接（改仓库文件即时生效）。目标冲突时归档到 `~/.dotfiles_backup/` | `source` + `target` 或 `targets` |
+| `copy` | **覆盖式复制**：目标已存在就删除重写，**不备份** | `source` + `target` |
+| `custom` | 执行 `scripts/configs/<name>.sh` / `.ps1` | 无 |
+
+通用可选字段：
+
+| 字段 | 作用 |
+| :--- | :--- |
+| `targets` | 多目标数组，替代 `target`。用于同一配置需同时落 `~/.config` 与 `%APPDATA%` 的场景 |
+| `exclude` | `link` 目录时跳过的顶层项 |
+| `ifMissing` | `copy` 的唯一例外开关：目标已存在就跳过（`-f` 时仍覆盖） |
+| `when` | 该路径不存在则整条跳过（如 Scoop 尚未安装的 btop） |
+
+路径占位符：`~`、`%APPDATA%`、`$SCOOP`、`$PROFILE`。
+
+### 3. 加一个特例配置项（多路分发 / 名称解析）
+
+只有 `link` / `copy` 表达不了的场景才需要脚本（例如 Pi 要分发到 5 个不同位置并按白名单过滤扩展）：
+
+```bash
+scripts/configs/<name>.sh     # Unix
+scripts/configs/<name>.ps1    # Windows
+```
+
+脚本内可复用部署动词库（`source ../lib/deploy.sh` → `link_item` / `copy_item`），也可单独调试：
+
+```bash
+bash scripts/configs/pi.sh
+```
+
+### 4. 部署语义速查
+
+| 配置项 | 动词 | 落地形态 |
+| :--- | :--- | :--- |
+| `.zshrc` / `.vimrc` / `btop` / `fastfetch` / `yazi` / `zellij` | `link` | `~/.config/<name>` 一条指向仓库的软链，改仓库即时生效 |
+| `pi` | `custom` | `~/.pi/agent/` 下**全部为真实副本**（覆盖式，不备份） |
+
+Pi 的 `settings.json` 生成流程：
+
+```
+pi/settings.json.example  ──copy 覆盖──▶  ~/.pi/agent/settings.json
+pi/mcp.json.example       ──copy 覆盖──▶  ~/.pi/agent/mcp.json
+                                                   │
+         manifest.json 的 piPackages  ──注入──▶  settings.json 的 packages 字段（只改这一个字段）
+```
+
+即：**除 `packages` 外的所有字段完全由模板决定，`packages` 完全由 manifest 决定。**
+仓库里删掉一个 skill/extension 后，目标目录里的旧副本**不会自动删除**，部署时会打印一行 `目标里存在仓库中已不存在的项` 提醒你手动清理。
+
+#### 本地 Pi 包不复制
+
+| 包类型 | Pi 如何存放 | 我们的做法 |
+| :--- | :--- | :--- |
+| `npm:` | Pi 自己装到 `~/.pi/agent/npm/node_modules/` | manifest 里写源即名称 |
+| `https://` / `git:` | Pi 自己 clone 到 `~/.pi/agent/git/<host>/<repo>` | manifest 里写 URL |
+| **本地路径** | **原地加载，不复制** | manifest 里写 `@repo/pi/packages/pi-learn` |
+
+`@repo/` 是部署时展开的令牌（由 `pi-inject-packages.js` 处理），展开成仓库绝对路径，
+所以 clone 到哪里都不会失效。改仓库里的包代码，重启 Pi 即时生效（无需重新部署）。
+
+> Pi **不会**扫描 `~/.pi/agent/packages/` 这类目录 —— 包只能通过 `settings.json` 的 `packages` 字段声明。
+> 早期版本曾把本地包复制到该目录，现已废弃。
+
+#### MCP 配置走 pi 内置实现
+
+pi 已内置 MCP，读取 `~/.pi/agent/mcp.json`（项目级为 `.pi/mcp.json`）。本仓库的
+`pi/mcp.json.example` 就部署到该路径。
+
+> ⚠️ 安装 `pi-mcp-adapter` 扩展会**顶掉内置支持** —— pi 就不再读 `mcp.json`，`/mcp` 也归该扩展。
+> 所以 `piPackages` 里不再包含它。旧的 `~/.config/mcp/mcp.json` 是**适配器的路径，内置实现不读**，已废弃。
+
+密钥不要写进仓库：`env` 支持 `${VAR}` 引用，例如 `"MINERU_API_TOKEN": "${MINERU_API_TOKEN}"`，
+真实值放 `~/.zshrc.local`。变量未设置时 pi 会在 `pi mcp list` 里明确报错，不会静默使用占位符。
+
+`~/.pi/agent/mcp.json` 也是 pi 自己会写的文件（`/mcp` 界面、`pi mcp add/remove`），
+部署会覆盖那些改动 —— 想保留就先把改动搬回 `pi/mcp.json.example`。
+
+### 5. 智能两级 `Ctrl + C` 中断与故障审计
 全平台启动引擎（`./launch.sh` 与 `.\start.ps1`）均内置两级按键中断与执行审计状态机：
 - **单击 `Ctrl + C`**：仅中断并跳过当前正在执行/下载卡住的单个子步骤，自动记入跳过清单，流水线无缝执行下一步；
 - **1 秒内连按 `Ctrl + C`**：彻底终止整个流程，并立即输出《安装与部署审计报告》（清晰列出成功项、跳过项、失败项及补救重试提示）。
 
-### 3. 本地私有环境变量隔离 (`~/.zshrc.local`)
+### 6. 本地私有环境变量隔离 (`~/.zshrc.local`)
 若需配置仅在单机生效且不希望提交到 Git 的敏感环境变量（如 API Token、内部代理）：
 
 ```bash
