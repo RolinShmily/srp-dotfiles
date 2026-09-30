@@ -49,7 +49,6 @@ pi_packages = [
     "npm:@upstash/context7-pi",
     "npm:@narumitw/pi-btw",
     "npm:pi-antigravity",
-    "npm:pi-autoresearch",
     "npm:pi-wakatime",
     "https://github.com/cathrynlavery/diagram-design"
 ]
@@ -85,16 +84,12 @@ pi_extensions = [
     "srp-ask.ts",
     "srp-continue.ts",
     "srp-prompt.ts",
-    "srp-providers.ts",
     "srp-theme.ts",
-    "srp-vision.ts",
-    "srp-image.ts",
     "srp-memory"
 ]
 pi_packages = [
     "~/.pi/agent/packages/pi-learn",
     "npm:pi-web-access",
-    "npm:pi-mcp-adapter",
     "npm:pi-subagents",
     "npm:pi-background-tasks",
     "npm:@xjuai/pi-feishu-lark",
@@ -146,10 +141,7 @@ pi_extensions = [
     "srp-ask.ts",
     "srp-continue.ts",
     "srp-prompt.ts",
-    "srp-providers.ts",
     "srp-theme.ts",
-    "srp-vision.ts",
-    "srp-image.ts",
     "srp-web.ts",
     "srp-memory",
     "srp-subagent"
@@ -160,9 +152,7 @@ pi_packages = [
     "npm:@upstash/context7-pi",
     "npm:@narumitw/pi-btw",
     "npm:pi-antigravity",
-    "npm:pi-autoresearch",
     "npm:pi-wakatime",
-    "npm:pi-mcp-adapter",
     "https://github.com/cathrynlavery/diagram-design"
 ]
 skills_add = []
@@ -260,7 +250,6 @@ pi_packages = [
     "npm:@upstash/context7-pi",
     "npm:@narumitw/pi-btw",
     "npm:pi-antigravity",
-    "npm:pi-autoresearch",
     "npm:pi-wakatime",
     "https://github.com/cathrynlavery/diagram-design"
 ]
