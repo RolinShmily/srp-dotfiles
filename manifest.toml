@@ -36,11 +36,8 @@ pi_extensions = [
     "srp-ask.ts",
     "srp-continue.ts",
     "srp-prompt.ts",
-    "srp-providers.ts",
     "srp-theme.ts",
-    "srp-vision.ts",
     "srp-voice.ts",
-    "srp-image.ts",
     "srp-web.ts",
     "windows-screenshot.ts",
     "srp-memory",
@@ -54,7 +51,6 @@ pi_packages = [
     "npm:pi-antigravity",
     "npm:pi-autoresearch",
     "npm:pi-wakatime",
-    "npm:pi-mcp-adapter",
     "https://github.com/cathrynlavery/diagram-design"
 ]
 skills_add = []
@@ -249,11 +245,8 @@ pi_extensions = [
     "srp-ask.ts",
     "srp-continue.ts",
     "srp-prompt.ts",
-    "srp-providers.ts",
     "srp-theme.ts",
-    "srp-vision.ts",
     "srp-voice.ts",
-    "srp-image.ts",
     "srp-web.ts",
     "windows-screenshot.ts",
     "srp-memory",
@@ -269,7 +262,6 @@ pi_packages = [
     "npm:pi-antigravity",
     "npm:pi-autoresearch",
     "npm:pi-wakatime",
-    "npm:pi-mcp-adapter",
     "https://github.com/cathrynlavery/diagram-design"
 ]
 
