@@ -22,7 +22,8 @@
 *.kdl       text eol=lf
 *.conf      text eol=lf
 *.theme     text eol=lf
-.vimrc      text eol=lf
+*vimrc      text eol=lf
+*zshrc      text eol=lf
 .gitignore  text eol=lf
 
 # Windows 平台专属脚本与批处理

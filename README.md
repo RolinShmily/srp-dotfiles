@@ -27,7 +27,7 @@ SrP-Dotfiles utilizes a **Single Branch (`main`) + Declarative Manifest (`manife
   - **Audit Ledger**: Outputs a structured *Deployment Audit Report* after execution, detailing successful, skipped, and failed tasks with retry commands.
   - **Safe Backup Archiving**: Automatically backs up conflicting existing configurations with timestamps to `~/.dotfiles_backup/`.
 - 🐧 **Modern Unix Suite (`launch.sh`)**:
-  - **Modular Zsh (`zsh.d/`)**: Decoupled into environment variables, Oh My Zsh plugins, Spaceship theme, Git aliases, modern CLI replacements, and OS-specific scripts.
+  - **Modular Zsh (`zsh/`)**: Decoupled into environment variables, Oh My Zsh plugins, Spaceship theme, Git aliases, modern CLI replacements, and OS-specific scripts.
   - **Terminal Power Tools**: Integrated Zellij multiplexer, Yazi file manager, Btop system monitor, Fastfetch system info, and lightweight Vim configuration.
   - **WSL & Termux Enhancements**: Seamless Windows clipboard bridge in WSL; automatic Nerd Font injection in Android Termux.
 - 🪟 **Industrial-Grade Windows Workflow (`start.ps1`)**:
@@ -62,9 +62,10 @@ srp-dotfiles/
 │           └── pi.ps1
 │
 ├── 🐧 Unix Configuration Suite
-│   ├── .zshrc             # Zsh entrypoint (symlinked to ~/.zshrc)
-│   ├── .vimrc             # Lightweight Vim configuration (symlinked to ~/.vimrc)
-│   ├── zsh.d/             # Modular Zsh scripts
+│   ├── vim/               # Lightweight Vim configuration
+│   │   └── vimrc          # Vim entrypoint (symlinked to ~/.vimrc)
+│   ├── zsh/               # Modular Zsh configuration
+│   │   ├── zshrc          # Zsh entrypoint (symlinked to ~/.zshrc)
 │   │   ├── env.zsh        # Environment variables, NVM, PATH, Locale & Editor
 │   │   ├── omz.zsh        # Oh My Zsh plugins & Spaceship theme
 │   │   ├── git.zsh        # Git aliases, shortcuts & GPG/SSH commit signing
@@ -77,7 +78,7 @@ srp-dotfiles/
 │   └── zellij/            # Zellij terminal multiplexer layouts & keybindings
 │
 ├── 🪟 Windows Configuration Suite
-│   ├── wezterm/           # WezTerm terminal configuration (.wezterm.lua) & background
+│   ├── wezterm/           # WezTerm terminal configuration (wezterm.lua) & background
 │   ├── powershell/        # Windows PowerShell 7 global profile template ($PROFILE)
 │   └── code/              # VS Code settings template & custom styling assets
 │
@@ -253,7 +254,7 @@ bash scripts/configs/pi.sh
 
 | Config entry | Verb | Resulting form |
 | :--- | :--- | :--- |
-| `.zshrc` / `.vimrc` / `btop` / `fastfetch` / `yazi` / `zellij` | `link` | One symlink under `~/.config/<name>` pointing at the repo; edits apply live |
+| `zshrc` / `vimrc` / `btop` / `fastfetch` / `yazi` / `zellij` | `link` | One symlink under `~/.config/<name>` pointing at the repo; edits apply live |
 | `pi` | `custom` | Everything under `~/.pi/agent/` is a **real copy** (overwrite, no backup) |
 
 How Pi's `settings.json` is produced:

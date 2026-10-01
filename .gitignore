@@ -9,9 +9,9 @@ pi/settings.json
 *.tmp
 *:Zone.Identifier
 
-# 本地私有 Zsh 配置 (若放置在 zsh.d 中)
-zsh.d/local.zsh
-zsh.d/*.local.zsh
+# 本地私有 Zsh 配置 (若放置在 zsh 中)
+zsh/local.zsh
+zsh/*.local.zsh
 
 # skill
 pi/skills/browser-tools/package-lock.json

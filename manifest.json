@@ -119,13 +119,13 @@
       {
         "name": "zshrc",
         "method": "link",
-        "source": ".zshrc",
+        "source": "zsh/zshrc",
         "target": "~/.zshrc"
       },
       {
         "name": "vimrc",
         "method": "link",
-        "source": ".vimrc",
+        "source": "vim/vimrc",
         "target": "~/.vimrc"
       },
       {
@@ -222,13 +222,13 @@
       {
         "name": "zshrc",
         "method": "link",
-        "source": ".zshrc",
+        "source": "zsh/zshrc",
         "target": "~/.zshrc"
       },
       {
         "name": "vimrc",
         "method": "link",
-        "source": ".vimrc",
+        "source": "vim/vimrc",
         "target": "~/.vimrc"
       },
       {
@@ -316,13 +316,13 @@
       {
         "name": "zshrc",
         "method": "link",
-        "source": ".zshrc",
+        "source": "zsh/zshrc",
         "target": "~/.zshrc"
       },
       {
         "name": "vimrc",
         "method": "link",
-        "source": ".vimrc",
+        "source": "vim/vimrc",
         "target": "~/.vimrc"
       },
       {
@@ -425,7 +425,7 @@
       {
         "name": "vimrc",
         "method": "copy",
-        "source": ".vimrc",
+        "source": "vim/vimrc",
         "target": "~/_vimrc"
       },
       {
@@ -437,7 +437,7 @@
       {
         "name": "wezterm-conf",
         "method": "copy",
-        "source": "wezterm/.wezterm.lua",
+        "source": "wezterm/wezterm.lua",
         "target": "~/.config/wezterm/wezterm.lua"
       },
       {

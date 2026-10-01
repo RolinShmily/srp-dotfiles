@@ -1,4 +1,4 @@
-# ~/.zshrc - Dotfiles 模块化 Zsh 配置主入口
+# zsh/zshrc - Dotfiles 模块化 Zsh 配置主入口 (软链至 ~/.zshrc)
 
 # ------------------------------------------------------------------
 # 1. 解析 Dotfiles 所在物理目录
@@ -6,12 +6,12 @@
 if [ -n "$ZSH_DOTFILES_DIR" ]; then
     DOTFILES_DIR="$ZSH_DOTFILES_DIR"
 elif [ -L "$HOME/.zshrc" ]; then
-    # 获取软链接指向的真实文件目录
+    # 获取软链接指向的真实文件目录（指向仓库内 zsh/zshrc）
     _target="$(readlink "$HOME/.zshrc")"
     if [[ "$_target" = /* ]]; then
-        DOTFILES_DIR="$(dirname "$_target")"
+        DOTFILES_DIR="$(dirname "$(dirname "$_target")")"
     else
-        DOTFILES_DIR="$(cd "$(dirname "$HOME/$_target")" && pwd)"
+        DOTFILES_DIR="$(cd "$(dirname "$HOME/$_target")/.." && pwd)"
     fi
     unset _target
 elif [ -d "$HOME/.dotfiles" ]; then
@@ -19,7 +19,7 @@ elif [ -d "$HOME/.dotfiles" ]; then
 elif [ -d "$HOME/Projects/srp-dotfiles" ]; then
     DOTFILES_DIR="$HOME/Projects/srp-dotfiles"
 else
-    DOTFILES_DIR="${${(%):-%N}:A:h}"
+    DOTFILES_DIR="${${(%):-%N}:A:h:h}"
 fi
 
 export DOTFILES_DIR
@@ -36,8 +36,8 @@ _generic_modules=(
 )
 
 for _mod in "${_generic_modules[@]}"; do
-    if [ -f "$DOTFILES_DIR/zsh.d/${_mod}.zsh" ]; then
-        source "$DOTFILES_DIR/zsh.d/${_mod}.zsh"
+    if [ -f "$DOTFILES_DIR/zsh/${_mod}.zsh" ]; then
+        source "$DOTFILES_DIR/zsh/${_mod}.zsh"
     fi
 done
 unset _mod _generic_modules
@@ -66,14 +66,17 @@ _detect_os_module() {
 }
 
 _CURRENT_OS="$(_detect_os_module)"
-if [ -f "$DOTFILES_DIR/zsh.d/os/${_CURRENT_OS}.zsh" ]; then
-    source "$DOTFILES_DIR/zsh.d/os/${_CURRENT_OS}.zsh"
+if [ -f "$DOTFILES_DIR/zsh/os/${_CURRENT_OS}.zsh" ]; then
+    source "$DOTFILES_DIR/zsh/os/${_CURRENT_OS}.zsh"
 fi
 unset _CURRENT_OS _detect_os_module
 
 # ------------------------------------------------------------------
 # 4. 加载单机专属私有配置（不入 Git 仓库，可存放私有 Token/密钥）
 # ------------------------------------------------------------------
+if [ -f "$DOTFILES_DIR/zsh/local.zsh" ]; then
+    source "$DOTFILES_DIR/zsh/local.zsh"
+fi
 if [ -f "$HOME/.zshrc.local" ]; then
     source "$HOME/.zshrc.local"
 fi

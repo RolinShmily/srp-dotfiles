@@ -196,7 +196,7 @@ function grt {
 }
 
 # --------------------------------------------------------------------
-# 5. Git 极速工作流快捷函数 (100% 对齐 Unix zsh.d/git.zsh)
+# 5. Git 极速工作流快捷函数 (100% 对齐 Unix zsh/git.zsh)
 # --------------------------------------------------------------------
 
 # 彻底移除与 Git 快捷命令冲突的 PowerShell 原生别名 (gp/gl/gc/gcm)
@@ -361,7 +361,7 @@ function ggpg {
 }
 
 # --------------------------------------------------------------------
-# 6. GitHub CLI (gh) 极速提效函数 (对标 Unix zsh.d/git.zsh)
+# 6. GitHub CLI (gh) 极速提效函数 (对标 Unix zsh/git.zsh)
 # --------------------------------------------------------------------
 function ghci { gh run list -L 1 @args }
 
@@ -375,7 +375,7 @@ function pr {
 }
 
 # --------------------------------------------------------------------
-# 7. 项目与开发提效组合函数 (对标 Unix zsh.d/aliases.zsh)
+# 7. 项目与开发提效组合函数 (对标 Unix zsh/aliases.zsh)
 # --------------------------------------------------------------------
 function clonep {
     param([Parameter(Mandatory=$true)][string]$repo)
@@ -394,13 +394,11 @@ function codep {
     Set-Location $prev
 }
 
-function serve {
-    param([string]$path = "dist")
-    if (Get-Command "live-server" -ErrorAction SilentlyContinue) {
-        live-server $path @args
-    } else {
-        Write-Warning "未检测到 live-server，请先运行 'npm install -g live-server' 或 '.\start.ps1 install'。"
-    }
+# 本地快速静态服务器别名 (对标 Unix zsh/aliases.zsh 中的 alias serve='live-server')
+if (Get-Command "live-server" -ErrorAction SilentlyContinue) {
+    Set-Alias -Name serve -Value live-server -Option AllScope
+} else {
+    Set-Alias -Name serve -Value live-server -Option AllScope -ErrorAction SilentlyContinue
 }
 
 # --------------------------------------------------------------------

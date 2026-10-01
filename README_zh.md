@@ -27,7 +27,7 @@ SrP-Dotfiles 采用 **单分支（`main`）+ 声明式清单（`manifest.json`�
   - **部署审计看板**：每次运行结束输出结构化的《安装与部署审计报告》，精准汇总成功、跳过与失败项并提供重试指引；
   - **安全备份机制**：覆盖前自动按时间戳归档旧配置至 `~/.dotfiles_backup/`。
 - 🐧 **类 Unix 现代化套件 (`launch.sh`)**：
-  - **模块化 Zsh (`zsh.d/`)**：拆分为环境变量、Oh My Zsh、Spaceship 主题、Git 别名、现代 CLI 增强与操作系统特供片段；
+  - **模块化 Zsh (`zsh/`)**：拆分为环境变量、Oh My Zsh、Spaceship 主题、Git 别名、现代 CLI 增强与操作系统特供片段；
   - **终端利器集成**：Zellij 复用器、Yazi 文件管理器、Btop 性能监控、Fastfetch 系统看板与轻量 Vim；
   - **移动端/WSL 适配**：Android Termux 自动注入 Nerd Font，WSL 剪贴板无缝桥接。
 - 🪟 **Windows 工业级工作流 (`start.ps1`)**：
@@ -62,9 +62,10 @@ srp-dotfiles/
 │           └── pi.ps1
 │
 ├── 🐧 类 Unix 系统配置体系
-│   ├── .zshrc             # Zsh 主入口 (软链至 ~/.zshrc)
-│   ├── .vimrc             # 现代轻量 Vim 配置 (软链至 ~/.vimrc)
-│   ├── zsh.d/             # 模块化 Zsh 配置片段
+│   ├── vim/               # 现代轻量 Vim 配置体系
+│   │   └── vimrc          # Vim 主配置 (软链至 ~/.vimrc 或复制至 ~/_vimrc)
+│   ├── zsh/               # 模块化 Zsh 配置体系
+│   │   ├── zshrc          # Zsh 主入口 (软链至 ~/.zshrc)
 │   │   ├── env.zsh        # 环境变量、NVM、PATH、Locale 与默认编辑器
 │   │   ├── omz.zsh        # Oh My Zsh 插件与 Spaceship 现代主题
 │   │   ├── git.zsh        # Git 别名、快捷函数与 GPG/SSH 签名
@@ -77,7 +78,7 @@ srp-dotfiles/
 │   └── zellij/            # Zellij 终端复用器布局与键位映射
 │
 ├── 🪟 Windows 系统配置体系
-│   ├── wezterm/           # WezTerm 现代终端工业级配置 (.wezterm.lua) 与专属背景图
+│   ├── wezterm/           # WezTerm 现代终端工业级配置 (wezterm.lua) 与专属背景图
 │   ├── powershell/        # Windows PowerShell 7 全局 Profile 模板 (整合 Oh-My-Posh)
 │   └── code/              # VS Code 配置模板与开屏/背景等静态样式资源
 │
@@ -253,7 +254,7 @@ bash scripts/configs/pi.sh
 
 | 配置项 | 动词 | 落地形态 |
 | :--- | :--- | :--- |
-| `.zshrc` / `.vimrc` / `btop` / `fastfetch` / `yazi` / `zellij` | `link` | `~/.config/<name>` 一条指向仓库的软链，改仓库即时生效 |
+| `zshrc` / `vimrc` / `btop` / `fastfetch` / `yazi` / `zellij` | `link` | `~/.config/<name>` 一条指向仓库的软链，改仓库即时生效 |
 | `pi` | `custom` | `~/.pi/agent/` 下**全部为真实副本**（覆盖式，不备份） |
 
 Pi 的 `settings.json` 生成流程：

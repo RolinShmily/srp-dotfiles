@@ -1,4 +1,4 @@
-# zsh.d/aliases.zsh - 通用别名、现代 CLI 增强与目录导航函数
+# zsh/aliases.zsh - 通用别名、现代 CLI 增强与目录导航函数
 
 # -------------------------------- #
 # 基础终端别名
@@ -80,10 +80,4 @@ function codep() {
 }
 
 # 本地快速静态服务器
-function serve() {
-    if [[ -z $1 ]]; then
-        live-server dist
-    else
-        live-server "$1"
-    fi
-}
+alias serve='live-server'

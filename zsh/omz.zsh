@@ -1,4 +1,4 @@
-# zsh.d/omz.zsh - Oh My Zsh 插件与 Spaceship 主题配置
+# zsh/omz.zsh - Oh My Zsh 插件与 Spaceship 主题配置
 
 export ZSH="$HOME/.oh-my-zsh"
 

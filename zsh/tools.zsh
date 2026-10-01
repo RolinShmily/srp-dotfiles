@@ -1,4 +1,4 @@
-# zsh.d/tools.zsh - 终端工具（Zellij, Yazi, Zoxide, FZF）集成
+# zsh/tools.zsh - 终端工具（Zellij, Yazi, Zoxide, FZF）集成
 
 # -------------------------------- #
 # Zellij (终端复用器)

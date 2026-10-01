@@ -1,4 +1,4 @@
-# zsh.d/os/termux.zsh - Android Termux 环境专属配置
+# zsh/os/termux.zsh - Android Termux 环境专属配置
 
 # Termux 剪贴板适配 (termux-clipboard-set)
 function gsha() {
