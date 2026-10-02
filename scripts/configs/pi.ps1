@@ -148,6 +148,13 @@ if (Test-Path -LiteralPath $mcpExample) {
                     -Name "Pi mcp.json" -BackupDir $Global:DF_BackupDir | Out-Null
 }
 
+# ---------- 2c. keybindings.json: 直复制覆盖 ----------
+$keybindingsExample = Join-Path $piSrc "keybindings.json.example"
+if (Test-Path -LiteralPath $keybindingsExample) {
+    Deploy-CopyItem -Source $keybindingsExample -Target (Join-Path $piDest "keybindings.json") `
+                    -Name "Pi keybindings.json" -BackupDir $Global:DF_BackupDir | Out-Null
+}
+
 # ---------- 3. extensions（按 manifest 白名单过滤） ----------
 $allowedExt = @(Get-ManifestArray -Os $ManifestOs -Key "piExtensions")
 Copy-PiEachItem -SubDir "extensions" -AllowedNames $allowedExt

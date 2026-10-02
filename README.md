@@ -85,6 +85,7 @@ srp-dotfiles/
 └── 🤖 Pi Agent Architecture
     ├── pi/settings.json.example # Runtime template (copied over ~/.pi/agent/settings.json)
     ├── pi/mcp.json.example # MCP server template (copied over ~/.pi/agent/mcp.json)
+    ├── pi/keybindings.json.example # Keybindings template (copied over ~/.pi/agent/keybindings.json)
     ├── pi/AGENTS.md       # Global agent behavioral & safety rules
     ├── pi/extensions/     # Custom extensions (srp-voice, srp-memory, srp-subagent, etc.)
     ├── pi/skills/         # Custom agent skills
@@ -257,13 +258,14 @@ bash scripts/configs/pi.sh
 | `zshrc` / `vimrc` / `btop` / `fastfetch` / `yazi` / `zellij` | `link` | One symlink under `~/.config/<name>` pointing at the repo; edits apply live |
 | `pi` | `custom` | Everything under `~/.pi/agent/` is a **real copy** (overwrite, no backup) |
 
-How Pi's `settings.json` is produced:
+How Pi's configuration is produced:
 
 ```
-pi/settings.json.example  ──copy (overwrite)──▶  ~/.pi/agent/settings.json
-pi/mcp.json.example       ──copy (overwrite)──▶  ~/.pi/agent/mcp.json
-                                                        │
-        manifest.json → piPackages  ──inject──▶  settings.json's packages field (only that field)
+pi/settings.json.example    ──copy (overwrite)──▶  ~/.pi/agent/settings.json
+pi/mcp.json.example         ──copy (overwrite)──▶  ~/.pi/agent/mcp.json
+pi/keybindings.json.example ──copy (overwrite)──▶  ~/.pi/agent/keybindings.json
+                                                         │
+         manifest.json → piPackages  ──inject──▶  settings.json's packages field (only that field)
 ```
 
 So: **every field except `packages` comes from the template; `packages` comes from the manifest.**

@@ -85,6 +85,7 @@ srp-dotfiles/
 └── 🤖 Pi Agent 智能体体系
     ├── pi/settings.json.example # 运行时配置模板 (部署时直复制覆盖为 ~/.pi/agent/settings.json)
     ├── pi/mcp.json.example # MCP 服务模板 (部署时直复制覆盖为 ~/.pi/agent/mcp.json)
+    ├── pi/keybindings.json.example # 快捷键映射模板 (部署时直复制覆盖为 ~/.pi/agent/keybindings.json)
     ├── pi/AGENTS.md       # 全局智能体通用行为与安全准则
     ├── pi/extensions/     # 核心扩展体系 (srp-voice, srp-memory, srp-subagent 等)
     ├── pi/skills/         # 自定义技能工具库
@@ -257,13 +258,14 @@ bash scripts/configs/pi.sh
 | `zshrc` / `vimrc` / `btop` / `fastfetch` / `yazi` / `zellij` | `link` | `~/.config/<name>` 一条指向仓库的软链，改仓库即时生效 |
 | `pi` | `custom` | `~/.pi/agent/` 下**全部为真实副本**（覆盖式，不备份） |
 
-Pi 的 `settings.json` 生成流程：
+Pi 的配置生成流程：
 
 ```
-pi/settings.json.example  ──copy 覆盖──▶  ~/.pi/agent/settings.json
-pi/mcp.json.example       ──copy 覆盖──▶  ~/.pi/agent/mcp.json
-                                                   │
-         manifest.json 的 piPackages  ──注入──▶  settings.json 的 packages 字段（只改这一个字段）
+pi/settings.json.example    ──copy 覆盖──▶  ~/.pi/agent/settings.json
+pi/mcp.json.example         ──copy 覆盖──▶  ~/.pi/agent/mcp.json
+pi/keybindings.json.example ──copy 覆盖──▶  ~/.pi/agent/keybindings.json
+                                                     │
+           manifest.json 的 piPackages  ──注入──▶  settings.json 的 packages 字段（只改这一个字段）
 ```
 
 即：**除 `packages` 外的所有字段完全由模板决定，`packages` 完全由 manifest 决定。**

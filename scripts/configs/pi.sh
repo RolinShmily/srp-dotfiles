@@ -135,6 +135,11 @@ if [ -f "$PI_SRC/mcp.json.example" ]; then
     copy_item "$PI_SRC/mcp.json.example" "$PI_DEST/mcp.json"
 fi
 
+# ---------- 2c. keybindings.json: 直复制覆盖 ----------
+if [ -f "$PI_SRC/keybindings.json.example" ]; then
+    copy_item "$PI_SRC/keybindings.json.example" "$PI_DEST/keybindings.json"
+fi
+
 # ---------- 3. extensions（按 manifest 白名单过滤） ----------
 allowed_ext=""
 if command -v node >/dev/null 2>&1 && [ -f "$MANIFEST_JS" ]; then
