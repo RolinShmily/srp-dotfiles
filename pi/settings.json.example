@@ -4,7 +4,7 @@
   "defaultThinkingLevel": "high",
   "theme": "dark",
   "srpTheme": {
-    "header": true,
+    "header": false,
     "footer": true,
     "tps": true
   },

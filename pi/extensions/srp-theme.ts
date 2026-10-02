@@ -2,7 +2,7 @@
  * srp-theme.ts — SRP 定制 UI 主题扩展
  *
  * 功能特性：
- * 1. Header: 启动/会话重置时展示 135° 紫粉渐变赛博朋克图形 Logo 与 srprolin 终端身份签名；
+ * 1. Header（默认关闭）：启动/会话重置时展示 135° 紫粉渐变赛博朋克图形 Logo 与 srprolin 终端身份签名；
  * 2. Footer: 在编辑器下方（belowEditor widget）显示最近一次用户提交的消息提示（↳ <prompt>），状态栏第一行自适应展示 PWD、最后一轮 Agent-Loop 结束时间与用时胶囊（{ finished at HH:mm · 4.2s }）与当前时间胶囊；
  * 3. TPS Meter: 实时测量 Tokens Per Second (TPS) 并在状态栏显示流式平滑槽位条与历史 Sparkline 趋势指标；
  * 4. 单一主控制命令：`/srp-theme [header|footer|tps] [on|off]` 或 `/srp-theme status`。
@@ -85,7 +85,7 @@ export function readConfig(cwd: string): SrpThemeConfig {
       ? themeSection.header
       : typeof legacyHeader === "boolean"
         ? legacyHeader
-        : true;
+        : false;
 
   const footerEnabled =
     typeof themeSection.footer === "boolean"
@@ -1111,7 +1111,7 @@ const safeFallbackTheme: Theme = {
 
 export default function (pi: ExtensionAPI) {
   let lastUserPrompt = "";
-  let headerEnabled = true;
+  let headerEnabled = false;
   let footerEnabled = true;
   let lastLoopEndTime: Date | null = null;
   let lastLoopDurationMs: number | null = null;
