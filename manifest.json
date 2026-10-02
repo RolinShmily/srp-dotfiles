@@ -104,6 +104,7 @@
       "srp-web.ts",
       "windows-screenshot.ts",
       "srp-memory",
+      "srp-providers.ts",
       "srp-subagent"
     ],
     "piPackages": [
@@ -301,6 +302,7 @@
       "srp-theme.ts",
       "srp-web.ts",
       "srp-memory",
+      "srp-providers.ts",
       "srp-subagent"
     ],
     "piPackages": [
@@ -410,6 +412,7 @@
       "srp-web.ts",
       "windows-screenshot.ts",
       "srp-memory",
+      "srp-providers.ts",
       "srp-subagent"
     ],
     "piPackages": [
