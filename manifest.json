@@ -160,7 +160,7 @@
       "srp-ask.ts",
       "srp-continue.ts",
       "srp-prompt.ts",
-      "srp-theme.ts",
+      "srp-theme.ts"
     ],
     "piPackages": [
       "@repo/pi/packages/pi-learn",

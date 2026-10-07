@@ -83,9 +83,9 @@ srp-dotfiles/
 │   └── code/              # VS Code 配置模板与开屏/背景等静态样式资源
 │
 └── 🤖 Pi Agent 智能体体系
-    ├── pi/settings.json.example # 运行时配置模板 (部署时直复制覆盖为 ~/.pi/agent/settings.json)
-    ├── pi/mcp.json.example # MCP 服务模板 (部署时直复制覆盖为 ~/.pi/agent/mcp.json)
-    ├── pi/keybindings.json.example # 快捷键映射模板 (部署时直复制覆盖为 ~/.pi/agent/keybindings.json)
+    ├── pi/settings.json.example # 运行时配置模板 (目标 JSON 已存在时保留原文件，模板另存为 .json.example)
+    ├── pi/mcp.json.example # MCP 服务模板 (按目标 JSON 是否存在决定生成 JSON 或旁存 .example)
+    ├── pi/keybindings.json.example # 快捷键映射模板 (按目标 JSON 是否存在决定生成 JSON 或旁存 .example)
     ├── pi/AGENTS.md       # 全局智能体通用行为与安全准则
     ├── pi/extensions/     # 核心扩展体系 (srp-voice, srp-memory, srp-subagent 等)
     ├── pi/skills/         # 自定义技能工具库
@@ -256,19 +256,17 @@ bash scripts/configs/pi.sh
 | 配置项 | 动词 | 落地形态 |
 | :--- | :--- | :--- |
 | `zshrc` / `vimrc` / `btop` / `fastfetch` / `yazi` / `zellij` | `link` | `~/.config/<name>` 一条指向仓库的软链，改仓库即时生效 |
-| `pi` | `custom` | `~/.pi/agent/` 下**全部为真实副本**（覆盖式，不备份） |
+| `pi` | `custom` | `~/.pi/agent/` 下为真实副本；`.example` 模板先检查正式目标是否存在，存在则保留并旁存模板 |
 
-Pi 的配置生成流程：
+Pi 的配置模板按正式 JSON 是否已存在来部署：
 
-```
-pi/settings.json.example    ──copy 覆盖──▶  ~/.pi/agent/settings.json
-pi/mcp.json.example         ──copy 覆盖──▶  ~/.pi/agent/mcp.json
-pi/keybindings.json.example ──copy 覆盖──▶  ~/.pi/agent/keybindings.json
-                                                     │
-           manifest.json 的 piPackages  ──注入──▶  settings.json 的 packages 字段（只改这一个字段）
-```
+- 正式 JSON **不存在**：去掉 `.example` 后缀，创建 `settings.json`、`mcp.json` 或 `keybindings.json`。
+- 正式 JSON **已存在**：保留用户文件不动，把模板复制为同目录的 `*.json.example`。
+- 只有新生成的 `settings.json` 才会注入 manifest 的 `piPackages`；已有配置旁的示例文件保持模板原样。
 
-即：**除 `packages` 外的所有字段完全由模板决定，`packages` 完全由 manifest 决定。**
+同一规则也适用于 `code/settings.json.example`（目标为 Windows 的 `%APPDATA%/Code/User/settings.json`）。如果旁边已有 `*.json.example`，部署会用仓库模板更新该示例文件，不会覆盖正式 JSON。
+
+即：新建时 `settings.json` 的 `packages` 由 manifest 决定；用户已有的配置不会被合并或改写。
 仓库里删掉一个 skill/extension 后，目标目录里的旧副本**不会自动删除**，部署时会打印一行 `目标里存在仓库中已不存在的项` 提醒你手动清理。
 
 #### 本地 Pi 包不复制
@@ -288,7 +286,7 @@ pi/keybindings.json.example ──copy 覆盖──▶  ~/.pi/agent/keybindings.
 #### MCP 配置走 pi 内置实现
 
 pi 已内置 MCP，读取 `~/.pi/agent/mcp.json`（项目级为 `.pi/mcp.json`）。本仓库的
-`pi/mcp.json.example` 就部署到该路径。
+`pi/mcp.json.example` 在目标 `mcp.json` 不存在时生成该文件；若已存在，则模板另存为同目录的 `mcp.json.example`。
 
 > ⚠️ 安装 `pi-mcp-adapter` 扩展会**顶掉内置支持** —— pi 就不再读 `mcp.json`，`/mcp` 也归该扩展。
 > 所以 `piPackages` 里不再包含它。旧的 `~/.config/mcp/mcp.json` 是**适配器的路径，内置实现不读**，已废弃。
@@ -296,8 +294,7 @@ pi 已内置 MCP，读取 `~/.pi/agent/mcp.json`（项目级为 `.pi/mcp.json`�
 密钥不要写进仓库：`env` 支持 `${VAR}` 引用，例如 `"MINERU_API_TOKEN": "${MINERU_API_TOKEN}"`，
 真实值放 `~/.zshrc.local`。变量未设置时 pi 会在 `pi mcp list` 里明确报错，不会静默使用占位符。
 
-`~/.pi/agent/mcp.json` 也是 pi 自己会写的文件（`/mcp` 界面、`pi mcp add/remove`），
-部署会覆盖那些改动 —— 想保留就先把改动搬回 `pi/mcp.json.example`。
+`~/.pi/agent/mcp.json` 也是 pi 自己会写的文件（`/mcp` 界面、`pi mcp add/remove`）。已有 `mcp.json` 时部署会保留它，并把仓库模板另存为 `mcp.json.example`。
 
 ### 5. 智能两级 `Ctrl + C` 中断与故障审计
 全平台启动引擎（`./launch.sh` 与 `.\start.ps1`）均内置两级按键中断与执行审计状态机：

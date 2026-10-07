@@ -142,3 +142,25 @@ copy_item() {
     fi
     log_success "已覆盖复制: $dest"
 }
+
+# .example 模板部署: 正式目标已存在时保留原文件，模板落到 <目标>.example；
+# 正式目标不存在时直接以模板创建正式目标。
+example_target_path() {
+    local dest="$1"
+    if [ -e "$dest" ] || [ -L "$dest" ]; then
+        printf '%s.example' "$dest"
+    else
+        printf '%s' "$dest"
+    fi
+}
+
+copy_example_item() {
+    local src="$1" dest="$2" if_missing="${3:-}" example_dest
+    example_dest="$(example_target_path "$dest")"
+    if [ "$example_dest" != "$dest" ]; then
+        log_info "目标已存在，保留原文件并将模板复制为: $example_dest"
+    else
+        log_info "目标不存在，使用模板创建: $dest"
+    fi
+    copy_item "$src" "$example_dest" "$if_missing"
+}

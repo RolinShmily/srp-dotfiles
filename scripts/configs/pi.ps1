@@ -3,7 +3,8 @@
 # 部署策略: 全部 copy 覆盖，不做备份、不做比对。
 #   pi\ 目录扇出到 ~\.pi\agent\ 下的四个位置，
 #   pi\extensions 按 manifest.json 的 piExtensions 白名单过滤，
-#   pi\settings.json.example 复制后再把 manifest 的 piPackages 注入 packages 字段。
+#   .example 配置先检查正式目标：不存在时生成 JSON，存在时保留并旁存 .json.example；
+#   仅新生成的 settings.json 会注入 manifest 的 piPackages。
 #
 # 注意: pi\packages\ 下的本地包**不部署**。manifest 的 piPackages 里写
 #   @repo/pi/packages/<name>，由 pi-inject-packages.js 展开成仓库绝对路径，Pi 直接从仓库加载。
@@ -120,39 +121,43 @@ if (Test-Path -LiteralPath $agentsMd) {
                     -Name "Pi AGENTS.md" -BackupDir $Global:DF_BackupDir | Out-Null
 }
 
-# ---------- 2. settings.json: 直复制覆盖，再注入 manifest 的 packages ----------
+# ---------- 2. settings.json: 目标不存在时生成；已存在时保留并部署 example ----------
 $settingsExample = Join-Path $piSrc "settings.json.example"
 if (Test-Path -LiteralPath $settingsExample) {
     $settingsTarget = Join-Path $piDest "settings.json"
-    Deploy-CopyItem -Source $settingsExample -Target $settingsTarget `
+    $settingsDeployTarget = Get-ExampleTarget -Target $settingsTarget
+    Deploy-CopyItem -Source $settingsExample -Target $settingsDeployTarget `
                     -Name "Pi settings.json" -BackupDir $Global:DF_BackupDir | Out-Null
 
-    $piPackages = @(Get-ManifestArray -Os $ManifestOs -Key "piPackages")
-    if ($piPackages.Count -gt 0 -and (Test-Path -LiteralPath $injectJs)) {
-        if (Get-Command node -ErrorAction SilentlyContinue) {
-            & node $injectJs $settingsTarget @piPackages
+    if ($settingsDeployTarget -eq $settingsTarget) {
+        $piPackages = @(Get-ManifestArray -Os $ManifestOs -Key "piPackages")
+        if ($piPackages.Count -gt 0 -and (Test-Path -LiteralPath $injectJs)) {
+            if (Get-Command node -ErrorAction SilentlyContinue) {
+                & node $injectJs $settingsTarget @piPackages
+            } else {
+                Write-LogWarn "未检测到 node，跳过 packages 注入"
+            }
         } else {
-            Write-LogWarn "未检测到 node，跳过 packages 注入"
+            Write-LogInfo "manifest 的 piPackages 为空，settings.json 的 packages 保持模板值"
         }
     } else {
-        Write-LogInfo "manifest 的 piPackages 为空，settings.json 的 packages 保持模板值"
+        Write-LogInfo "已有 settings.json 保持不动，跳过 packages 注入"
     }
 }
 
-# ---------- 2b. mcp.json: 直复制覆盖（pi 内置 MCP 读取本路径）----------
-# 注: ~/.pi/agent/mcp.json 也是 pi 自己会写的文件（/mcp 界面、pi mcp add/remove），
-#     部署会覆盖那些改动；想保留就把改动搬回 pi\mcp.json.example。
+# ---------- 2b. mcp.json: 目标不存在时生成；已存在时部署 example ----------
+# pi 也会写入 mcp.json（/mcp 界面、pi mcp add/remove）；已有配置会保留，模板另存为 example。
 $mcpExample = Join-Path $piSrc "mcp.json.example"
 if (Test-Path -LiteralPath $mcpExample) {
-    Deploy-CopyItem -Source $mcpExample -Target (Join-Path $piDest "mcp.json") `
-                    -Name "Pi mcp.json" -BackupDir $Global:DF_BackupDir | Out-Null
+    Deploy-CopyExampleItem -Source $mcpExample -Target (Join-Path $piDest "mcp.json") `
+                           -Name "Pi mcp.json" -BackupDir $Global:DF_BackupDir | Out-Null
 }
 
-# ---------- 2c. keybindings.json: 直复制覆盖 ----------
+# ---------- 2c. keybindings.json: 目标不存在时生成；已存在时部署 example ----------
 $keybindingsExample = Join-Path $piSrc "keybindings.json.example"
 if (Test-Path -LiteralPath $keybindingsExample) {
-    Deploy-CopyItem -Source $keybindingsExample -Target (Join-Path $piDest "keybindings.json") `
-                    -Name "Pi keybindings.json" -BackupDir $Global:DF_BackupDir | Out-Null
+    Deploy-CopyExampleItem -Source $keybindingsExample -Target (Join-Path $piDest "keybindings.json") `
+                           -Name "Pi keybindings.json" -BackupDir $Global:DF_BackupDir | Out-Null
 }
 
 # ---------- 3. extensions（按 manifest 白名单过滤） ----------

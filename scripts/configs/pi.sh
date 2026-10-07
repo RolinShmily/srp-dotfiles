@@ -4,7 +4,8 @@
 # 部署策略: 全部 copy 覆盖，不做备份、不做比对。
 #   pi/ 目录扇出到 ~/.pi/agent/ 下的四个位置，
 #   pi/extensions 按 manifest 的 piExtensions 白名单过滤，
-#   pi/settings.json.example 复制后再把 manifest 的 piPackages 注入 packages 字段。
+#   .example 配置先检查正式目标：不存在时生成 JSON，存在时保留并旁存 .json.example；
+#   仅新生成的 settings.json 会注入 manifest 的 piPackages。
 #
 # 注意: pi/packages/ 下的本地包**不部署**。manifest 的 piPackages 里写
 #   @repo/pi/packages/<name>，由 pi-inject-packages.js 展开成仓库绝对路径，Pi 直接从仓库加载。
@@ -108,36 +109,46 @@ prune_extensions() {
 # ---------- 1. 全局规范 ----------
 [ -f "$PI_SRC/AGENTS.md" ] && copy_item "$PI_SRC/AGENTS.md" "$PI_DEST/AGENTS.md"
 
-# ---------- 2. settings.json: 直复制覆盖，再注入 manifest 的 packages ----------
+# ---------- 2. settings.json: 目标不存在时生成；已存在时保留并部署 example ----------
 if [ -f "$PI_SRC/settings.json.example" ]; then
-    copy_item "$PI_SRC/settings.json.example" "$PI_DEST/settings.json"
+    settings_target="$PI_DEST/settings.json"
+    settings_deploy_target="$(example_target_path "$settings_target")"
+    if [ "$settings_deploy_target" = "$settings_target" ]; then
+        log_info "settings.json 不存在，使用模板创建"
+    else
+        log_info "检测到已有 settings.json，保留原文件；模板将保存为 settings.json.example"
+    fi
+    copy_item "$PI_SRC/settings.json.example" "$settings_deploy_target"
 
-    if command -v node >/dev/null 2>&1 && [ -f "$MANIFEST_JS" ] && [ -f "$INJECT_JS" ]; then
-        pkgs=()
-        while IFS= read -r line; do
-            [ -n "$line" ] && pkgs+=("$line")
-        done < <(node "$MANIFEST_JS" get "$PI_MANIFEST_OS" piPackages 2>/dev/null || true)
+    if [ "$settings_deploy_target" = "$settings_target" ]; then
+        if command -v node >/dev/null 2>&1 && [ -f "$MANIFEST_JS" ] && [ -f "$INJECT_JS" ]; then
+            pkgs=()
+            while IFS= read -r line; do
+                [ -n "$line" ] && pkgs+=("$line")
+            done < <(node "$MANIFEST_JS" get "$PI_MANIFEST_OS" piPackages 2>/dev/null || true)
 
-        if [ ${#pkgs[@]} -gt 0 ]; then
-            node "$INJECT_JS" "$PI_DEST/settings.json" "${pkgs[@]}"
+            if [ ${#pkgs[@]} -gt 0 ]; then
+                node "$INJECT_JS" "$settings_target" "${pkgs[@]}"
+            else
+                log_info "manifest 的 piPackages 为空，settings.json 的 packages 保持模板值"
+            fi
         else
-            log_info "manifest 的 piPackages 为空，settings.json 的 packages 保持模板值"
+            log_warn "缺少 node 或脚本，跳过 packages 注入"
         fi
     else
-        log_warn "缺少 node 或脚本，跳过 packages 注入"
+        log_info "已有 settings.json 保持不动，跳过 packages 注入"
     fi
 fi
 
-# ---------- 2b. mcp.json: 直复制覆盖（pi 内置 MCP 读取本路径）----------
-# 注: ~/.pi/agent/mcp.json 也是 pi 自己会写的文件（/mcp 界面、pi mcp add/remove），
-#     部署会覆盖那些改动；想保留就把改动搬回 pi/mcp.json.example。
+# ---------- 2b. mcp.json: 目标不存在时生成；已存在时部署 example ----------
+# pi 也会写入 mcp.json（/mcp 界面、pi mcp add/remove）；已有配置会保留，模板另存为 example。
 if [ -f "$PI_SRC/mcp.json.example" ]; then
-    copy_item "$PI_SRC/mcp.json.example" "$PI_DEST/mcp.json"
+    copy_example_item "$PI_SRC/mcp.json.example" "$PI_DEST/mcp.json"
 fi
 
-# ---------- 2c. keybindings.json: 直复制覆盖 ----------
+# ---------- 2c. keybindings.json: 目标不存在时生成；已存在时部署 example ----------
 if [ -f "$PI_SRC/keybindings.json.example" ]; then
-    copy_item "$PI_SRC/keybindings.json.example" "$PI_DEST/keybindings.json"
+    copy_example_item "$PI_SRC/keybindings.json.example" "$PI_DEST/keybindings.json"
 fi
 
 # ---------- 3. extensions（按 manifest 白名单过滤） ----------

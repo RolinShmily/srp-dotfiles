@@ -83,9 +83,9 @@ srp-dotfiles/
 │   └── code/              # VS Code settings template & custom styling assets
 │
 └── 🤖 Pi Agent Architecture
-    ├── pi/settings.json.example # Runtime template (copied over ~/.pi/agent/settings.json)
-    ├── pi/mcp.json.example # MCP server template (copied over ~/.pi/agent/mcp.json)
-    ├── pi/keybindings.json.example # Keybindings template (copied over ~/.pi/agent/keybindings.json)
+    ├── pi/settings.json.example # Runtime template (if JSON exists, preserve it and save template as .json.example)
+    ├── pi/mcp.json.example # MCP server template (create JSON if missing; otherwise save as .json.example)
+    ├── pi/keybindings.json.example # Keybindings template (create JSON if missing; otherwise save as .json.example)
     ├── pi/AGENTS.md       # Global agent behavioral & safety rules
     ├── pi/extensions/     # Custom extensions (srp-voice, srp-memory, srp-subagent, etc.)
     ├── pi/skills/         # Custom agent skills
@@ -256,19 +256,17 @@ bash scripts/configs/pi.sh
 | Config entry | Verb | Resulting form |
 | :--- | :--- | :--- |
 | `zshrc` / `vimrc` / `btop` / `fastfetch` / `yazi` / `zellij` | `link` | One symlink under `~/.config/<name>` pointing at the repo; edits apply live |
-| `pi` | `custom` | Everything under `~/.pi/agent/` is a **real copy** (overwrite, no backup) |
+| `pi` | `custom` | Real copies under `~/.pi/agent/`; `.example` templates check for the destination JSON and preserve it when present |
 
-How Pi's configuration is produced:
+Pi's configuration templates check whether the destination JSON already exists:
 
-```
-pi/settings.json.example    ──copy (overwrite)──▶  ~/.pi/agent/settings.json
-pi/mcp.json.example         ──copy (overwrite)──▶  ~/.pi/agent/mcp.json
-pi/keybindings.json.example ──copy (overwrite)──▶  ~/.pi/agent/keybindings.json
-                                                         │
-         manifest.json → piPackages  ──inject──▶  settings.json's packages field (only that field)
-```
+- If the JSON is **missing**, the template is copied without `.example` to create `settings.json`, `mcp.json`, or `keybindings.json`.
+- If the JSON **exists**, it is preserved and the template is copied beside it as `*.json.example`.
+- `piPackages` is injected only into a newly generated `settings.json`; the sidecar example remains an untouched copy of the template.
 
-So: **every field except `packages` comes from the template; `packages` comes from the manifest.**
+The same rule applies to `code/settings.json.example` (Windows target: `%APPDATA%/Code/User/settings.json`). If a `*.json.example` sidecar already exists, it is refreshed from the repository template; the actual JSON remains untouched.
+
+So: **new `settings.json` files get `packages` from the manifest; existing user configuration is never merged or rewritten.**
 After deleting a skill/extension from the repo, the stale copy in the target is **not deleted automatically** — the deploy prints a `目标里存在仓库中已不存在的项` line so you can clean it up deliberately.
 
 #### Local Pi packages are not copied
@@ -288,7 +286,7 @@ so it survives cloning anywhere. Edit the package in the repo and restart Pi —
 #### MCP Config Uses pi's Built-in Implementation
 
 pi ships with built-in MCP and reads `~/.pi/agent/mcp.json` (project-level: `.pi/mcp.json`).
-This repo's `pi/mcp.json.example` deploys to that path.
+This repo's `pi/mcp.json.example` creates `mcp.json` when it is missing; if it already exists, the template is saved as `mcp.json.example` beside it.
 
 > ⚠️ Installing the `pi-mcp-adapter` extension **replaces the built-in support** — pi then stops
 > reading `mcp.json` and `/mcp` belongs to the extension. That is why `piPackages` no longer includes it.
@@ -298,8 +296,8 @@ Never commit secrets: `env` supports `${VAR}` references, e.g. `"MINERU_API_TOKE
 with the real value in `~/.zshrc.local`. When the variable is unset, `pi mcp list` reports it explicitly
 instead of silently sending a placeholder.
 
-`~/.pi/agent/mcp.json` is also written by pi itself (`/mcp` UI, `pi mcp add/remove`); deploying overwrites
-those edits — move them back into `pi/mcp.json.example` first if you want to keep them.
+`~/.pi/agent/mcp.json` is also written by pi itself (`/mcp` UI, `pi mcp add/remove`). If it exists,
+deployment preserves it and saves the repository template as `mcp.json.example` beside it.
 
 ### 5. Intelligent Two-Stage `Ctrl + C` Interrupt
 Both `./launch.sh` and `.\start.ps1` feature a built-in signal state machine:

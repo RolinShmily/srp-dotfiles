@@ -497,6 +497,8 @@ _dispatch_config() {
                 dest="$(expand_path "$t")"
                 if [ "$method" = "link" ]; then
                     run_step "[$name] 链接 -> $t" link_item "$(config_source_path "$source")" "$dest" "$exclude"
+                elif [[ "$source" == *.example ]]; then
+                    run_step "[$name] 复制示例配置 -> $t" copy_example_item "$(config_source_path "$source")" "$dest" "$ifmissing"
                 else
                     run_step "[$name] 复制 -> $t" copy_item "$(config_source_path "$source")" "$dest" "$ifmissing"
                 fi

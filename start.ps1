@@ -531,6 +531,10 @@ function Invoke-ConfigEntry {
             Invoke-Step -Name "[$name] 链接 -> $t" -ScriptBlock {
                 Deploy-LinkItem -Source $source -Target $dest -Name $name -BackupDir $BackupDir -Exclude $exclude | Out-Null
             }
+        } elseif ([string]$Entry.source -like "*.example") {
+            Invoke-Step -Name "[$name] 复制示例配置 -> $t" -ScriptBlock {
+                Deploy-CopyExampleItem -Source $source -Target $dest -Name $name -BackupDir $BackupDir -IfMissing:$ifMissing | Out-Null
+            }
         } else {
             Invoke-Step -Name "[$name] 复制 -> $t" -ScriptBlock {
                 Deploy-CopyItem -Source $source -Target $dest -Name $name -BackupDir $BackupDir -Exclude $exclude -IfMissing:$ifMissing | Out-Null

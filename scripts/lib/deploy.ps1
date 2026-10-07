@@ -249,3 +249,32 @@ function Deploy-CopyItem {
     Write-LogSuccess "[$Name] 已覆盖复制: $Target"
     return $true
 }
+
+# .example 模板部署: 正式目标已存在时保留原文件，模板落到 <目标>.example；
+# 正式目标不存在时直接以模板创建正式目标。
+function Get-ExampleTarget {
+    param([Parameter(Mandatory)][string]$Target)
+
+    $existing = Get-Item -LiteralPath $Target -Force -ErrorAction SilentlyContinue
+    if ($existing) {
+        Write-LogInfo "目标已存在，保留原文件并将模板复制为: $Target.example"
+        return "$Target.example"
+    }
+
+    Write-LogInfo "目标不存在，使用模板创建: $Target"
+    return $Target
+}
+
+function Deploy-CopyExampleItem {
+    param(
+        [Parameter(Mandatory)][string]$Source,
+        [Parameter(Mandatory)][string]$Target,
+        [string]$Name = "示例配置",
+        [string]$BackupDir,
+        [switch]$IfMissing
+    )
+
+    $exampleTarget = Get-ExampleTarget -Target $Target
+    Deploy-CopyItem -Source $Source -Target $exampleTarget -Name $Name `
+                    -BackupDir $BackupDir -IfMissing:$IfMissing
+}
