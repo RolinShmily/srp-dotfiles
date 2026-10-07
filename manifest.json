@@ -61,14 +61,13 @@
       "srp-voice.ts",
       "srp-web.ts",
       "windows-screenshot.ts",
-      "srp-memory",
       "srp-providers.ts",
       "srp-subagent"
     ],
     "piPackages": [
       "@repo/pi/packages/pi-learn",
-      "npm:@narumitw/pi-goal",
       "npm:@upstash/context7-pi",
+      "npm:context-mode",
       "npm:@narumitw/pi-btw",
       "npm:pi-antigravity",
       "npm:pi-wakatime",
@@ -162,7 +161,6 @@
       "srp-continue.ts",
       "srp-prompt.ts",
       "srp-theme.ts",
-      "srp-memory"
     ],
     "piPackages": [
       "@repo/pi/packages/pi-learn",
@@ -258,14 +256,13 @@
       "srp-prompt.ts",
       "srp-theme.ts",
       "srp-web.ts",
-      "srp-memory",
       "srp-providers.ts",
       "srp-subagent"
     ],
     "piPackages": [
       "@repo/pi/packages/pi-learn",
-      "npm:@narumitw/pi-goal",
       "npm:@upstash/context7-pi",
+      "npm:context-mode",
       "npm:@narumitw/pi-btw",
       "npm:pi-antigravity",
       "npm:pi-wakatime",
@@ -368,14 +365,13 @@
       "srp-voice.ts",
       "srp-web.ts",
       "windows-screenshot.ts",
-      "srp-memory",
       "srp-providers.ts",
       "srp-subagent"
     ],
     "piPackages": [
       "@repo/pi/packages/pi-learn",
-      "npm:@narumitw/pi-goal",
       "npm:@upstash/context7-pi",
+      "npm:context-mode",
       "npm:@narumitw/pi-btw",
       "npm:pi-antigravity",
       "npm:pi-wakatime",
