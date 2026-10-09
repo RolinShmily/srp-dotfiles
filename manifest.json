@@ -69,7 +69,6 @@
       "memory-log"
     ],
     "piPackages": [
-      "@repo/pi/packages/pi-learn",
       "npm:@upstash/context7-pi",
       "npm:context-mode",
       "npm:@narumitw/pi-btw",
@@ -176,7 +175,6 @@
       "srp-theme.ts"
     ],
     "piPackages": [
-      "@repo/pi/packages/pi-learn",
       "npm:pi-web-access",
       "npm:pi-subagents",
       "npm:pi-background-tasks",
@@ -283,7 +281,6 @@
       "memory-log"
     ],
     "piPackages": [
-      "@repo/pi/packages/pi-learn",
       "npm:@upstash/context7-pi",
       "npm:context-mode",
       "npm:@narumitw/pi-btw",
@@ -404,7 +401,6 @@
       "memory-log"
     ],
     "piPackages": [
-      "@repo/pi/packages/pi-learn",
       "npm:@upstash/context7-pi",
       "npm:context-mode",
       "npm:@narumitw/pi-btw",

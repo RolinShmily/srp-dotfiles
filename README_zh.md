@@ -284,6 +284,26 @@ Pi 的配置模板按正式 JSON 是否已存在来部署：
 > Pi **不会**扫描 `~/.pi/agent/packages/` 这类目录 —— 包只能通过 `settings.json` 的 `packages` 字段声明。
 > 早期版本曾把本地包复制到该目录，现已废弃。
 
+##### 想用仓库里自带的本地包？
+
+`pi/packages/` 下的两个包体积较大，所以**有意不写进** `manifest.json` 的 `piPackages`，
+全新部署不会加载它们。需要哪个就把哪个加回你部署的那个 OS 段：
+
+```jsonc
+// manifest.json
+"piPackages": [
+  // 加上你要用的那个包：
+  "@repo/pi/packages/pi-learn",
+  "@repo/pi/packages/pi-interactive-subagents",
+  "npm:context-mode",
+  "npm:pi-antigravity"
+]
+```
+
+`@repo/` 在部署时展开成 clone 实际所在的路径，所以这行不绑机器。它只会写进**新生成**的
+`settings.json`；已存在的会被原样保留，所以要么手动把展开后的绝对路径加进它的 `packages`
+数组，要么删掉该文件重新部署，然后重启 pi。
+
 #### MCP 配置走 pi 内置实现
 
 pi 已内置 MCP，读取 `~/.pi/agent/mcp.json`（项目级为 `.pi/mcp.json`）。本仓库的

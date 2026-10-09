@@ -285,6 +285,27 @@ so it survives cloning anywhere. Edit the package in the repo and restart Pi —
 > Pi does **not** scan something like `~/.pi/agent/packages/` — packages can only be declared through the
 > `packages` field in `settings.json`. Earlier versions copied local packages into that directory; that is now gone.
 
+##### Enabling a bundled local package
+
+The two packages under `pi/packages/` are large, so they are deliberately **not** listed in
+`manifest.json`'s `piPackages` and a fresh deploy will not load them. To use one, add it back to the
+OS section you deploy:
+
+```jsonc
+// manifest.json
+"piPackages": [
+  // add the package you want:
+  "@repo/pi/packages/pi-learn",
+  "npm:context-mode",
+  "npm:pi-antigravity"
+]
+```
+
+`@repo/` is expanded to the real clone path at deploy time, so the line stays machine-independent.
+It only reaches a **newly created** `settings.json`; an existing one is preserved as-is, so either add
+the resolved absolute path to its `packages` array by hand or delete the file and redeploy, then
+restart pi.
+
 #### MCP Config Uses pi's Built-in Implementation
 
 pi ships with built-in MCP and reads `~/.pi/agent/mcp.json` (project-level: `.pi/mcp.json`).
