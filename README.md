@@ -28,7 +28,7 @@ SrP-Dotfiles utilizes a **Single Branch (`main`) + Declarative Manifest (`manife
   - **Safe Backup Archiving**: Automatically backs up conflicting existing configurations with timestamps to `~/.dotfiles_backup/`.
 - 🐧 **Modern Unix Suite (`launch.sh`)**:
   - **Modular Zsh (`zsh/`)**: Decoupled into environment variables, Oh My Zsh plugins, Spaceship theme, Git aliases, modern CLI replacements, and OS-specific scripts.
-  - **Terminal Power Tools**: Integrated Zellij multiplexer, Yazi file manager, Btop system monitor, Fastfetch system info, and lightweight Vim configuration.
+  - **Terminal Power Tools**: Integrated Zellij and tmux multiplexers (shared `i/j/k/l` navigation), Yazi file manager, Btop system monitor, Fastfetch system info, and lightweight Vim configuration.
   - **WSL & Termux Enhancements**: Seamless Windows clipboard bridge in WSL; automatic Nerd Font injection in Android Termux.
 - 🪟 **Industrial-Grade Windows Workflow (`start.ps1`)**:
   - **Tuned WezTerm Configuration**: Low-power 30 FPS rendering, crisp classic blinking block cursor, smart URL parsing & regex cleanup, keyboard-driven QuickSelect (`Alt+Ctrl+u`), and instant custom wallpaper toggle (`Alt+/`).
@@ -75,7 +75,8 @@ srp-dotfiles/
 │   ├── btop/              # Btop monitor (Catppuccin Mocha theme)
 │   ├── fastfetch/         # Fastfetch system info configuration
 │   ├── yazi/              # Yazi terminal file manager configuration & plugins
-│   └── zellij/            # Zellij terminal multiplexer layouts & keybindings
+│   ├── zellij/            # Zellij terminal multiplexer layouts & keybindings
+│   └── tmux/              # tmux config with Zellij-style Ctrl+p / Ctrl+t key tables
 │
 ├── 🪟 Windows Configuration Suite
 │   ├── wezterm/           # WezTerm terminal configuration (wezterm.lua) & background
@@ -255,7 +256,7 @@ bash scripts/configs/pi.sh
 
 | Config entry | Verb | Resulting form |
 | :--- | :--- | :--- |
-| `zshrc` / `vimrc` / `btop` / `fastfetch` / `yazi` / `zellij` | `link` | One symlink under `~/.config/<name>` pointing at the repo; edits apply live |
+| `zshrc` / `vimrc` / `btop` / `fastfetch` / `yazi` / `zellij` / `tmux` | `link` | One symlink under `~/.config/<name>` pointing at the repo; edits apply live |
 | `pi` | `custom` | Real copies under `~/.pi/agent/`; `.example` templates check for the destination JSON and preserve it when present |
 
 Pi's configuration templates check whether the destination JSON already exists:

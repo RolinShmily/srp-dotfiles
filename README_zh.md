@@ -28,7 +28,7 @@ SrP-Dotfiles 采用 **单分支（`main`）+ 声明式清单（`manifest.json`�
   - **安全备份机制**：覆盖前自动按时间戳归档旧配置至 `~/.dotfiles_backup/`。
 - 🐧 **类 Unix 现代化套件 (`launch.sh`)**：
   - **模块化 Zsh (`zsh/`)**：拆分为环境变量、Oh My Zsh、Spaceship 主题、Git 别名、现代 CLI 增强与操作系统特供片段；
-  - **终端利器集成**：Zellij 复用器、Yazi 文件管理器、Btop 性能监控、Fastfetch 系统看板与轻量 Vim；
+  - **终端利器集成**：Zellij 与 tmux 复用器（统一 i/j/k/l 方向键导航）、Yazi 文件管理器、Btop 性能监控、Fastfetch 系统看板与轻量 Vim；
   - **移动端/WSL 适配**：Android Termux 自动注入 Nerd Font，WSL 剪贴板无缝桥接。
 - 🪟 **Windows 工业级工作流 (`start.ps1`)**：
   - **WezTerm 工业级调优**：低功耗 30 FPS 渲染、经典快闪烁方块光标、智能 URL 清洗与全键盘 QuickSelect (`Alt+Ctrl+u`)、专属背景图 / 纯黑底色一键秒切 (`Alt+/`)；
@@ -75,7 +75,8 @@ srp-dotfiles/
 │   ├── btop/              # Btop 性能监控 (Catppuccin Mocha 主题)
 │   ├── fastfetch/         # Fastfetch 系统信息美化展示
 │   ├── yazi/              # Yazi 现代终端文件管理器配置与插件
-│   └── zellij/            # Zellij 终端复用器布局与键位映射
+│   ├── zellij/            # Zellij 终端复用器布局与键位映射
+│   └── tmux/              # tmux 配置，含 Zellij 风格 Ctrl+p / Ctrl+t 键位表
 │
 ├── 🪟 Windows 系统配置体系
 │   ├── wezterm/           # WezTerm 现代终端工业级配置 (wezterm.lua) 与专属背景图
@@ -255,7 +256,7 @@ bash scripts/configs/pi.sh
 
 | 配置项 | 动词 | 落地形态 |
 | :--- | :--- | :--- |
-| `zshrc` / `vimrc` / `btop` / `fastfetch` / `yazi` / `zellij` | `link` | `~/.config/<name>` 一条指向仓库的软链，改仓库即时生效 |
+| `zshrc` / `vimrc` / `btop` / `fastfetch` / `yazi` / `zellij` / `tmux` | `link` | `~/.config/<name>` 一条指向仓库的软链，改仓库即时生效 |
 | `pi` | `custom` | `~/.pi/agent/` 下为真实副本；`.example` 模板先检查正式目标是否存在，存在则保留并旁存模板 |
 
 Pi 的配置模板按正式 JSON 是否已存在来部署：

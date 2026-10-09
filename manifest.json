@@ -44,6 +44,7 @@
       "gcc",
       "unzip",
       "zellij",
+      "tmux",
       "fastfetch",
       "btop"
     ],
@@ -113,6 +114,12 @@
         "target": "~/.config/zellij"
       },
       {
+        "name": "tmux",
+        "method": "link",
+        "source": "tmux",
+        "target": "~/.config/tmux"
+      },
+      {
         "name": "pi",
         "method": "custom"
       }
@@ -142,6 +149,7 @@
       "build-essential",
       "gcc",
       "unzip",
+      "tmux",
       "fastfetch",
       "btop"
     ],
@@ -201,6 +209,12 @@
         "target": "~/.config/fastfetch"
       },
       {
+        "name": "tmux",
+        "method": "link",
+        "source": "tmux",
+        "target": "~/.config/tmux"
+      },
+      {
         "name": "pi",
         "method": "custom"
       }
@@ -241,6 +255,7 @@
       "unzip",
       "tree-sitter",
       "zellij",
+      "tmux",
       "fastfetch",
       "htop",
       "termux-api"
@@ -301,6 +316,12 @@
         "method": "link",
         "source": "zellij",
         "target": "~/.config/zellij"
+      },
+      {
+        "name": "tmux",
+        "method": "link",
+        "source": "tmux",
+        "target": "~/.config/tmux"
       },
       {
         "name": "pi",
