@@ -61,9 +61,10 @@
       "srp-theme.ts",
       "tui-asr.ts",
       "web-reach.ts",
+      "model-vision.ts",
       "screenshot.ts",
       "custom-providers",
-      "srp-subagent",
+      "subagent",
       "image-generate.ts",
       "memory-log"
     ],
@@ -123,6 +124,9 @@
         "name": "pi",
         "method": "custom"
       }
+    ],
+    "piCliLinks": [
+      "subagent=extensions/subagent/subagent.ts"
     ]
   },
   "debian": {
@@ -272,8 +276,9 @@
       "prompt-snipaste.ts",
       "srp-theme.ts",
       "web-reach.ts",
+      "model-vision.ts",
       "custom-providers",
-      "srp-subagent",
+      "subagent",
       "image-generate.ts",
       "memory-log"
     ],
@@ -327,6 +332,9 @@
         "name": "pi",
         "method": "custom"
       }
+    ],
+    "piCliLinks": [
+      "subagent=extensions/subagent/subagent.ts"
     ]
   },
   "windows": {
@@ -388,9 +396,10 @@
       "srp-theme.ts",
       "tui-asr.ts",
       "web-reach.ts",
+      "model-vision.ts",
       "screenshot.ts",
       "custom-providers",
-      "srp-subagent",
+      "subagent",
       "image-generate.ts",
       "memory-log"
     ],

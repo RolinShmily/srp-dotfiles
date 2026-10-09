@@ -88,7 +88,7 @@ srp-dotfiles/
     ├── pi/mcp.json.example # MCP server template (create JSON if missing; otherwise save as .json.example)
     ├── pi/keybindings.json.example # Keybindings template (create JSON if missing; otherwise save as .json.example)
     ├── pi/AGENTS.md       # Global agent behavioral & safety rules
-    ├── pi/extensions/     # Custom extensions (tui-asr, memory-log, srp-subagent, etc.)
+    ├── pi/extensions/     # Custom extensions (subagent, custom-providers, tui-asr, image-generate, memory-log, …)
     ├── pi/skills/         # Custom agent skills
     ├── pi/prompts/        # Structured prompt templates
     └── pi/packages/pi-learn  # Local Pi package (**not deployed**; referenced in place via @repo)
@@ -258,6 +258,7 @@ bash scripts/configs/pi.sh
 | :--- | :--- | :--- |
 | `zshrc` / `vimrc` / `btop` / `fastfetch` / `yazi` / `zellij` / `tmux` | `link` | One symlink under `~/.config/<name>` pointing at the repo; edits apply live |
 | `pi` | `custom` | Real copies under `~/.pi/agent/`; `.example` templates check for the destination JSON and preserve it when present |
+| `piCliLinks` (inside `pi`) | `link` | `~/.pi/agent/bin/<name>` symlinks pointing at the **deployed** extension copy, so a CLI and the extension pi loads never drift apart |
 
 Pi's configuration templates check whether the destination JSON already exists:
 
@@ -299,6 +300,23 @@ instead of silently sending a placeholder.
 
 `~/.pi/agent/mcp.json` is also written by pi itself (`/mcp` UI, `pi mcp add/remove`). If it exists,
 deployment preserves it and saves the repository template as `mcp.json.example` beside it.
+
+#### Extension CLIs are exposed on `PATH` (`piCliLinks`)
+
+Some extensions ship a command-line entry point next to their Pi tool. `subagent`, for example,
+ships `subagent.ts` (`spawn` / `status` / `send` / `wait` / `stop` / `list`) which its bundled skill
+invokes through bash. Such commands are declared per OS:
+
+```json
+"piCliLinks": ["subagent=extensions/subagent/subagent.ts"]
+```
+
+Each entry becomes a symlink under `~/.pi/agent/bin/` — a directory pi already prepends to the bash
+tool's `PATH`. The link points at the **deployed** copy rather than the repository source: the CLI
+writes the run metadata that the loaded extension reads, so both sides must always be the same build.
+
+Unix only for now. Windows would need a `.cmd` shim instead of a symlink, so `piCliLinks` is omitted
+from the `windows` section.
 
 ### 5. Intelligent Two-Stage `Ctrl + C` Interrupt
 Both `./launch.sh` and `.\start.ps1` feature a built-in signal state machine:

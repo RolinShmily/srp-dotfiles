@@ -3,11 +3,6 @@
   "defaultModel": "deepseek-v4.1-flash",
   "defaultThinkingLevel": "high",
   "theme": "dark",
-  "srpSubagent": {
-    "enabled": true,
-    "mux": "auto",
-    "statusWidget": true
-  },
   "memoryLog": {
     "defaultEnabled": false,
     "chunkTokens": 20000,

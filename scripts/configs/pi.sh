@@ -171,4 +171,17 @@ copy_each_into "agents"
 # 部署时由 pi-inject-packages.js 展开成仓库绝对路径，Pi 直接从仓库加载（local 源不复制）。
 # ~/.pi/agent/packages/ 是历史自造约定，已废弃 —— 若存在旧副本请手动删除。
 
+# ---------- 6. CLI 命令软链接（manifest 的 piCliLinks: <name>=<仓库相对路径>） ----------
+# 有些扩展同时提供一个 CLI（如 subagent 的 spawn/status/send/wait/stop），
+# 由扩展捆绑的 skill 通过 bash 调用，所以需要在 PATH 上放个入口。
+# pi 自己会把 ~/.pi/agent/bin 加进 bash 工具的 PATH，这里只负责建链接。
+# 链接指向**已部署的那份副本**（而非仓库源），否则 CLI 与实际加载的扩展可能不同版本，
+# 两边对 metadata.json 的字段认知会不一致。
+while IFS= read -r cli_link; do
+    [ -n "$cli_link" ] || continue
+    cli_name="${cli_link%%=*}"
+    cli_rel="${cli_link#*=}"
+    link_item "$PI_DEST/$cli_rel" "$PI_DEST/bin/$cli_name" || true
+done < <(node "$MANIFEST_JS" get "$PI_MANIFEST_OS" piCliLinks 2>/dev/null || true)
+
 log_success "Pi 配置部署完成 (copy 覆盖): $PI_DEST"

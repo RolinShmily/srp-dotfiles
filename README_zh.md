@@ -88,7 +88,7 @@ srp-dotfiles/
     ├── pi/mcp.json.example # MCP 服务模板 (按目标 JSON 是否存在决定生成 JSON 或旁存 .example)
     ├── pi/keybindings.json.example # 快捷键映射模板 (按目标 JSON 是否存在决定生成 JSON 或旁存 .example)
     ├── pi/AGENTS.md       # 全局智能体通用行为与安全准则
-    ├── pi/extensions/     # 核心扩展体系 (tui-asr, memory-log, srp-subagent 等)
+    ├── pi/extensions/     # 核心扩展体系 (subagent、custom-providers、tui-asr、image-generate、memory-log …)
     ├── pi/skills/         # 自定义技能工具库
     ├── pi/prompts/        # 结构化 Prompt 模板
     └── pi/packages/pi-learn  # 本地 Pi 包（**不部署**，由 manifest 以 @repo 路径直接引用）
