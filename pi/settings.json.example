@@ -1,6 +1,6 @@
 {
-  "defaultProvider": "opencode-go",
-  "defaultModel": "deepseek-v4.1-flash",
+  "defaultProvider": "deepseek",
+  "defaultModel": "deepseek-flash",
   "defaultThinkingLevel": "high",
   "theme": "dark",
   "memoryLog": {
@@ -20,9 +20,6 @@
         "thinking": "medium"
       }
     }
-  },
-  "terminal": {
-    "images": "false"
   },
   "packages": []
 }
