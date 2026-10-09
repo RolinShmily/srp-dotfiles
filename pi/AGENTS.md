@@ -30,6 +30,7 @@
   - 绝对禁止执行：`git reset --hard`、`git checkout .`、`git clean -fd`、`git stash`、`git commit --no-verify`。
   - 绝对禁止未经确认执行强制推送（`git push --force` / `git push -f`）。
 - **禁止擅自提交**：除非用户明确下达提交指令，否则严禁自行执行 `git commit`。
+- **用户操作**：用户在仓库中即时做出的修改，一般情况下都需要保留，如有异议请向用户指明。
 
 ---
 
