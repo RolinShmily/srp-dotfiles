@@ -11,9 +11,9 @@ import {
 import { Type } from "typebox";
 
 // ────────────────────────────────────────────────────────────────────────────
-// quiz — a GRADED sibling of ask_user_question.
+// quiz — a GRADED sibling of learn_ask_questions.
 //
-// Where ask_user_question collects a preference/decision with no notion of
+// Where learn_ask_questions collects a preference/decision with no notion of
 // right or wrong, `quiz` poses a question that HAS a correct answer, grades the
 // user's selection instantly, and shows tight feedback (✓/✗ + the correct
 // answer + an optional explanation) to both the user and the agent.
@@ -847,7 +847,7 @@ function sortAnswers(answers: OptionAnswer[]): OptionAnswer[] {
 }
 
 // Shared UI mutex. ctx.ui.custom()/editor can only handle one active call at
-// a time, so ALL pop-up-style tools (quiz, ask_user_question, ...) must
+// a time, so ALL pop-up-style tools (quiz, learn_ask_questions, ...) must
 // serialize against each other, not just against themselves. We stash one
 // mutex on globalThis so separate extension files can share it without
 // importing each other.
@@ -878,11 +878,11 @@ export default function quiz(pi: ExtensionAPI) {
 		name: "quiz",
 		label: "quiz",
 		description:
-			"Ask the user a GRADED question with a known correct answer, then instantly grade and give feedback. Unlike ask_user_question (which collects preferences/decisions with no right answer), quiz always has a correct answer supplied by you, marks the user's selection right/wrong (✓/✗), reveals the correct answer, and can show an explanation. Use it to (1) assess what the learner already understands before teaching, and (2) run tight practice/retrieval loops after explaining, or probe understanding whenever you're unsure they've got it. Options-only: single-select or multi-select, plus an automatic 'I don't know' choice so the user can signal a genuine gap instead of guessing. An always-present optional note field (Tab to focus it) lets the user attach a free-text note to ANY answer; it reaches you only when non-empty. No free-text answers — for non-graded questions use ask_user_question instead.",
+			"Ask the user a GRADED question with a known correct answer, then instantly grade and give feedback. Unlike learn_ask_questions (which collects preferences/decisions with no right answer), quiz always has a correct answer supplied by you, marks the user's selection right/wrong (✓/✗), reveals the correct answer, and can show an explanation. Use it to (1) assess what the learner already understands before teaching, and (2) run tight practice/retrieval loops after explaining, or probe understanding whenever you're unsure they've got it. Options-only: single-select or multi-select, plus an automatic 'I don't know' choice so the user can signal a genuine gap instead of guessing. An always-present optional note field (Tab to focus it) lets the user attach a free-text note to ANY answer; it reaches you only when non-empty. No free-text answers — for non-graded questions use learn_ask_questions instead.",
 		promptSnippet:
-			"Use the quiz tool to test the user with a graded multiple-choice or multi-select question (required correct answer + required explanation). For non-graded questions, use ask_user_question.",
+			"Use the quiz tool to test the user with a graded multiple-choice or multi-select question (required correct answer + required explanation). For non-graded questions, use learn_ask_questions.",
 		promptGuidelines: [
-			"quiz is GRADED; ask_user_question is not. If the question has a correct answer, use quiz. If you just need a preference, decision, or open-ended input, use ask_user_question.",
+			"quiz is GRADED; learn_ask_questions is not. If the question has a correct answer, use quiz. If you just need a preference, decision, or open-ended input, use learn_ask_questions.",
 			'correctAnswer is REQUIRED and is the option value, not a position number. Single-select: one string (e.g. "mercury"). Multi-select: an array of strings (e.g. ["belize", "niue"]).',
 			"Always pass the option's `value` string as correctAnswer — it is self-checking and prevents miscounting positions. A value that matches no option is a hard error.",
 			"explanation is REQUIRED — always say why the correct answer is correct.",

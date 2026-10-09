@@ -10,7 +10,7 @@ This is a personal system I built for myself, shared as-is. Built as a pi config
 
 - `skills/teach/` — the philosophy and the process
 - `skills/visualize/` — adds a correct, minimal diagram to a lesson when an idea is clearer as a picture
-- `extensions/ask-user-question/` — the agent asks you questions through a UI popup
+- `extensions/ask-user-question.ts` — the agent asks you questions through a UI popup (tool name: `learn_ask_questions`)
 - `extensions/quiz/` — graded questions with instant feedback (✓/✗, correct answer, explanation)
 - `extensions/md-log/` — link a markdown file to the session
 - `extensions/visual-tools/` — tools for visualization subagents
@@ -30,7 +30,7 @@ Then open pi in that directory. (Or copy the pieces you want into your existing 
 
 - [pi](https://github.com/earendil-works/pi)
 - A subagent implementation, so the system can spawn the researcher and the visual makers. Recommended: [pi-interactive-subagents](https://github.com/amosblomqvist/pi-interactive-subagents) (tmux only). With it, everything works out of the box. Any other implementation works too, but expect to adapt the agent definitions, e.g. `agents/researcher.md` lists `safe_bash` in its tools, which is specific to that extension.
-- `ask-user-question` — use the copy bundled here. If your setup already has an `ask-user-question` extension, use **this** one in its place. Popups from different extensions serialize through a shared UI lock, which only works when it's the same implementation.
+- `ask-user-question` — use the copy bundled here. Its tool is named **`learn_ask_questions`** so it can coexist with a global `ask_user_question` extension instead of replacing it; the teaching skills and the md-log extension all target the bundled one. Both register the same shared UI lock (`__piSharedUiLock`), so popups from either still serialize against each other instead of fighting.
 
 ## Notes
 

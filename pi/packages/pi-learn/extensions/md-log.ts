@@ -9,7 +9,7 @@
  * Captures only reading-relevant content:
  *   - user prompts
  *   - assistant text (lesson prose)
- *   - quiz / ask_user_question Q&A blocks
+ *   - quiz / learn_ask_questions Q&A blocks
  * Other tools (bash, read, write, edit, ...) are omitted.
  *
  * Quiz/ask questions are written BEFORE the user answers (on tool_call), so the
@@ -29,7 +29,12 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-const QA_TOOLS = new Set(["quiz", "ask_user_question"]);
+const QA_TOOLS = new Set(["quiz", "learn_ask_questions", "ask_user_question"]);
+
+// QA tools whose options are never shuffled, so the tool-call args already are the
+// true display order. `ask_user_question` is the global extension's tool; it stays
+// recognised so an older session log still renders.
+const UNSHUFFLED_QA_TOOLS = new Set(["learn_ask_questions", "ask_user_question"]);
 
 export default function mdLog(pi: ExtensionAPI) {
 	let logFile: string | null = null;
@@ -226,13 +231,13 @@ export default function mdLog(pi: ExtensionAPI) {
 		// toolResult messages are handled by the tool_result event (for QA tools).
 	});
 
-	// ask_user_question never shuffles its options, so the tool_call args are
-	// already the true display order — safe to write the question live, before
-	// the user answers.
+	// learn_ask_questions and ask_user_question never shuffle their options, so the
+	// tool_call args are already the true display order — safe to write the question
+	// live, before the user answers.
 	pi.on("tool_call", async (event, _ctx) => {
 		if (!logFile) return;
 		const toolName = (event as any).toolName;
-		if (toolName !== "ask_user_question") return;
+		if (!UNSHUFFLED_QA_TOOLS.has(toolName)) return;
 		const input = (event as any).input || {};
 		const question: string = input.question || "";
 		const context: string | undefined = input.details?.trim() || undefined;
@@ -409,8 +414,9 @@ export default function mdLog(pi: ExtensionAPI) {
 				// Question block. For quiz, use the persisted result's `details.options`
 				// — the TRUE post-shuffle display order the user actually saw — rather
 				// than the original tool-call args, which are the pre-shuffle author
-				// order and can mismatch what's on screen. ask_user_question never
-				// shuffles, so its tool-call args are already the true order.
+				// order and can mismatch what's on screen. learn_ask_questions and
+				// ask_user_question never shuffle, so their tool-call args are already the
+				// true order.
 				if (tc) {
 					const a = tc.args || {};
 					const label = tc.name === "quiz" ? "Quiz" : "Question";
