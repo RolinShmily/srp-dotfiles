@@ -1,34 +1,13 @@
 /**
- * srp-theme.ts — SRP 定制 UI 主题扩展
+ * srp-theme.ts — Footer and TPS meter extension.
  *
- * 功能特性：
- * 1. Header（默认关闭）：启动/会话重置时展示 135° 紫粉渐变赛博朋克图形 Logo 与 srprolin 终端身份签名；
- * 2. Footer: 在编辑器下方（belowEditor widget）显示最近一次用户提交的消息提示（↳ <prompt>），状态栏第一行自适应展示 PWD、最后一轮 Agent-Loop 结束时间与用时胶囊（{ finished at HH:mm · 4.2s }）与当前时间胶囊；
- * 3. TPS Meter: 实时测量 Tokens Per Second (TPS) 并在状态栏显示流式平滑槽位条与历史 Sparkline 趋势指标；
- * 4. 单一主控制命令：`/srp-theme [header|footer|tps] [on|off]` 或 `/srp-theme status`。
- *
- * 配色参考：
- *   - 珊瑚粉 / 霓虹粉: #ff7eb3 / #f75c7e
- *   - 优雅紫罗兰 / 霓虹紫: #9b3fe0 / #7c3aed
- *   - 终端文字: #e8e0f0 / #a09bb5
- *
- * 配置（settings.json，全部可选）：
- * {
- *   "srpTheme": {
- *     "header": true,
- *     "footer": true,
- *     "tps": true
- *   }
- * }
+ * /srp-theme on|off controls both components for the current runtime.
+ * Pi's native header is used; no settings.json fields are needed.
  */
 
-import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 
 import {
-  CONFIG_DIR_NAME,
-  getAgentDir,
-  VERSION,
   type ExtensionAPI,
   type ExtensionContext,
   type ReadonlyFooterDataProvider,
@@ -41,186 +20,18 @@ import {
   type Component,
 } from "@earendil-works/pi-tui";
 
-// ============================ 配置读取 ============================
-
-export interface SrpThemeConfig {
-  header: boolean;
-  footer: boolean;
-  tps: boolean;
-}
-
-function readSettingsFile(path: string): Record<string, unknown> {
-  try {
-    if (!existsSync(path)) return {};
-    const parsed: unknown = JSON.parse(readFileSync(path, "utf-8"));
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
-      ? (parsed as Record<string, unknown>)
-      : {};
-  } catch {
-    return {};
-  }
-}
-
-export function readConfig(cwd: string): SrpThemeConfig {
-  const global = readSettingsFile(join(getAgentDir(), "settings.json"));
-  const project = readSettingsFile(join(cwd, CONFIG_DIR_NAME, "settings.json"));
-
-  const globalTheme = (global.srpTheme as Record<string, unknown>) || {};
-  const projectTheme = (project.srpTheme as Record<string, unknown>) || {};
-  const themeSection = { ...globalTheme, ...projectTheme };
-
-  // 兼容旧版独立配置字段
-  const legacyFooter =
-    (project.srpFooter as Record<string, unknown>)?.enabled ??
-    (global.srpFooter as Record<string, unknown>)?.enabled;
-  const legacyHeader =
-    (project.srpHeader as Record<string, unknown>)?.enabled ??
-    (global.srpHeader as Record<string, unknown>)?.enabled;
-  const legacyTps =
-    (project.srpTps as Record<string, unknown>)?.enabled ??
-    (global.srpTps as Record<string, unknown>)?.enabled;
-
-  const headerEnabled =
-    typeof themeSection.header === "boolean"
-      ? themeSection.header
-      : typeof legacyHeader === "boolean"
-        ? legacyHeader
-        : false;
-
-  const footerEnabled =
-    typeof themeSection.footer === "boolean"
-      ? themeSection.footer
-      : typeof legacyFooter === "boolean"
-        ? legacyFooter
-        : true;
-
-  const tpsEnabled =
-    typeof themeSection.tps === "boolean"
-      ? themeSection.tps
-      : typeof legacyTps === "boolean"
-        ? legacyTps
-        : true;
-
-  return {
-    header: headerEnabled,
-    footer: footerEnabled,
-    tps: tpsEnabled,
-  };
-}
-
-// ============================ 渐变与色彩算法 ============================
-
-const PINK: [number, number, number] = [255, 126, 179];   // #ff7eb3 (Bright Neon Pink)
-const CORAL: [number, number, number] = [247, 92, 126];   // #f75c7e (Accent Coral Pink)
-const VIOLET: [number, number, number] = [124, 58, 237];  // #7c3aed (Accent Violet)
-
-function interpolateRgb(
-  r1: number, g1: number, b1: number,
-  r2: number, g2: number, b2: number,
-  t: number,
-): [number, number, number] {
-  t = Math.max(0, Math.min(1, t));
-  const r = Math.round(r1 + (r2 - r1) * t);
-  const g = Math.round(g1 + (g2 - g1) * t);
-  const b = Math.round(b1 + (b2 - b1) * t);
-  return [r, g, b];
-}
-
-function getGradientColor(t: number): string {
-  let rgb: [number, number, number];
-  if (t < 0.4) {
-    rgb = interpolateRgb(PINK[0], PINK[1], PINK[2], CORAL[0], CORAL[1], CORAL[2], t / 0.4);
-  } else {
-    rgb = interpolateRgb(CORAL[0], CORAL[1], CORAL[2], VIOLET[0], VIOLET[1], VIOLET[2], (t - 0.4) / 0.6);
-  }
-  return `\x1b[38;2;${rgb[0]};${rgb[1]};${rgb[2]}m`;
-}
-
-function applyDiagonalGradient(lines: string[]): string[] {
-  const rowCount = lines.length;
-  const maxCol = Math.max(...lines.map((l) => l.length));
-
-  return lines.map((line, r) => {
-    let result = "";
-    for (let c = 0; c < line.length; c++) {
-      const char = line[c];
-      if (char === " ") {
-        result += " ";
-        continue;
-      }
-      // 135° 对角线渐变插值计算
-      const t = (r / Math.max(1, rowCount - 1) * 0.4) + (c / Math.max(1, maxCol - 1) * 0.6);
-      result += `${getGradientColor(t)}${char}`;
-    }
-    return `${result}\x1b[0m`;
-  });
-}
-
-// ============================ Header 渲染 ============================
-
-const ASCII_ART = [
-  "   ███████████████████████████╗  ",
-  "   ╚══██████╔════════██████╔══╝  ",
-  "      ██████║        ██████║     ",
-  "      ██████║        ██████║     ",
-  "      ██████║        ██████║     ",
-  "      ██████║        ██████║     ",
-  "      ██████║        ██████║     ",
-  "      ██████║        ██████║     ",
-  "   ████████████╗  ████████████╗  ",
-  "   ╚═══════════╝  ╚═══════════╝  ",
-];
-
-export function buildHeader(theme: Theme, width = 80): string[] {
-  const artLines = applyDiagonalGradient(ASCII_ART);
-
-  if (width >= 72) {
-    const rightCol = [
-      `${theme.bold(theme.fg("accent", "pi"))} ${theme.fg("dim", `v${VERSION}`)}`,
-      theme.fg("dim", "──────────────────────────────"),
-      formatHint(theme, "escape", "to interrupt"),
-      `${formatHint(theme, "ctrl+c", "to clear")} ${theme.fg("dim", "·")} ${formatHint(theme, "ctrl+c twice", "to exit")}`,
-      formatHint(theme, "shift+tab", "to cycle thinking"),
-      formatHint(theme, "ctrl+p / ctrl+l", "to select model"),
-      formatHint(theme, "ctrl+o / ctrl+t", "to expand tools/thinking"),
-      `${formatHint(theme, "/", "for commands")} ${theme.fg("dim", "·")} ${formatHint(theme, "!", "for bash")}`,
-      formatHint(theme, "alt+enter", "to queue follow-up"),
-      formatHint(theme, "drop files", "to attach"),
-    ];
-
-    const lines = [""];
-    for (let i = 0; i < artLines.length; i++) {
-      const left = artLines[i];
-      const right = rightCol[i] ?? "";
-      lines.push(`${left}   ${right}`);
-    }
-    lines.push("");
-    return lines;
-  }
-
-  // 窄屏终端响应式回退：居中对齐与精简快捷键行
-  const subtitle = `           ${theme.bold(theme.fg("accent", "pi"))} ${theme.fg("dim", `v${VERSION}`)}`;
-  const compactHints = `   ${formatHint(theme, "escape", "interrupt")} ${theme.fg("dim", "·")} ${formatHint(theme, "ctrl+c", "clear/exit")} ${theme.fg("dim", "·")} ${formatHint(theme, "/", "commands")} ${theme.fg("dim", "·")} ${formatHint(theme, "!", "bash")} ${theme.fg("dim", "·")} ${formatHint(theme, "ctrl+o", "more")}`;
-  return ["", ...artLines, "", subtitle, "", compactHints, ""];
-}
-
-function formatHint(theme: Theme, key: string, desc: string): string {
-  return `${theme.fg("dim", key)} ${theme.fg("muted", desc)}`;
-}
-
-// ============================ Footer 渲染 ============================
+// ============================ Footer Rendering ============================
 
 const POWERLINE_SEP_ANSI = "\x1b[38;5;244m";
 const ANSI_RESET = "\x1b[0m";
 
-/** 将多行 prompt 压缩为一行，与 powerline 的 last-prompt 行为一致。 */
+/** Compact a multiline prompt into a single line, matching powerline's last-prompt behavior. */
 export function compactPrompt(prompt: string): string {
   return prompt.replace(/\s+/g, " ").trim();
 }
 
 /**
- * 复刻 pi-powerline-footer 的 renderLastPromptLines：
- * 使用 powerline 源码中的 sep 色（ANSI 256 色 244），显示 `↳ prompt`。
+ * Render last prompt line using powerline's sep color (ANSI 244), displaying '↳ prompt'.
  */
 export function renderLastPromptLine(
   lastUserPrompt: string,
@@ -322,7 +133,7 @@ export function formatLoopEndVariant(
   const hasDuration = typeof durationMs === "number" && durationMs >= 0;
   const durationStr = hasDuration ? formatDuration(durationMs!) : "";
 
-  // 1. 纯用时精简态
+  // 1. Duration-only compact variant
   if (variant === "duration_only") {
     return hasDuration ? `{ ${durationStr} }` : "";
   }
@@ -343,12 +154,12 @@ export function formatLoopEndVariant(
 
   const durationSuffix = hasDuration ? ` · ${durationStr}` : "";
 
-  // 2. 去词精简态 (省略 finished at / finished on / finished in)
+  // 2. Word-stripped compact variant
   if (variant === "compact") {
     return `{ ${dateOrTime}${durationSuffix} }`;
   }
 
-  // 3. 完整态 (保留英文介词)
+  // 3. Full variant (retaining prepositions)
   let prefix = "at";
   if (isCrossYear) {
     prefix = "in";
@@ -392,7 +203,7 @@ export function getLastLoopInfoFromSession(ctx: ExtensionContext): {
       return null;
     }
 
-    // 从 lastAssistantIdx 往前找距离其最近的一条 user 消息
+    // Find the closest preceding user message from lastAssistantIdx
     let durationMs: number | null = null;
     for (let i = lastAssistantIdx - 1; i >= 0; i--) {
       const entry = entries[i] as any;
@@ -504,7 +315,7 @@ export function buildCustomFooter(
       const candidates: string[] = [];
 
       if (lastLoopEnd) {
-        // 1. 优先调整时间胶囊（全量 -> 月日 -> 仅时分），此时 finished 胶囊保持全量态
+        // 1. Adjust clock variant first while finished capsule stays full
         const fullFinished = formatLoopEndVariant(lastLoopEnd, now, lastLoopDuration, "full");
         if (fullFinished) {
           candidates.push(`${fullFinished} ${formatFooterClockVariant(now, "full")}`);
@@ -512,7 +323,7 @@ export function buildCustomFooter(
           candidates.push(`${fullFinished} ${formatFooterClockVariant(now, "time_only")}`);
         }
 
-        // 2. 时间胶囊已降级至仅显示时间（time_only: [ 11:11 ]），开始调整 finished 胶囊（去词精简 -> 纯用时）
+        // 2. When clock degrades to time_only, compact the finished capsule
         const compactFinished = formatLoopEndVariant(lastLoopEnd, now, lastLoopDuration, "compact");
         if (compactFinished && compactFinished !== fullFinished) {
           candidates.push(`${compactFinished} ${formatFooterClockVariant(now, "time_only")}`);
@@ -523,10 +334,10 @@ export function buildCustomFooter(
           candidates.push(`${durationFinished} ${formatFooterClockVariant(now, "time_only")}`);
         }
 
-        // 3. 实在放不下 finished 胶囊时，仅保留极简时分时钟 [ 11:11 ]
+        // 3. Fallback to time-only clock if finished capsule cannot fit
         candidates.push(formatFooterClockVariant(now, "time_only"));
       } else {
-        // 无 finished 记录时，时间胶囊平滑降级（全量 -> 月日 -> 仅时分）
+        // Smoothly degrade clock when no finished record is available
         candidates.push(formatFooterClockVariant(now, "full"));
         candidates.push(formatFooterClockVariant(now, "month_day"));
         candidates.push(formatFooterClockVariant(now, "time_only"));
@@ -582,7 +393,7 @@ export function buildCustomFooter(
       const modelId = ctx.model?.id || "no-model";
       let rightSide = modelId;
       if (ctx.model?.reasoning) {
-        // ctx.thinkingLevel 是实时 getter（shift+tab 切换后立即生效），与原生 footer 的 state.thinkingLevel 一致
+        // ctx.thinkingLevel is live getter, matching native footer state
         const thinkingLevel = ctx.thinkingLevel || "off";
         rightSide = thinkingLevel === "off" ? `${modelId} • thinking off` : `${modelId} • ${thinkingLevel}`;
       }
@@ -590,9 +401,9 @@ export function buildCustomFooter(
         rightSide = `(${ctx.model.provider}) ${rightSide}`;
       }
 
-      // 提取扩展 statuses
+      // Extract extension statuses
       const statuses = footerData.getExtensionStatuses();
-      const memText = statuses.get("srp-memory") || statuses.get("om");
+      const memText = statuses.get("memory-log") || statuses.get("srp-memory") || statuses.get("om");
 
       const minPadding = 2;
       const rightWidth = visibleWidth(rightSide);
@@ -601,7 +412,7 @@ export function buildCustomFooter(
       let tpsWidth = 0;
 
       if (tpsMeter && tpsMeter.enabled) {
-        // 严格遵循优先级：优先保障右侧模型/Provider完整显示，根据剩余空间自适应折叠 TPS（优先隐藏 μ/p95，空间不足再隐藏走势图/隐藏TPS）
+        // Prioritize right-side model/provider visibility, adaptively folding TPS
         const availableForTps = width - statsLeftWidth - minPadding - rightWidth - minPadding;
         tpsText = tpsMeter.renderAdaptive(theme, availableForTps);
         tpsWidth = tpsText ? visibleWidth(tpsText) : 0;
@@ -620,18 +431,18 @@ export function buildCustomFooter(
       let statsLine: string;
 
       if (tpsText && tpsWidth > 0) {
-        // 空间充裕：statsLeft 居左，tpsText 居中，rightSide 居右
+        // Ample space: stats left, TPS center, model right
         const remaining = width - statsLeftWidth - tpsWidth - rightWidth;
         const padLeft = " ".repeat(Math.max(minPadding, Math.floor(remaining / 2)));
         const padRight = " ".repeat(Math.max(minPadding, remaining - Math.floor(remaining / 2)));
         statsLine = theme.fg("dim", statsLeft) + padLeft + tpsText + padRight + theme.fg("dim", rightSide);
       } else {
-        // 无 TPS 或空间不足已被优雅折叠：优先完整展示 statsLeft 与 rightSide
+        // When TPS folded: prioritize statsLeft and rightSide
         if (statsLeftWidth + minPadding + rightWidth <= width) {
           const padding = " ".repeat(Math.max(minPadding, width - statsLeftWidth - rightWidth));
           statsLine = theme.fg("dim", statsLeft) + padding + theme.fg("dim", rightSide);
         } else {
-          // 极端超窄屏（连 Token 统计 + 模型名都放不下）时，才做末尾截断
+          // Ultra-narrow viewport: truncate right side
           const availableForRight = width - statsLeftWidth - minPadding;
           if (availableForRight > 0) {
             const truncRight = truncateToWidth(rightSide, availableForRight, "");
@@ -645,15 +456,15 @@ export function buildCustomFooter(
 
       const lines: string[] = [pwdLine, statsLine];
 
-      // 1. srp-memory 放在统计信息之下，单独一行
+      // 1. memory-log on a dedicated line below stats
       if (memText) {
         lines.push(truncateToWidth(sanitizeStatusText(memText), width, theme.fg("dim", "...")));
       }
 
-      // 2. 其他非 TPS / srp-memory 的 status
+      // 2. Other non-TPS / memory-log statuses
       const otherStatuses: string[] = [];
       for (const [k, v] of statuses.entries()) {
-        if (k !== "tps" && k !== "srp-memory" && k !== "om") {
+        if (k !== "tps" && k !== "memory-log" && k !== "srp-memory" && k !== "om") {
           otherStatuses.push(sanitizeStatusText(v));
         }
       }
@@ -666,10 +477,10 @@ export function buildCustomFooter(
   };
 }
 
-// ============================ TPS Meter 模块 ============================
+// ============================ TPS Meter Module ============================
 
 export class TpsMeter {
-  // 常量配置
+  // Constants
   static readonly WINDOW_SIZE = 60;
   static readonly WINDOW_MS = 60_000;
   static readonly STREAM_INTERVAL_MS = 200;
@@ -678,7 +489,7 @@ export class TpsMeter {
   static readonly FAST = 50;
   static readonly MED = 20;
 
-  // 渲染字形
+  // Render glyphs
   static readonly BLOCKS = ["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"];
   static readonly HBLOCKS = [" ", "▏", "▎", "▍", "▌", "▋", "▊", "▉"];
   static readonly GAUGE_LEN = 11;
@@ -686,7 +497,7 @@ export class TpsMeter {
   static readonly TRACK = "·";
   static readonly SPIN = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
-  // 状态变量
+  // State variables
   private streamStartMs = 0;
   private firstTokenMs = 0;
   private streamChars = 0;
@@ -694,18 +505,18 @@ export class TpsMeter {
   private tickTimer: ReturnType<typeof setInterval> | null = null;
   private streaming = false;
 
-  // 60秒滚动窗口 (环形缓冲区: [tps, timestamp])
+  // 60-second rolling window (ring buffer: [tps, timestamp])
   private readonly winBuf = new Float64Array(TpsMeter.WINDOW_SIZE * 2);
   private winLen = 0;
   private winHead = 0;
 
-  // 全局会话采样 (环形缓冲区: [tps])
+  // Session-wide sampling (ring buffer: [tps])
   private readonly atBuf = new Float64Array(TpsMeter.ALLTIME_CAP);
   private atLen = 0;
   private atHead = 0;
   private atSum = 0;
 
-  // 最近 12 条消息 Sparkline 历史
+  // Sparkline history for last 12 messages
   private readonly sparkBuf = new Float64Array(TpsMeter.SPARK_LEN);
   private sparkLen = 0;
   private sparkHead = 0;
@@ -814,7 +625,7 @@ export class TpsMeter {
     const tmp = new Float64Array(this.atLen);
     const oldest = this.atLen < TpsMeter.ALLTIME_CAP ? 0 : this.atHead;
     for (let i = 0; i < this.atLen; i++) tmp[i] = this.atBuf[(oldest + i) % TpsMeter.ALLTIME_CAP];
-    // 插入排序
+    // Insertion sort
     for (let i = 1; i < tmp.length; i++) {
       const v = tmp[i];
       let j = i - 1;
@@ -938,7 +749,7 @@ export class TpsMeter {
       return "";
     }
 
-    // 尝试带 gauge 的完整模式（根据 maxBudget 动态调整 gauge 长度）
+    // Attempt full mode with gauge
     const fixedOverhead = visibleWidth(s) + 1 + 2 + 1 + visibleWidth(numUnit);
     const availableGaugeLen = maxBudget - fixedOverhead;
 
@@ -979,7 +790,7 @@ export class TpsMeter {
       return "";
     }
 
-    // 1. 尝试完整模式 (l3: sparkline 12 + numUnit + μ + p95)
+    // 1. Attempt full mode (sparkline 12 + numUnit + μ + p95)
     const spFull = this.sparkline(theme, TpsMeter.SPARK_LEN);
     const sep = theme.fg("dim", "·");
     const m = `${theme.fg("dim", "μ")} ${this.speedColor(mu, this.fmt(mu), theme)}`;
@@ -989,7 +800,7 @@ export class TpsMeter {
       return l3;
     }
 
-    // 2. 尝试动态 sparkline (长度从 12 逐渐减少到 2)
+    // 2. Dynamic sparkline (length 12 down to 2)
     const fixedOverhead = 1 + visibleWidth(numUnit);
     const availableSparkLen = maxBudget - fixedOverhead;
 
@@ -1002,7 +813,7 @@ export class TpsMeter {
       }
     }
 
-    // 3. 实在不够时只剩下 "数字 tps"
+    // 3. Bare numUnit fallback
     return numUnit;
   }
 
@@ -1107,29 +918,15 @@ const safeFallbackTheme: Theme = {
   bold: (text: string) => text,
 } as unknown as Theme;
 
-// ============================ 扩展入口 ============================
+// ============================ Extension Entrypoint ============================
 
 export default function (pi: ExtensionAPI) {
   let lastUserPrompt = "";
-  let headerEnabled = false;
   let footerEnabled = true;
   let lastLoopEndTime: Date | null = null;
   let lastLoopDurationMs: number | null = null;
   let currentLoopStartMs = 0;
   const tpsMeter = new TpsMeter();
-
-  const installHeader = (ctx: ExtensionContext): void => {
-    ctx.ui.setHeader((_tui, theme) => ({
-      render(width: number): string[] {
-        return buildHeader(theme, width);
-      },
-      invalidate() {},
-    }));
-  };
-
-  const removeHeader = (ctx: ExtensionContext): void => {
-    ctx.ui.setHeader(undefined);
-  };
 
   const installFooter = (ctx: ExtensionContext): void => {
     ctx.ui.setWidget(
@@ -1166,41 +963,31 @@ export default function (pi: ExtensionAPI) {
     const info = getLastLoopInfoFromSession(ctx);
     lastLoopEndTime = info?.endTime ?? null;
     lastLoopDurationMs = info?.durationMs ?? null;
-    const cfg = readConfig(ctx.cwd);
-    headerEnabled = cfg.header;
-    footerEnabled = cfg.footer;
-    tpsMeter.enabled = cfg.tps;
+    footerEnabled = true;
+    tpsMeter.enabled = true;
     tpsMeter.reset(ctx);
 
     if (ctx.mode === "tui") {
-      if (headerEnabled) {
-        installHeader(ctx);
-      } else {
-        removeHeader(ctx);
-      }
-      if (tpsMeter.enabled) {
-        const theme = ctx.ui?.theme ?? safeFallbackTheme;
-        ctx.ui.setStatus("tps", tpsMeter.renderFinal(theme));
-      }
+      // Restore the native header when reloading a previous extension version.
+      ctx.ui.setHeader(undefined);
       removeFooter(ctx);
     }
   });
 
-  // resources_discover 紧跟在 session_start 之后执行，使该 widget 排在
-  // powerline 的 belowEditor widgets 后面，稳定显示在最底部。
+  // Schedule resources_discover after session_start to position widget below powerline widgets
   pi.on("resources_discover", (_event, ctx) => {
     if (footerEnabled && ctx.mode === "tui") {
       installFooter(ctx);
     }
   });
 
-  // event.prompt 是 pi 接受并展开后的实际用户输入
+  // event.prompt is expanded user input
   pi.on("before_agent_start", (event) => {
     lastUserPrompt = event.prompt;
     currentLoopStartMs = Date.now();
   });
 
-  // TPS 监控与生命周期防御
+  // TPS monitoring and lifecycle hooks
   pi.on("message_start", (event, ctx) => {
     if (event.message.role !== "assistant") return;
     tpsMeter.onMessageStart(ctx);
@@ -1245,107 +1032,40 @@ export default function (pi: ExtensionAPI) {
     tpsMeter.onAgentSettled(ctx);
   });
 
-  // 注册统一主题管理主命令
   pi.registerCommand("srp-theme", {
-    description: "管理 SRP 主题组件（Header、Footer 与 TPS Meter）",
+    description: "Toggle SRP Footer and TPS Meter on/off",
     getArgumentCompletions: (prefix: string): AutocompleteItem[] | null => {
       const candidates: AutocompleteItem[] = [
-        { value: "status", label: "status", description: "查看当前主题组件状态" },
-        { value: "header on", label: "header on", description: "开启自定义 Header" },
-        { value: "header off", label: "header off", description: "关闭自定义 Header（恢复原生）" },
-        { value: "footer on", label: "footer on", description: "开启自定义 Footer（提示最后输入）" },
-        { value: "footer off", label: "footer off", description: "关闭自定义 Footer" },
-        { value: "tps on", label: "tps on", description: "开启实时 TPS 速度计与趋势图" },
-        { value: "tps off", label: "tps off", description: "关闭 TPS 速度计" },
-        { value: "on", label: "on", description: "开启全部主题组件" },
-        { value: "off", label: "off", description: "关闭全部主题组件" },
+        { value: "on", label: "on", description: "Enable Footer and TPS" },
+        { value: "off", label: "off", description: "Disable Footer and TPS" },
       ];
-      const trimmed = prefix.trimStart();
-      const filtered = candidates.filter((item) => item.value.startsWith(trimmed));
+      const filtered = candidates.filter((item) => item.value.startsWith(prefix.trimStart()));
       return filtered.length > 0 ? filtered : null;
     },
     handler: async (args, ctx) => {
-      const parts = args.trim().toLowerCase().split(/\s+/).filter(Boolean);
-      if (parts.length === 0 || parts[0] === "status") {
-        ctx.ui.notify(
-          `srp-theme 状态: Header=${headerEnabled ? "已开启" : "已关闭"}, Footer=${footerEnabled ? "已开启" : "已关闭"}, TPS=${tpsMeter.enabled ? "已开启" : "已关闭"}`,
-          "info",
-        );
+      const state = args.trim().toLowerCase();
+      if (state !== "on" && state !== "off") {
+        ctx.ui.notify("Usage: /srp-theme on|off", "info");
         return;
       }
 
-      if (parts[0] === "header") {
-        const state = parts[1];
-        if (state === "on") {
-          headerEnabled = true;
-          if (ctx.mode === "tui") installHeader(ctx);
-          ctx.ui.notify("srp-theme: Header 已开启", "info");
-          return;
-        }
-        if (state === "off") {
-          headerEnabled = false;
-          if (ctx.mode === "tui") removeHeader(ctx);
-          ctx.ui.notify("srp-theme: Header 已关闭（恢复原生）", "info");
-          return;
-        }
-      } else if (parts[0] === "footer") {
-        const state = parts[1];
-        if (state === "on") {
-          footerEnabled = true;
-          if (ctx.mode === "tui") installFooter(ctx);
-          ctx.ui.notify("srp-theme: Footer 已开启", "info");
-          return;
-        }
-        if (state === "off") {
-          footerEnabled = false;
-          if (ctx.mode === "tui") removeFooter(ctx);
-          ctx.ui.notify("srp-theme: Footer 已关闭", "info");
-          return;
-        }
-      } else if (parts[0] === "tps") {
-        const state = parts[1];
-        if (state === "on") {
-          tpsMeter.enabled = true;
-          const theme = ctx.ui?.theme ?? safeFallbackTheme;
-          const txt = tpsMeter.renderFinal(theme);
-          if (txt) ctx.ui.setStatus("tps", txt);
-          ctx.ui.notify("srp-theme: TPS Meter 已开启", "info");
-          return;
-        }
-        if (state === "off") {
-          tpsMeter.enabled = false;
-          tpsMeter.stopTick();
-          ctx.ui.setStatus("tps", undefined);
-          ctx.ui.notify("srp-theme: TPS Meter 已关闭", "info");
-          return;
-        }
-      } else if (parts[0] === "on" || parts[0] === "off") {
-        const enable = parts[0] === "on";
-        headerEnabled = enable;
-        footerEnabled = enable;
-        tpsMeter.enabled = enable;
+      const enabled = state === "on";
+      footerEnabled = enabled;
+      tpsMeter.enabled = enabled;
 
-        if (enable) {
-          if (ctx.mode === "tui") {
-            installHeader(ctx);
-            installFooter(ctx);
-          }
-          const theme = ctx.ui?.theme ?? safeFallbackTheme;
-          const txt = tpsMeter.renderFinal(theme);
-          if (txt) ctx.ui.setStatus("tps", txt);
-        } else {
-          if (ctx.mode === "tui") {
-            removeHeader(ctx);
-            removeFooter(ctx);
-          }
-          tpsMeter.stopTick();
-          ctx.ui.setStatus("tps", undefined);
-        }
-        ctx.ui.notify(`srp-theme: 已${enable ? "开启" : "关闭"}全部组件`, "info");
-        return;
+      if (ctx.mode === "tui") {
+        if (enabled) installFooter(ctx);
+        else removeFooter(ctx);
       }
 
-      ctx.ui.notify("用法: /srp-theme [header|footer|tps] on|off 或 /srp-theme status", "info");
+      if (enabled) {
+        const theme = ctx.ui?.theme ?? safeFallbackTheme;
+        ctx.ui.setStatus("tps", tpsMeter.renderFinal(theme));
+      } else {
+        tpsMeter.stopTick();
+        ctx.ui.setStatus("tps", undefined);
+      }
+      ctx.ui.notify(`srp-theme: ${enabled ? "Enabled" : "Disabled"} Footer and TPS`, "info");
     },
   });
 }

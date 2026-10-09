@@ -1,9 +1,11 @@
 {
-  "tui.altScreen.lineUp": ["alt+up"],
-  "tui.altScreen.lineDown": ["alt+down"],
   "tui.altScreen.halfPageUp": ["alt+shift+up"],
   "tui.altScreen.halfPageDown": ["alt+shift+down"],
   "app.clipboard.pasteImage": ["alt+v"],
+  "app.model.select": ["ctrl+l"],
+  "app.model.cycleForward": [],
+  "app.session.togglePath": [],
+  "app.models.toggleProvider": [],
   "app.message.followUp": ["ctrl+q"],
   "app.message.dequeue": ["alt+q"]
 }

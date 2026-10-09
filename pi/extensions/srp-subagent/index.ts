@@ -218,14 +218,14 @@ function getToolExtensionPath(tool: string): string | undefined {
   }
   const extBase = join(getAgentConfigDir(), "extensions");
   const map: Record<string, string> = {
-    web_search: existsSync(join(extBase, "srp-web.ts")) ? join(extBase, "srp-web.ts") : join(extBase, "web-search", "index.ts"),
-    web_fetch: existsSync(join(extBase, "srp-web.ts")) ? join(extBase, "srp-web.ts") : join(extBase, "web-fetch", "index.ts"),
+    web_search: existsSync(join(extBase, "web-reach.ts")) ? join(extBase, "web-reach.ts") : existsSync(join(extBase, "srp-web.ts")) ? join(extBase, "srp-web.ts") : join(extBase, "web-search", "index.ts"),
+    web_fetch: existsSync(join(extBase, "web-reach.ts")) ? join(extBase, "web-reach.ts") : existsSync(join(extBase, "srp-web.ts")) ? join(extBase, "srp-web.ts") : join(extBase, "web-fetch", "index.ts"),
     video_extract: join(extBase, "video-extract", "index.ts"),
     youtube_search: join(extBase, "youtube-search", "index.ts"),
     google_image_search: join(extBase, "google-image-search", "index.ts"),
     safe_bash: join(SUBAGENTS_DIR, "safe-bash.ts"),
-    ask_user_question: join(extBase, "srp-ask.ts"),
-    model_vision: join(extBase, "srp-vision.ts"),
+    ask_user_question: join(extBase, "ask-u-questions.ts"),
+    model_vision: existsSync(join(extBase, "model-vision.ts")) ? join(extBase, "model-vision.ts") : join(extBase, "srp-vision.ts"),
   };
   // Prefer the built-in path, but fall back to a runtime-registered extension
   // when that path no longer exists on disk (e.g. a built-in tool extension

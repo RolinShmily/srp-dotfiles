@@ -87,7 +87,7 @@ srp-dotfiles/
     ├── pi/mcp.json.example # MCP server template (create JSON if missing; otherwise save as .json.example)
     ├── pi/keybindings.json.example # Keybindings template (create JSON if missing; otherwise save as .json.example)
     ├── pi/AGENTS.md       # Global agent behavioral & safety rules
-    ├── pi/extensions/     # Custom extensions (srp-voice, srp-memory, srp-subagent, etc.)
+    ├── pi/extensions/     # Custom extensions (tui-asr, memory-log, srp-subagent, etc.)
     ├── pi/skills/         # Custom agent skills
     ├── pi/prompts/        # Structured prompt templates
     └── pi/packages/pi-learn  # Local Pi package (**not deployed**; referenced in place via @repo)

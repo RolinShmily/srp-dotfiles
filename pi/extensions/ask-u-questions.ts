@@ -1,31 +1,9 @@
 /**
- * srp-ask.ts — SRP 交互式提问扩展（ask_user_question 工具）。
- *
- * 功能特性：
- * 1. 注册 `ask_user_question` 工具：向用户提出单选、多选或自由文本问题，并挂起智能体会话等待用户决策；
- * 2. 交互式 TUI 弹窗：
- *    - 键盘导航（↑/↓ 切换选项、空格多选切换、Enter 确认/提交、Esc 取消）；
- *    - 支持 "Other (自定义输入)" 选项并呼出内联输入框；
- *    - 自适应终端宽度的 ANSI 文本折行与安全截断；
- *    - 全局跨扩展 UI 互斥锁（防止多个交互弹窗并发混乱）；
- * 3. 统一主控制命令：`/srp-ask [on|off|status|test]`。
- *
- * 配置（settings.json，可选）：
- * {
- *   "srpAsk": { "enabled": true }
- * }
+ * ask-u-questions.ts — Registers "ask_user_question" for interactive single-choice,
+ * multiple-choice, and free-text answers. Dialogs share a UI lock.
  */
 
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
-import {
-  CONFIG_DIR_NAME,
-  getAgentDir,
-  type ExtensionAPI,
-  type ExtensionContext,
-  type Theme,
-} from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext, Theme } from "@earendil-works/pi-coding-agent";
 import {
   Editor,
   type EditorTheme,
@@ -36,11 +14,8 @@ import {
   truncateToWidth,
   visibleWidth,
   wrapTextWithAnsi,
-  type AutocompleteItem,
 } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
-
-// ============================ 类型定义 ============================
 
 export interface AskOption {
   label: string;
@@ -87,74 +62,20 @@ export interface AskUserQuestionResultDetails {
   message?: string;
 }
 
-export interface SrpAskConfig {
-  enabled: boolean;
-}
-
-// ============================ 配置读取 ============================
-
-function readSrpAskConfig(cwd: string): SrpAskConfig {
-  const read = (path: string): Record<string, unknown> => {
-    try {
-      if (!existsSync(path)) return {};
-      const value: unknown = JSON.parse(readFileSync(path, "utf-8"));
-      if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-      const section = (value as Record<string, unknown>).srpAsk;
-      return section && typeof section === "object" && !Array.isArray(section)
-        ? (section as Record<string, unknown>)
-        : {};
-    } catch {
-      return {};
-    }
-  };
-  const global = read(join(getAgentDir(), "settings.json"));
-  const project = read(join(cwd, CONFIG_DIR_NAME, "settings.json"));
-  const merged = { ...global, ...project };
-  return {
-    enabled: merged.enabled !== false,
-  };
-}
-
-// ============================ 工具 Schema ============================
-
 const OptionSchema = Type.Object({
-  label: Type.String({
-    description:
-      '选项显示标签。若推荐某选项，请放在第一项并在末尾追加 "(Recommended)"。',
-  }),
-  value: Type.Optional(
-    Type.String({
-      description: "机器可读的值标识，默认等同于 label。",
-    }),
-  ),
-  description: Type.Optional(
-    Type.String({ description: "选项下方显示的补充说明或影响分析。" }),
-  ),
+  label: Type.String({ description: 'Option label. Put a recommended option first and append "(Recommended)".' }),
+  value: Type.Optional(Type.String({ description: "Machine-readable value; defaults to the label." })),
+  description: Type.Optional(Type.String({ description: "Additional context shown below the option." })),
 });
 
 const AskUserQuestionParams = Type.Object({
-  question: Type.String({
-    description: "向用户提出的核心问题。单次工具调用仅提问一个核心问题。",
-  }),
-  details: Type.Optional(
-    Type.String({
-      description: "问题下方的补充背景信息、上下文或操作说明。",
-    }),
-  ),
-  options: Type.Optional(
-    Type.Array(OptionSchema, {
-      description:
-        "单选或多选的备选选项列表。若省略或为空数组，则进入纯文本自由输入模式。提供选项时用户始终可选择 Other 并输入自定义回答。",
-    }),
-  ),
-  multiSelect: Type.Optional(
-    Type.Boolean({
-      description: "设置为 true 时允许用户同时选择多个选项。",
-    }),
-  ),
+  question: Type.String({ description: "The question to ask. Ask only one question per call." }),
+  details: Type.Optional(Type.String({ description: "Background or instructions shown below the question." })),
+  options: Type.Optional(Type.Array(OptionSchema, {
+    description: "Choices for selection. Omit or pass an empty array for free-text input. An Other choice is always available.",
+  })),
+  multiSelect: Type.Optional(Type.Boolean({ description: "Allow selecting multiple options when true." })),
 });
-
-// ============================ 选项与结果辅助函数 ============================
 
 function normalizeOptions(
   options: Array<{ label: string; value?: string; description?: string }> | undefined,
@@ -168,10 +89,28 @@ function normalizeOptions(
     .filter((option) => option.label.length > 0);
 }
 
-function getOtherLabel(options: AskOption[]): string {
-  return options.some((option) => option.label.toLowerCase() === "other")
-    ? "Other (自定义输入)"
-    : "Other";
+function isChineseContext(
+  question: string,
+  options?: Array<{ label?: string; description?: string }>,
+  context?: string,
+): boolean {
+  if (/[\u4e00-\u9fa5]/.test(question)) return true;
+  if (context && /[\u4e00-\u9fa5]/.test(context)) return true;
+  if (options && options.some((o) => (o.label && /[\u4e00-\u9fa5]/.test(o.label)) || (o.description && /[\u4e00-\u9fa5]/.test(o.description)))) {
+    return true;
+  }
+  return false;
+}
+
+function getOtherLabel(options: AskOption[], isZh = false): string {
+  if (isZh) {
+    return options.some((option) => option.label === "其他（自定义输入）")
+      ? "自定义输入"
+      : "其他（自定义输入）";
+  }
+  return options.some((option) => option.label === "Other (custom input)")
+    ? "Custom input"
+    : "Other (custom input)";
 }
 
 function createEditorTheme(theme: Theme): EditorTheme {
@@ -273,7 +212,8 @@ function buildStructuredResult(
 }
 
 function cancelledResult(question: string, mode: AskUserQuestionMode, context?: string) {
-  const message = "用户取消了本次提问";
+  const isZh = isChineseContext(question, undefined, context);
+  const message = isZh ? "用户取消了本次提问" : "User cancelled the question.";
   return {
     content: [{ type: "text" as const, text: message }],
     details: buildStructuredResult("cancelled", question, mode, [], context, message),
@@ -293,16 +233,27 @@ function buildResult(
   mode: AskUserQuestionMode,
   answers: AskAnswer[],
 ) {
+  const isZh = isChineseContext(question, answers, context);
   let text: string;
   if (mode === "text") {
     const answer = answers[0];
-    text = answer.label.trim().length > 0
-      ? `用户输入回答: ${answer.label}`
-      : "用户提交了空回答";
+    if (isZh) {
+      text = answer.label.trim().length > 0
+        ? `用户输入回答: ${answer.label}`
+        : "用户提交了空回答";
+    } else {
+      text = answer.label.trim().length > 0
+        ? `User answered: ${answer.label}`
+        : "User submitted an empty answer";
+    }
   } else if (mode === "single-select") {
-    text = `用户选择项: ${formatAnswerForModel(answers[0])}`;
+    text = isZh
+      ? `用户选择项: ${formatAnswerForModel(answers[0])}`
+      : `User selected: ${formatAnswerForModel(answers[0])}`;
   } else {
-    text = `用户选择多项:\n${answers.map((answer) => `- ${formatAnswerForModel(answer)}`).join("\n")}`;
+    text = isZh
+      ? `用户选择多项:\n${answers.map((answer) => `- ${formatAnswerForModel(answer)}`).join("\n")}`
+      : `User selected multiple:\n${answers.map((answer) => `- ${formatAnswerForModel(answer)}`).join("\n")}`;
   }
 
   return {
@@ -311,15 +262,14 @@ function buildResult(
   };
 }
 
-// ============================ UI 弹窗组件 ============================
-
 async function askSingleChoice(
   ctx: ExtensionContext,
   question: string,
   context: string | undefined,
   options: AskOption[],
 ): Promise<AskAnswer | null> {
-  const otherLabel = getOtherLabel(options);
+  const isZh = isChineseContext(question, options, context);
+  const otherLabel = getOtherLabel(options, isZh);
   const allOptions: DisplayOption[] = [
     ...options.map((option, index) => ({
       ...option,
@@ -404,32 +354,33 @@ async function askSingleChoice(
         add(theme.fg("accent", "─".repeat(width)));
 
         if (editMode) {
-          // 自定义输入模式：全量展示标题与副标题
           addWrapped(lines, question, width, " ", " ", (l) => theme.fg("text", theme.bold(l)));
           if (context) {
             addWrapped(lines, context, width, " ", " ", (l) => theme.fg("muted", l));
           }
           lines.push("");
-          add(theme.fg("accent", ` > ${allOptions[optionIndex]?.label || "Other (自定义输入)"}:`));
+          const header = allOptions[optionIndex]?.label || otherLabel;
+          add(theme.fg("accent", ` > ${header}:`));
           for (const line of editor.render(Math.max(1, width - 4))) {
             add(`   ${line}`);
           }
           lines.push("");
-          add(theme.fg("dim", " Enter 提交 • Esc 返回选项"));
+          const editHint = isZh
+            ? " Enter 提交 • Esc 返回选项"
+            : " Enter to submit • Esc to return";
+          add(theme.fg("dim", editHint));
           add(theme.fg("accent", "─".repeat(width)));
           cachedLines = lines;
           cachedWidth = width;
           return lines;
         }
 
-        // 标题与副标题（全量展开展示，支持多行与段落）
         addWrapped(lines, question, width, " ", " ", (l) => theme.fg("text", theme.bold(l)));
         if (context) {
           addWrapped(lines, context, width, " ", " ", (l) => theme.fg("muted", l));
         }
         lines.push("");
 
-        // 选项列表（全量展开所有选项及其详细说明）
         for (let i = 0; i < allOptions.length; i++) {
           const item = allOptions[i];
           const selected = i === optionIndex;
@@ -458,7 +409,10 @@ async function askSingleChoice(
         }
 
         lines.push("");
-        add(theme.fg("dim", " ↑↓ 选择 • Enter 确定 • Esc 取消"));
+        const navHint = isZh
+          ? " ↑↓ 选择 • Enter 确定 • Esc 取消"
+          : " ↑↓ to navigate • Enter to select • Esc to cancel";
+        add(theme.fg("dim", navHint));
         add(theme.fg("accent", "─".repeat(width)));
 
         cachedLines = lines;
@@ -490,7 +444,8 @@ async function askMultiChoice(
   context: string | undefined,
   options: AskOption[],
 ): Promise<AskAnswer[] | null> {
-  const otherLabel = getOtherLabel(options);
+  const isZh = isChineseContext(question, options, context);
+  const otherLabel = getOtherLabel(options, isZh);
   const choiceItems: DisplayOption[] = options.map((option, index) => ({
     ...option,
     id: `option:${index}`,
@@ -498,7 +453,7 @@ async function askMultiChoice(
   }));
   const submitItem: DisplayOption = {
     id: "submit",
-    label: "提交确认 (Submit)",
+    label: isZh ? "提交确认" : "Confirm & Submit",
     value: "__submit__",
     isSubmit: true,
   };
@@ -622,32 +577,33 @@ async function askMultiChoice(
         add(theme.fg("accent", "─".repeat(width)));
 
         if (editMode) {
-          // 自定义输入模式：全量展示标题与副标题
           addWrapped(lines, question, width, " ", " ", (l) => theme.fg("text", theme.bold(l)));
           if (context) {
             addWrapped(lines, context, width, " ", " ", (l) => theme.fg("muted", l));
           }
           lines.push("");
-          add(theme.fg("accent", ` > ${allItems[optionIndex]?.label || "Other (自定义输入)"}:`));
+          const header = allItems[optionIndex]?.label || otherLabel;
+          add(theme.fg("accent", ` > ${header}:`));
           for (const line of editor.render(Math.max(1, width - 4))) {
             add(`   ${line}`);
           }
           lines.push("");
-          add(theme.fg("dim", " Enter 保存 • Esc 返回多选"));
+          const editHint = isZh
+            ? " Enter 保存 • Esc 返回多选"
+            : " Enter to save • Esc to return";
+          add(theme.fg("dim", editHint));
           add(theme.fg("accent", "─".repeat(width)));
           cachedLines = lines;
           cachedWidth = width;
           return lines;
         }
 
-        // 标题与副标题（全量展开展示，支持多行与段落）
         addWrapped(lines, question, width, " ", " ", (l) => theme.fg("text", theme.bold(l)));
         if (context) {
           addWrapped(lines, context, width, " ", " ", (l) => theme.fg("muted", l));
         }
         lines.push("");
 
-        // 多选选项列表（全量展开所有选项及其详细说明）
         for (let i = 0; i < allItems.length; i++) {
           const item = allItems[i];
           const isFocused = i === optionIndex;
@@ -655,8 +611,11 @@ async function askMultiChoice(
 
           if (item.isSubmit) {
             const hasSelected = selected.size > 0;
+            const countText = isZh
+              ? `(已选 ${selected.size} 项)`
+              : `(${selected.size} selected)`;
             const label = hasSelected
-              ? `✓ ${item.label} (已选 ${selected.size} 项)`
+              ? `✓ ${item.label} ${countText}`
               : `○ ${item.label}`;
             const styled = isFocused
               ? theme.bold(theme.fg("accent", label))
@@ -699,9 +658,15 @@ async function askMultiChoice(
 
         lines.push("");
         if (selected.size === 0) {
-          add(theme.fg("warning", " 请至少选择一项回答后再提交。"));
+          const warnText = isZh
+            ? " 请至少选择一项回答后再提交。"
+            : " Please select at least one option before submitting.";
+          add(theme.fg("warning", warnText));
         }
-        add(theme.fg("dim", " ↑↓ 切换 • 空格 勾选 • Enter 编辑/提交 • Esc 取消"));
+        const navHint = isZh
+          ? " ↑↓ 切换 • 空格 勾选 • Enter 编辑/提交 • Esc 取消"
+          : " ↑↓ to navigate • Space to select • Enter to edit/submit • Esc to cancel";
+        add(theme.fg("dim", navHint));
         add(theme.fg("accent", "─".repeat(width)));
 
         cachedLines = lines;
@@ -727,8 +692,6 @@ async function askMultiChoice(
   );
 }
 
-// ============================ 全局 UI 互斥锁 ============================
-
 const SHARED_UI_LOCK_KEY = "__piSharedUiLock";
 function getSharedUiLock(): { withLock<T>(fn: () => T | Promise<T>): Promise<T> } {
   const g = globalThis as any;
@@ -753,128 +716,26 @@ function withUILock<T>(fn: () => Promise<T>): Promise<T> {
   return sharedUiLock.withLock(fn);
 }
 
-// ============================ Pi 扩展注册 ============================
-
-function syncAskActiveTools(pi: ExtensionAPI, enabled: boolean): void {
-  let active = pi.getActiveTools();
-  if (enabled) {
-    if (!active.includes("ask_user_question")) active = [...active, "ask_user_question"];
-  } else {
-    active = active.filter((t) => t !== "ask_user_question");
-  }
-  pi.setActiveTools(active);
-}
-
 export default function (pi: ExtensionAPI) {
-  let runtimeEnabled = readSrpAskConfig(process.cwd()).enabled;
-
-  pi.on("session_start", (_event, ctx) => {
-    runtimeEnabled = readSrpAskConfig(ctx.cwd).enabled;
-    syncAskActiveTools(pi, runtimeEnabled);
-  });
-
-  // 注册主控制命令：/srp-ask
-  pi.registerCommand("srp-ask", {
-    description: "管理与测试交互提问工具（/srp-ask [on|off|status|test]）",
-    getArgumentCompletions: (prefix: string): AutocompleteItem[] | null => {
-      const candidates: AutocompleteItem[] = [
-        { value: "status", label: "status", description: "查看 ask_user_question 工具当前状态" },
-        { value: "on", label: "on", description: "开启 ask_user_question 提问工具" },
-        { value: "off", label: "off", description: "关闭 ask_user_question 提问工具" },
-        { value: "test", label: "test", description: "测试弹出单选/多选交互式提问窗口" },
-      ];
-      const trimmed = prefix.trimStart();
-      const filtered = candidates.filter((item) => item.value.startsWith(trimmed));
-      return filtered.length > 0 ? filtered : null;
-    },
-    handler: async (args, ctx) => {
-      const action = (args.trim().split(/\s+/)[0] || "status").toLowerCase();
-
-      if (action === "status" || !args.trim()) {
-        ctx.ui.notify(
-          `srp-ask 状态: ${runtimeEnabled ? "已开启" : "已关闭"}\n• 注册工具: ask_user_question\n• 交互模式: 支持单选、多选与自由文本输入（带 UI 互斥锁）`,
-          "info",
-        );
-        return;
-      }
-
-      if (action === "on") {
-        runtimeEnabled = true;
-        syncAskActiveTools(pi, true);
-        ctx.ui.notify("srp-ask: 已开启并激活 ask_user_question 提问工具", "info");
-        return;
-      }
-
-      if (action === "off") {
-        runtimeEnabled = false;
-        syncAskActiveTools(pi, false);
-        ctx.ui.notify("srp-ask: 已关闭并取消激活 ask_user_question 提问工具", "info");
-        return;
-      }
-
-      if (action === "test") {
-        if (!ctx.hasUI) {
-          ctx.ui.notify("srp-ask test 需要在交互式 TUI 终端中执行", "warning");
-          return;
-        }
-        try {
-          const testAnswer = await withUILock(async () => {
-            return await askSingleChoice(
-              ctx,
-              "【测试】请选择您偏好的 UI 交互模式：",
-              "这是 /srp-ask test 发起的演示弹窗，用于验证主题色彩与全量展开渲染效果。\n包含多行副标题支持、选项说明全量展开与长文本自动折行。",
-              [
-                {
-                  label: "全量展开模式 (Recommended)",
-                  description:
-                    "标题、副标题与所有选项的详细解释均支持自动折行与全量展示，不再强行单行截断省略。",
-                },
-                {
-                  label: "紧凑展示模式",
-                  description:
-                    "展示所有备选方案及其详细技术说明，方便用户在决策前全面了解各个选项差异。",
-                },
-              ],
-            );
-          });
-          if (testAnswer) {
-            ctx.ui.notify(`测试回答成功: ${formatAnswerForModel(testAnswer)}`, "info");
-          } else {
-            ctx.ui.notify("测试已取消", "info");
-          }
-        } catch (e) {
-          ctx.ui.notify(`测试异常: ${String(e)}`, "error");
-        }
-        return;
-      }
-
-      ctx.ui.notify("用法: /srp-ask [on|off|status|test]", "info");
-    },
-  });
-
-  // 注册 ask_user_question 工具
   pi.registerTool({
     name: "ask_user_question",
     label: "Ask User Question",
     description:
-      "向用户提出一个明确的问题并暂停执行，直到用户作出选择或输入。适用于需求模糊、需要用户偏好决策、影响架构方案或关键操作前需要用户确认的场景。单次工具调用仅提问一个核心问题，避免混合无关问题。",
+      "Ask the user a clear question and pause execution until they select an option or provide input. Useful when requirements are ambiguous, user preferences or architectural decisions are needed, or critical operations require explicit user confirmation. Always phrase the question and options in the same language as the conversation context. Ask exactly one focused question per call.",
     promptSnippet:
-      "在需求不明确、需要用户偏好或决策时使用此工具提问，避免自行盲目假设。",
+      "Ask the user a question to clarify requirements or gather decisions instead of making assumptions.",
     promptGuidelines: [
-      "单次工具调用仅提问一个具体问题。",
-      "若需要回答多个不同维度的问题，分别发起多次工具调用，不要混在一个问题里。",
-      "提供 options 列表时，用户界面会自动提供 Other (自定义输入) 选项。",
-      "仅在需要用户勾选多个答案时设置 multiSelect: true。",
-      '若有推荐选项，将其置于列表首位并在 label 末尾追加 "(Recommended)"。',
-      "在存在多种有效实现路径且取决于用户偏好时，优先使用此工具确认。",
+      "Always phrase the question and options in the same language as the conversation context (e.g. ask in Chinese if conversing in Chinese, ask in English if conversing in English).",
+      "Ask exactly one specific question per tool call.",
+      "If you need input across multiple distinct dimensions, make separate tool calls instead of combining them into one.",
+      "When options are provided, an 'Other (custom input)' choice is automatically available in the user interface.",
+      "Set multiSelect: true only when the user is expected to select multiple choices.",
+      'Put the recommended option first in the list and append "(Recommended)" to its label.',
+      "Prefer using this tool whenever multiple valid implementation paths exist that depend on user preference.",
     ],
     parameters: AskUserQuestionParams,
 
     async execute(_toolCallId, params, signal, _onUpdate, ctx) {
-      if (!runtimeEnabled) {
-        throw new Error("srp-ask 扩展当前已关闭。请在 TUI 中输入 /srp-ask on 开启后重试。");
-      }
-
       const options = normalizeOptions(params.options);
       const context = params.details?.trim() || undefined;
       const mode: AskUserQuestionMode =
@@ -892,7 +753,7 @@ export default function (pi: ExtensionAPI) {
         return unavailableResult(
           params.question,
           mode,
-          "ask_user_question 需要交互式 TUI 终端环境",
+          "ask_user_question requires an interactive TUI environment",
           context,
         );
       }
@@ -932,6 +793,7 @@ export default function (pi: ExtensionAPI) {
       const options = normalizeOptions(
         args.options as Array<{ label: string; value?: string; description?: string }> | undefined,
       );
+      const isZh = isChineseContext(args.question || "", options, args.details);
       let summary =
         theme.fg("toolTitle", theme.bold("ask_user_question ")) +
         theme.fg("accent", `"${args.question || ""}"`);
@@ -939,8 +801,10 @@ export default function (pi: ExtensionAPI) {
         summary += theme.fg("dim", " [multi-select]");
       }
       if (options.length > 0) {
-        const labels = [...options.map((option) => option.label), getOtherLabel(options)].join(", ");
-        summary += `\n${theme.fg("dim", `  选项: ${labels}`)}`;
+        const otherLbl = getOtherLabel(options, isZh);
+        const labels = [...options.map((option) => option.label), otherLbl].join(", ");
+        const optPrefix = isZh ? "  选项: " : "  Options: ";
+        summary += `\n${theme.fg("dim", `${optPrefix}${labels}`)}`;
       }
       text.setText(summary);
       return text;
@@ -955,22 +819,29 @@ export default function (pi: ExtensionAPI) {
         return text;
       }
 
+      const isZh = isChineseContext(details.question || "", details.answers, details.context);
+
       if (details.status === "cancelled") {
-        text.setText(theme.fg("warning", `⊘ ${details.message || "已取消"}`));
+        const defaultCancelled = isZh ? "已取消" : "Cancelled";
+        text.setText(theme.fg("warning", `⊘ ${details.message || defaultCancelled}`));
         return text;
       }
 
       if (details.status === "unavailable") {
-        text.setText(theme.fg("error", `! ${details.message || "提问工具不可用"}`));
+        const defaultUnavailable = isZh ? "提问工具不可用" : "Tool unavailable";
+        text.setText(theme.fg("error", `! ${details.message || defaultUnavailable}`));
         return text;
       }
+
+      const emptyText = isZh ? "(空回答)" : "(empty)";
+      const otherPrefix = isZh ? "其他：" : "Other: ";
 
       const lines = details.answers.map((answer) => {
         switch (answer.type) {
           case "text":
-            return `${theme.fg("success", "✓ ")}${theme.fg("accent", answer.label || "(空回答)")}`;
+            return `${theme.fg("success", "✓ ")}${theme.fg("accent", answer.label || emptyText)}`;
           case "other":
-            return `${theme.fg("success", "✓ ")}${theme.fg("muted", "Other: ")}${theme.fg("accent", answer.label)}`;
+            return `${theme.fg("success", "✓ ")}${theme.fg("muted", otherPrefix)}${theme.fg("accent", answer.label)}`;
           case "option":
             return `${theme.fg("success", "✓ ")}${theme.fg("accent", `${answer.index}. ${answer.label}`)}`;
         }

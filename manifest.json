@@ -54,15 +54,17 @@
     ],
     "skillsAdd": [],
     "piExtensions": [
-      "srp-ask.ts",
-      "srp-continue.ts",
-      "srp-prompt.ts",
+      "ask-u-questions.ts",
+      "continue-signal.ts",
+      "prompt-snipaste.ts",
       "srp-theme.ts",
-      "srp-voice.ts",
-      "srp-web.ts",
-      "windows-screenshot.ts",
-      "srp-providers.ts",
-      "srp-subagent"
+      "tui-asr.ts",
+      "web-reach.ts",
+      "screenshot.ts",
+      "custom-providers",
+      "srp-subagent",
+      "image-generate.ts",
+      "memory-log"
     ],
     "piPackages": [
       "@repo/pi/packages/pi-learn",
@@ -156,9 +158,9 @@
       "https://github.com/Panniantong/agent-reach"
     ],
     "piExtensions": [
-      "srp-ask.ts",
-      "srp-continue.ts",
-      "srp-prompt.ts",
+      "ask-u-questions.ts",
+      "continue-signal.ts",
+      "prompt-snipaste.ts",
       "srp-theme.ts"
     ],
     "piPackages": [
@@ -250,13 +252,15 @@
     ],
     "skillsAdd": [],
     "piExtensions": [
-      "srp-ask.ts",
-      "srp-continue.ts",
-      "srp-prompt.ts",
+      "ask-u-questions.ts",
+      "continue-signal.ts",
+      "prompt-snipaste.ts",
       "srp-theme.ts",
-      "srp-web.ts",
-      "srp-providers.ts",
-      "srp-subagent"
+      "web-reach.ts",
+      "custom-providers",
+      "srp-subagent",
+      "image-generate.ts",
+      "memory-log"
     ],
     "piPackages": [
       "@repo/pi/packages/pi-learn",
@@ -310,7 +314,6 @@
       "scoop"
     ],
     "wingetPackages": [
-      "wez.wezterm",
       "Microsoft.PowerShell",
       "Git.Git",
       "JanDeDobbeleer.OhMyPosh",
@@ -358,15 +361,17 @@
     "pythonManager": "uv",
     "skillsAdd": [],
     "piExtensions": [
-      "srp-ask.ts",
-      "srp-continue.ts",
-      "srp-prompt.ts",
+      "ask-u-questions.ts",
+      "continue-signal.ts",
+      "prompt-snipaste.ts",
       "srp-theme.ts",
-      "srp-voice.ts",
-      "srp-web.ts",
-      "windows-screenshot.ts",
-      "srp-providers.ts",
-      "srp-subagent"
+      "tui-asr.ts",
+      "web-reach.ts",
+      "screenshot.ts",
+      "custom-providers",
+      "srp-subagent",
+      "image-generate.ts",
+      "memory-log"
     ],
     "piPackages": [
       "@repo/pi/packages/pi-learn",

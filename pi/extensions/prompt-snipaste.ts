@@ -1,26 +1,6 @@
 /**
- * srp-prompt.ts — SRP 极简提示词切面修饰符与原生 Prompt 融合扩展
- *
- * 功能特性：
- * 1. 唯一真实数据源：直接读取 Pi 的 prompts 目录（~/.pi/agent/prompts/ 与 .pi/prompts/）；
- * 2. 源码无硬编码：完全由外部 Markdown 文件的 Frontmatter 与正文动态驱动；
- * 3. 独立非侵入式 UI 卡片：前置/后置 Prompt 渲染为独立透明底边框卡片（无灰底），用户原输入居中保持原生独立展示与灰底；
- * 4. 纯净模型上下文：LLM 仅接收纯 Prompt 正文与用户指令，绝不包含任何 UI 标题（如 ↑ PREPEND PROMPT）；
- * 5. WSL + Zellij 兼容：通过底层全局按键监听与 registerShortcut 双重保障快捷键稳定唤出；
- * 6. 支持 settings.json 配置：可通过 srpPrompt.enabled 控制是否启用扩展/快捷键；
- * 7. 交互式 TUI 菜单：Space 多选、Tab 预览与视口滚动、Enter 确认、Esc 取消；
- * 8. 单次即焚生命周期：发送消息后自动重置，按 Prepend / Append 组装消息。
- *
- * settings.json 配置示例：
- * {
- *   "srpPrompt": {
- *     "enabled": true,
- *     "shortcuts": ["alt+s"]
- *   }
- * }
- *
- * 斜杠命令：
- *   - /srp-prompt
+ * prompt-snipaste.ts — Select prompt snippets for the next user message.
+ * Open with /snipaste or Alt+S; snippets come from Pi's prompts directories.
  */
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
@@ -30,73 +10,26 @@ import {
 	getAgentDir,
 	type ExtensionAPI,
 	type ExtensionContext,
+	type Theme,
 } from "@earendil-works/pi-coding-agent";
 import {
 	Key,
 	matchesKey,
-	isKeyRelease,
-	isKeyRepeat,
 	truncateToWidth,
 	wrapTextWithAnsi,
 	visibleWidth,
 } from "@earendil-works/pi-tui";
 
-// ============================ 接口与配置 ============================
-
 interface Snippet {
-	/** 文件名，例如 "ask-questions.md" */
 	id: string;
-	/** 显示名称 */
 	name: string;
-	/** 描述说明 */
 	description: string;
-	/** 插入位置：前缀 (prepend) 或 后缀 (append) */
 	placement: "prepend" | "append";
-	/** 排序权重 */
 	order: number;
-	/** 提示词正文 */
 	body: string;
 }
 
-interface SrpPromptConfig {
-	enabled: boolean;
-	shortcuts: string[];
-}
-
-const WIDGET_ID = "srp-prompt";
-
-function loadPromptConfig(cwd?: string): SrpPromptConfig {
-	const read = (path: string): Record<string, unknown> => {
-		try {
-			if (!existsSync(path)) return {};
-			const value: unknown = JSON.parse(readFileSync(path, "utf-8"));
-			if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-			const section = (value as Record<string, unknown>).srpPrompt;
-			return section && typeof section === "object" && !Array.isArray(section)
-				? (section as Record<string, unknown>)
-				: {};
-		} catch {
-			return {};
-		}
-	};
-
-	let global: Record<string, unknown> = {};
-	try {
-		global = read(join(getAgentDir(), "settings.json"));
-	} catch {}
-	const project = cwd ? read(join(cwd, CONFIG_DIR_NAME, "settings.json")) : {};
-	const merged = { ...global, ...project };
-
-	const enabled = merged.enabled !== false;
-	const shortcuts =
-		Array.isArray(merged.shortcuts) && merged.shortcuts.length > 0
-			? (merged.shortcuts as string[])
-			: ["alt+s"];
-
-	return { enabled, shortcuts };
-}
-
-// ============================ 数据解析与加载 ============================
+const WIDGET_ID = "prompt-snipaste";
 
 function parseSnippet(filename: string, raw: string): Snippet | null {
 	const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
@@ -124,32 +57,30 @@ function parseSnippet(filename: string, raw: string): Snippet | null {
 	};
 }
 
-function loadSnippets(cwd?: string): Snippet[] {
-	const dirs: string[] = [];
-
-	try {
-		const globalPrompts = join(getAgentDir(), "prompts");
-		if (existsSync(globalPrompts)) dirs.push(globalPrompts);
-	} catch {}
-
-	if (cwd) {
-		const projectPrompts = join(cwd, CONFIG_DIR_NAME, "prompts");
-		if (existsSync(projectPrompts)) dirs.push(projectPrompts);
-	}
-
+function loadSnippets(cwd: string): Snippet[] {
+	const dirs = [join(getAgentDir(), "prompts"), join(cwd, CONFIG_DIR_NAME, "prompts")];
 	const seen = new Map<string, Snippet>();
 
 	for (const dir of dirs) {
+		if (!existsSync(dir)) continue;
+		let files: string[];
 		try {
-			for (const file of readdirSync(dir)) {
-				if (!file.endsWith(".md")) continue;
-				try {
-					const raw = readFileSync(join(dir, file), "utf-8");
-					const snippet = parseSnippet(file, raw);
-					if (snippet) seen.set(file, snippet);
-				} catch {}
+			files = readdirSync(dir);
+		} catch (error) {
+			if (!(error instanceof Error) || !("code" in error)) throw error;
+			console.error(`Failed to read prompt directory ${dir}: ${error.message}`);
+			continue;
+		}
+		for (const file of files) {
+			if (!file.endsWith(".md")) continue;
+			try {
+				const snippet = parseSnippet(file, readFileSync(join(dir, file), "utf-8"));
+				if (snippet) seen.set(file, snippet);
+			} catch (error) {
+				if (!(error instanceof Error) || !("code" in error)) throw error;
+				console.error(`Failed to read prompt ${join(dir, file)}: ${error.message}`);
 			}
-		} catch {}
+		}
 	}
 
 	return Array.from(seen.values()).sort((a, b) => {
@@ -158,8 +89,6 @@ function loadSnippets(cwd?: string): Snippet[] {
 		return a.name.localeCompare(b.name);
 	});
 }
-
-// ============================ UI 卡片组件 ============================
 
 interface PromptCardData {
 	snippets: {
@@ -173,13 +102,13 @@ interface PromptCardData {
 
 function buildPromptCardComponent(
 	snippets: PromptCardData["snippets"],
-	theme: { fg: (color: string, text: string) => string; bold: (text: string) => string },
+	theme: Theme,
 ) {
 	const borderCol = (s: string) => theme.fg("borderAccent", s);
 	const dim = (s: string) => theme.fg("dim", s);
 	const bold = (s: string) => theme.bold(s);
 
-	const titleText = ` PROMPT SNIPPETS (${snippets.length}) `;
+	const titleText = ` Prompt Snippets (${snippets.length}) `;
 
 	return {
 		render(width: number): string[] {
@@ -220,23 +149,17 @@ function buildPromptCardComponent(
 	};
 }
 
-// ============================ 扩展主体 ============================
-
-export default function srpPromptExtension(pi: ExtensionAPI) {
+export default function promptSnipaste(pi: ExtensionAPI) {
 	let enabled = new Set<string>();
 	let snippets: Snippet[] = [];
-	let lastCtx: ExtensionContext | null = null;
-	let removeInputListener: (() => void) | null = null;
-	let tuiHandle: any = null;
 
 	function updateWidget(ctx: ExtensionContext) {
-		const config = loadPromptConfig(ctx.cwd);
-		if (!config.enabled || enabled.size === 0) {
+		if (enabled.size === 0) {
 			ctx.ui.setWidget(WIDGET_ID, undefined);
 			return;
 		}
 
-		ctx.ui.setWidget(WIDGET_ID, (tui, theme) => ({
+		ctx.ui.setWidget(WIDGET_ID, (_tui, theme) => ({
 			render(width: number): string[] {
 				const active = snippets.filter((s) => enabled.has(s.id));
 				if (active.length === 0) return [];
@@ -252,71 +175,16 @@ export default function srpPromptExtension(pi: ExtensionAPI) {
 					parts.push(theme.fg("warning", `↓ ${appends.map((s) => s.name).join(", ")}`));
 				}
 
-				const text = `[Prompt: ${parts.join(" · ")}]`;
+				const text = `[Prompts: ${parts.join(" · ")}]`;
 				return [truncateToWidth(text, width)];
 			},
 			invalidate() {},
 		}));
 	}
 
-	function isShortcutKey(data: string): boolean {
-		const config = loadPromptConfig(lastCtx?.cwd);
-		if (!config.enabled) return false;
-		for (const sc of config.shortcuts) {
-			try {
-				if (matchesKey(data, sc as any)) return true;
-			} catch {}
-			const norm = sc.toLowerCase().trim();
-			if (
-				norm === "alt+s" &&
-				(data === "\x1bs" ||
-					data === "\x1bS" ||
-					data === "ß" ||
-					matchesKey(data, Key.alt("s")) ||
-					matchesKey(data, Key.alt("S")))
-			) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	const onGlobalInput = (data: string) => {
-		if (isKeyRelease(data) || isKeyRepeat(data)) return undefined;
-
-		if (isShortcutKey(data)) {
-			if (lastCtx) {
-				void openMenu(lastCtx);
-			}
-			return { consume: true };
-		}
-		return undefined;
-	};
-
-	function ensureTuiAttached(ctx: ExtensionContext) {
-		lastCtx = ctx;
-		if (ctx.mode !== "tui" || tuiHandle) return;
-		try {
-			ctx.ui.setWidget("srp-prompt-tui-handle", (tui: any) => {
-				tuiHandle = tui;
-				if (!removeInputListener && tui?.addInputListener) {
-					removeInputListener = tui.addInputListener(onGlobalInput);
-				}
-				return { render: () => [], invalidate: () => {} };
-			});
-		} catch {}
-	}
-
 	async function openMenu(ctx: ExtensionContext) {
-		ensureTuiAttached(ctx);
 		if (ctx.mode !== "tui") {
-			ctx.ui.notify("Prompt snippets 菜单仅在交互式 TUI 模式下可用", "warning");
-			return;
-		}
-
-		const config = loadPromptConfig(ctx.cwd);
-		if (!config.enabled) {
-			ctx.ui.notify("srp-prompt 扩展已在 settings.json 中禁用 (srpPrompt.enabled = false)", "warning");
+			ctx.ui.notify("Prompt snippets menu is only available in interactive terminals", "warning");
 			return;
 		}
 
@@ -324,7 +192,7 @@ export default function srpPromptExtension(pi: ExtensionAPI) {
 		enabled = new Set([...enabled].filter((id) => snippets.some((s) => s.id === id)));
 
 		if (snippets.length === 0) {
-			ctx.ui.notify("未在 prompts 目录中找到任何 prompt 文件", "warning");
+			ctx.ui.notify("No Markdown files found in prompt directories", "warning");
 			updateWidget(ctx);
 			return;
 		}
@@ -350,10 +218,10 @@ export default function srpPromptExtension(pi: ExtensionAPI) {
 
 			const buildListRows = (width: number): { text: string; itemIndex: number | null }[] => {
 				const rows: { text: string; itemIndex: number | null }[] = [];
-				rows.push({ text: theme.fg("dim", "↑ PREPEND — 在消息前注入"), itemIndex: null });
+				rows.push({ text: theme.fg("dim", "↑ Prepend Prompts"), itemIndex: null });
 				prepends.forEach((s, i) => rows.push({ text: itemRow(s, i, width), itemIndex: i }));
 				rows.push({ text: "", itemIndex: null });
-				rows.push({ text: theme.fg("dim", "↓ APPEND — 在消息后注入"), itemIndex: null });
+				rows.push({ text: theme.fg("dim", "↓ Append Prompts"), itemIndex: null });
 				appends.forEach((s, i) => rows.push({ text: itemRow(s, prepends.length + i, width), itemIndex: prepends.length + i }));
 				return rows;
 			};
@@ -361,7 +229,7 @@ export default function srpPromptExtension(pi: ExtensionAPI) {
 			const buildPreviewRows = (snippet: Snippet, width: number): string[] => {
 				const rows: string[] = [];
 				rows.push(truncateToWidth(theme.bold(snippet.name), width));
-				rows.push(truncateToWidth(theme.fg("dim", `${snippet.placement} · order ${snippet.order} · ${snippet.id}`), width));
+				rows.push(truncateToWidth(theme.fg("dim", `${snippet.placement === "prepend" ? "Prepend" : "Append"} · Order ${snippet.order} · ${snippet.id}`), width));
 				rows.push(theme.fg("dim", "─".repeat(Math.min(width, 40))));
 				for (const line of snippet.body.split("\n")) {
 					for (const wrapped of wrapTextWithAnsi(line, width)) {
@@ -393,9 +261,9 @@ export default function srpPromptExtension(pi: ExtensionAPI) {
 				const below = lines.length - (s + view);
 				return {
 					out: [
-						above > 0 ? theme.fg("dim", `  ↑ ${above} 更多`) : "",
+						above > 0 ? theme.fg("dim", `  ↑ ${above} more`) : "",
 						...visible,
-						below > 0 ? theme.fg("dim", `  ↓ ${below} 更多`) : "",
+						below > 0 ? theme.fg("dim", `  ↓ ${below} more`) : "",
 					],
 					scroll: s,
 				};
@@ -415,15 +283,15 @@ export default function srpPromptExtension(pi: ExtensionAPI) {
 						content = v.out;
 						listScroll = v.scroll;
 						title = "Prompt Snippets";
-						hints = "↑↓ 导航 • Space 勾选 • Tab 预览正文 • Enter 确认 • Esc 取消";
+						hints = "↑↓ Navigate • Space Select • Tab Preview • Enter Confirm • Esc Cancel";
 					} else {
 						const snippet = items[cursor];
 						const rows = buildPreviewRows(snippet, width);
 						const v = viewport(rows, previewScroll, maxView);
 						content = v.out;
 						previewScroll = v.scroll;
-						title = `预览: ${snippet.name}`;
-						hints = "↑↓ 滚动 • Tab/Esc 返回列表";
+						title = `Preview: ${snippet.name}`;
+						hints = "↑↓ Scroll • Tab/Esc Back to list";
 					}
 
 					const innerW = width - 4;
@@ -492,46 +360,21 @@ export default function srpPromptExtension(pi: ExtensionAPI) {
 
 	let pendingTurnSnippets: Snippet[] | null = null;
 
-	// ============================ 注册独立卡片条目渲染器 ============================
-
-	pi.registerEntryRenderer<PromptCardData>("srp-prompt-card", (entry, _options, theme) => {
+	pi.registerEntryRenderer<PromptCardData>("prompt-snipaste-card", (entry, _options, theme) => {
 		const data = entry.data;
 		if (!data?.snippets || data.snippets.length === 0) return undefined;
-		return buildPromptCardComponent(data.snippets, theme as any);
+		return buildPromptCardComponent(data.snippets, theme);
 	});
-
-	// ============================ 生命周期与事件 ============================
 
 	pi.on("session_start", (_event, ctx) => {
 		enabled = new Set();
 		pendingTurnSnippets = null;
 		snippets = loadSnippets(ctx.cwd);
-		ensureTuiAttached(ctx);
 		updateWidget(ctx);
 	});
 
-	pi.on("session_resume", (_event, ctx) => {
-		ensureTuiAttached(ctx);
-	});
-
-	pi.on("agent_start", (_event, ctx) => {
-		ensureTuiAttached(ctx);
-	});
-
-	pi.on("turn_start", (_event, ctx) => {
-		ensureTuiAttached(ctx);
-	});
-
-	pi.on("session_shutdown", () => {
-		removeInputListener?.();
-		removeInputListener = null;
-		tuiHandle = null;
-	});
-
-	// 用户发送消息时捕获切面并追加独立卡片条目
 	pi.on("input", async (_event, ctx) => {
-		const config = loadPromptConfig(ctx.cwd);
-		if (!config.enabled || enabled.size === 0) return undefined;
+		if (enabled.size === 0) return undefined;
 
 		snippets = loadSnippets(ctx.cwd);
 		const active = snippets.filter((s) => enabled.has(s.id));
@@ -540,11 +383,9 @@ export default function srpPromptExtension(pi: ExtensionAPI) {
 
 		if (active.length === 0) return undefined;
 
-		// 缓存当前 turn 给 LLM 注入的切面
 		pendingTurnSnippets = active;
 
-		// 向 Session 追加独立卡片 Entry（在用户消息之前写入，无任何 userMessageBg 灰底污染）
-		pi.appendEntry<PromptCardData>("srp-prompt-card", {
+		pi.appendEntry<PromptCardData>("prompt-snipaste-card", {
 			snippets: active.map((s) => ({
 				id: s.id,
 				name: s.name,
@@ -554,11 +395,9 @@ export default function srpPromptExtension(pi: ExtensionAPI) {
 			})),
 		});
 
-		// 用户消息自身保持纯净
 		return undefined;
 	});
 
-	// 在每次大模型调用前组装切面正文与用户原始输入
 	pi.on("context", async (event, _ctx) => {
 		if (!pendingTurnSnippets || pendingTurnSnippets.length === 0) return undefined;
 
@@ -596,26 +435,13 @@ export default function srpPromptExtension(pi: ExtensionAPI) {
 		return undefined;
 	});
 
-	// ============================ 命令与快捷键注册 ============================
-
-	pi.registerCommand("srp-prompt", {
-		description: "选择要注入到下一条消息的前置/后置 prompt 切面",
-		handler: async (_args, ctx) => {
-			await openMenu(ctx);
-		},
+	pi.registerCommand("snipaste", {
+		description: "Select prepended or appended prompt snippets to inject into the next message",
+		handler: (_args, ctx) => openMenu(ctx),
 	});
 
-	const initialConfig = loadPromptConfig();
-	if (initialConfig.enabled) {
-		for (const sc of initialConfig.shortcuts) {
-			const norm = sc.toLowerCase().trim();
-			const keyId = norm === "alt+s" ? Key.alt("s") : (sc as any);
-			pi.registerShortcut(keyId, {
-				description: "打开 prompt 切面修饰符菜单",
-				handler: async (ctx) => {
-					await openMenu(ctx);
-				},
-			});
-		}
-	}
+	pi.registerShortcut(Key.alt("s"), {
+		description: "Open prompt snippets menu",
+		handler: (ctx) => openMenu(ctx),
+	});
 }

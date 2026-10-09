@@ -1,7 +1,7 @@
 /**
- * windows-screenshot.ts — 将 Windows 最新系统截图路径插入 Pi 输入框。
+ * screenshot.ts — Insert the latest Windows/WSL system screenshot path into Pi's editor.
  *
- * 使用 /win-screenshot 引用最近修改的截图。
+ * Use /screenshot to reference the most recently modified screenshot.
  */
 
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
@@ -103,22 +103,22 @@ function findLatestScreenshot(): string | null {
 }
 
 export default function (pi: ExtensionAPI) {
-  pi.registerCommand("win-screenshot", {
-    description: "将 Windows 最新系统截图插入输入框",
+  pi.registerCommand("screenshot", {
+    description: "Insert the latest Windows/WSL system screenshot path into the editor",
     handler: async (_args, ctx: ExtensionContext) => {
       if (!isWindows() && !isWSL()) {
-        ctx.ui.notify("当前环境非 Windows 或 WSL，无法查找 Windows 系统截图", "warning");
+        ctx.ui.notify("Current environment is not Windows or WSL; cannot locate Windows screenshots.", "warning");
         return;
       }
 
       const path = findLatestScreenshot();
       if (!path) {
-        ctx.ui.notify("未找到 Windows 系统截图", "warning");
+        ctx.ui.notify("No Windows screenshots found.", "warning");
         return;
       }
 
       ctx.ui.pasteToEditor(`${path} `);
-      ctx.ui.notify(`已引用截图：${path.split(/[\\/]/).pop()}`, "info");
+      ctx.ui.notify(`Referenced screenshot: ${path.split(/[\\/]/).pop()}`, "info");
     },
   });
 }

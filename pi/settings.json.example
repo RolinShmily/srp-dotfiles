@@ -3,60 +3,13 @@
   "defaultModel": "deepseek-v4.1-flash",
   "defaultThinkingLevel": "high",
   "theme": "dark",
-  "srpTheme": {
-    "header": false,
-    "footer": true,
-    "tps": true
-  },
-  "srpAsk": {
-    "enabled": true
-  },
-  "srpContinue": {
-    "enabled": true,
-    "shortcuts": [
-      "alt+c"
-    ]
-  },
-  "srpPrompt": {
-    "enabled": true,
-    "shortcuts": [
-      "alt+s"
-    ]
-  },
-  "srpWeb": {
-    "search": true,
-    "fetch": true
-  },
-  "srpVision": {
-    "enabled": false
-  },
-  "srpImage": {
-    "tool": true,
-    "model": "google/gemini-3.1-flash-image",
-    "outputDir": ".pi/generated-images"
-  },
-  "srpVoice": {
-    "enabled": true,
-    "provider": "auto",
-    "model": "paraformer-realtime-v2",
-    "language": "zh",
-    "shortcuts": [
-      "alt+m"
-    ],
-    "cancelShortcuts": [
-      "alt+n"
-    ]
-  },
-  "wslScreenshot": {
-    "enabled": true
-  },
   "srpSubagent": {
     "enabled": true,
     "mux": "auto",
     "statusWidget": true
   },
-  "srpMemory": {
-    "default_enabled": false,
+  "memoryLog": {
+    "defaultEnabled": false,
     "chunkTokens": 20000,
     "poolTargetTokens": 20000,
     "consolidateAtPoolTokens": 25000,

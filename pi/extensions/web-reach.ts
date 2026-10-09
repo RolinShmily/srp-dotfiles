@@ -1,45 +1,27 @@
 /**
- * srp-web.ts — SRP 轻量联网搜索与全功能网页提取扩展。
+ * web-reach.ts — Lightweight web search and extraction extension for Pi.
  *
- * 功能特性：
- * 1. web_search: 免 Key 的 Exa MCP 联网搜索，返回包含标题、来源 URL 与摘要的搜索结果。
- * 2. web_fetch : 现代化多级网页抓取与提取引擎：
- *    - Next.js RSC (React Server Components) 静态数据深度解析；
- *    - 语义化 HTML 转 Markdown 转换（去除广告/脚本/导航，保留代码块、表格、引用与链接）；
- *    - PDF 文档检测与文本提取；
- *    - JS 动态渲染页面自动 Fallback 至 Jina Reader (https://r.jina.ai)；
- *    - 纯 JSON 自动格式化排版。
- *
- * 交互命令：
- *   /srp-web [on|off]
- *   /srp-web status
- *   /srp-web search <query>
- *   /srp-web fetch <url>
- *
- * 配置（settings.json，可选）：
- * {
- *   "srpWeb": { "enabled": true }
- * }
+ * Injects `web_search` and `web_fetch` tools by default:
+ * 1. web_search: Keyless Exa MCP web search returning structured snippets with source URLs.
+ * 2. web_fetch : Multi-tier web content extraction engine:
+ *    - Next.js RSC (React Server Components) static data parsing;
+ *    - Semantic HTML to Markdown conversion;
+ *    - PDF document detection and text extraction;
+ *    - Automatic fallback to Jina Reader for JS-rendered pages;
+ *    - Pretty-printed JSON formatting.
  */
 
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
-import {
-  CONFIG_DIR_NAME,
-  getAgentDir,
-  type ExtensionAPI,
-} from "@earendil-works/pi-coding-agent";
-import { Text, type AutocompleteItem } from "@earendil-works/pi-tui";
+import { type ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 
-// ============================ 配置区 ============================
+// ============================ Constants ============================
 
 const EXA_MCP_URL = "https://mcp.exa.ai/mcp";
 const EXA_SEARCH_TOOL = "web_search_exa";
 const JINA_READER_BASE = "https://r.jina.ai/";
 const DEFAULT_USER_AGENT =
-  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 srp-web/2.0";
+  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 web-reach/2.0";
 
 const MAX_RETURN_CHARS = 35_000;
 const MIN_USEFUL_CONTENT_LENGTH = 300;
@@ -49,40 +31,7 @@ function envNum(name: string, fallback: number): number {
   return Number.isFinite(n) && n > 0 ? n : fallback;
 }
 
-export interface SrpWebConfig {
-  search: boolean;
-  fetch: boolean;
-}
-
-function readSrpWebConfig(cwd: string): SrpWebConfig {
-  const read = (path: string): Record<string, unknown> => {
-    try {
-      if (!existsSync(path)) return {};
-      const value: unknown = JSON.parse(readFileSync(path, "utf-8"));
-      if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-      const section = (value as Record<string, unknown>).srpWeb;
-      return section && typeof section === "object" && !Array.isArray(section)
-        ? (section as Record<string, unknown>)
-        : {};
-    } catch {
-      return {};
-    }
-  };
-  const global = read(join(getAgentDir(), "settings.json"));
-  const project = read(join(cwd, CONFIG_DIR_NAME, "settings.json"));
-  const merged = { ...global, ...project };
-
-  const globalEnabled = merged.enabled !== false;
-  const searchEnabled = typeof merged.search === "boolean" ? merged.search : globalEnabled;
-  const fetchEnabled = typeof merged.fetch === "boolean" ? merged.fetch : globalEnabled;
-
-  return {
-    search: searchEnabled,
-    fetch: fetchEnabled,
-  };
-}
-
-// ============================ 超时控制 ============================
+// ============================ Timeout & Helpers ============================
 
 function withTimeout(
   ms: number,
@@ -90,7 +39,7 @@ function withTimeout(
   signal?: AbortSignal,
 ): { ac: AbortController; done: () => void } {
   const ac = new AbortController();
-  const timer = setTimeout(() => ac.abort(new Error(`${label}（${ms / 1000}s）`)), ms);
+  const timer = setTimeout(() => ac.abort(new Error(`${label} timed out (${ms / 1000}s)`)), ms);
   const onAbort = () => ac.abort(signal?.reason);
   signal?.addEventListener("abort", onAbort, { once: true });
   if (signal?.aborted) onAbort();
@@ -105,10 +54,10 @@ function withTimeout(
 
 function truncate(text: string, limit = MAX_RETURN_CHARS): string {
   if (text.length <= limit) return text;
-  return text.slice(0, limit) + `\n\n…（内容过长，已截断至 ${limit} 字符）`;
+  return text.slice(0, limit) + `\n\n...(content truncated to ${limit} characters)`;
 }
 
-// ============================ 联网搜索 (Exa MCP) ============================
+// ============================ Web Search (Exa MCP) ============================
 
 interface ExaMcpResponse {
   result?: {
@@ -127,7 +76,7 @@ function parseExaResponse(body: string): ExaMcpResponse | undefined {
       const parsed = JSON.parse(payload) as ExaMcpResponse;
       if (parsed.result || parsed.error) return parsed;
     } catch {
-      /* 继续查找下一个 SSE 事件 */
+      /* continue to next SSE event */
     }
   }
   try {
@@ -143,10 +92,10 @@ export async function searchWeb(
   signal?: AbortSignal,
 ): Promise<{ text: string; provider: string }> {
   query = query.trim();
-  if (!query) throw new Error("搜索问题不能为空");
+  if (!query) throw new Error("Search query cannot be empty.");
   const { ac, done } = withTimeout(
     envNum("SRP_WEB_SEARCH_TIMEOUT_MS", 60_000),
-    "搜索超时",
+    "Search request timed out",
     signal,
   );
   try {
@@ -155,7 +104,7 @@ export async function searchWeb(
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json, text/event-stream",
-        "x-exa-source": "srp-web",
+        "x-exa-source": "web-reach",
       },
       body: JSON.stringify({
         jsonrpc: "2.0",
@@ -167,15 +116,15 @@ export async function searchWeb(
     });
     const body = await res.text();
     if (!res.ok) {
-      const hint = res.status === 429 ? "（Exa 免费服务已限流，请稍后重试）" : "";
+      const hint = res.status === 429 ? " (Exa free tier rate limit reached; please try again later)" : "";
       throw new Error(`Exa MCP HTTP ${res.status}${hint}: ${body.slice(0, 300)}`);
     }
 
     const payload = parseExaResponse(body);
-    if (!payload) throw new Error("Exa MCP 返回了无法解析的响应");
+    if (!payload) throw new Error("Exa MCP returned an unparseable response.");
     if (payload.error) {
       throw new Error(
-        `Exa MCP 错误${payload.error.code ? ` ${payload.error.code}` : ""}: ${payload.error.message ?? "未知错误"}`,
+        `Exa MCP error${payload.error.code ? ` ${payload.error.code}` : ""}: ${payload.error.message ?? "Unknown error"}`,
       );
     }
 
@@ -183,7 +132,7 @@ export async function searchWeb(
       ?.find((item) => item.type === "text" && item.text?.trim())
       ?.text?.trim();
     if (payload.result?.isError || !text) {
-      throw new Error(text || "Exa MCP 返回了空内容");
+      throw new Error(text || "Exa MCP returned empty content.");
     }
     return { text: truncate(text), provider: "exa-mcp" };
   } finally {
@@ -191,7 +140,7 @@ export async function searchWeb(
   }
 }
 
-// ============================ Next.js RSC 提取 ============================
+// ============================ Next.js RSC Extraction ============================
 
 function extractRSCContent(html: string): { title: string; content: string } | null {
   if (!html.includes("self.__next_f.push")) return null;
@@ -355,7 +304,7 @@ function extractRSCContent(html: string): { title: string; content: string } | n
   return content.length > 100 ? { title, content } : null;
 }
 
-// ============================ 语义 HTML 转 Markdown ============================
+// ============================ Semantic HTML to Markdown ============================
 
 function extractTitleFromHtml(html: string): string {
   const match = html.match(/<title[^>]*>([^<]+)<\/title>/i);
@@ -379,7 +328,7 @@ function htmlToMarkdown(html: string): string {
   let s = html.replace(/<(script|style|noscript|svg|canvas|form|nav|footer|header|aside)[\s\S]*?<\/\1>/gi, " ");
   s = s.replace(/<!--[\s\S]*?-->/g, " ");
 
-  // 标题
+  // Headings
   s = s.replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, "\n\n# $1\n\n");
   s = s.replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, "\n\n## $1\n\n");
   s = s.replace(/<h3[^>]*>([\s\S]*?)<\/h3>/gi, "\n\n### $1\n\n");
@@ -387,17 +336,17 @@ function htmlToMarkdown(html: string): string {
   s = s.replace(/<h5[^>]*>([\s\S]*?)<\/h5>/gi, "\n\n##### $1\n\n");
   s = s.replace(/<h6[^>]*>([\s\S]*?)<\/h6>/gi, "\n\n###### $1\n\n");
 
-  // 代码块与行内代码
+  // Code blocks and inline code
   s = s.replace(/<pre[^>]*><code[^>]*>([\s\S]*?)<\/code><\/pre>/gi, "\n```\n$1\n```\n");
   s = s.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, "\n```\n$1\n```\n");
   s = s.replace(/<code[^>]*>([\s\S]*?)<\/code>/gi, " `$1` ");
 
-  // 引用与强调
+  // Blockquotes and emphasis
   s = s.replace(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi, "\n> $1\n");
   s = s.replace(/<(strong|b)[^>]*>([\s\S]*?)<\/\1>/gi, "**$2**");
   s = s.replace(/<(em|i)[^>]*>([\s\S]*?)<\/\1>/gi, "*$2*");
 
-  // 链接
+  // Links
   s = s.replace(/<a\s+[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi, (_, href, text) => {
     const t = text.replace(/<[^>]*>/g, "").trim();
     if (!t) return "";
@@ -405,23 +354,23 @@ function htmlToMarkdown(html: string): string {
     return `[${t}](${href})`;
   });
 
-  // 列表
+  // Lists
   s = s.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, "\n- $1");
   s = s.replace(/<\/(ul|ol)>/gi, "\n\n");
 
-  // 表格
+  // Tables
   s = s.replace(/<tr[^>]*>([\s\S]*?)<\/tr>/gi, "\n$1 |");
   s = s.replace(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi, " | $1");
   s = s.replace(/<\/(table|thead|tbody)>/gi, "\n\n");
 
-  // 段落与换行
+  // Paragraphs and line breaks
   s = s.replace(/<\/(p|div|section|article)>/gi, "\n\n");
   s = s.replace(/<br\s*\/?>/gi, "\n");
 
-  // 清除剩余标签
+  // Strip remaining tags
   s = s.replace(/<[^>]*>/g, " ");
 
-  // HTML 实体解码
+  // HTML entity decoding
   s = s
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
@@ -447,7 +396,7 @@ async function fetchViaJinaReader(
   url: string,
   signal?: AbortSignal,
 ): Promise<{ text: string; title: string } | null> {
-  const { ac, done } = withTimeout(30_000, "Jina Reader 超时", signal);
+  const { ac, done } = withTimeout(30_000, "Jina Reader timed out", signal);
   try {
     const res = await fetch(`${JINA_READER_BASE}${url}`, {
       headers: {
@@ -482,7 +431,7 @@ async function fetchViaJinaReader(
   }
 }
 
-// ============================ PDF 文档提取 ============================
+// ============================ PDF Document Extraction ============================
 
 function isPdfUrl(url: string, contentType?: string): boolean {
   if (contentType?.includes("application/pdf")) return true;
@@ -518,7 +467,7 @@ async function extractPdfBuffer(
     const text = `# ${title}\n\nPages: ${pdf.numPages}\n\n${pages.join("\n\n")}`;
     return { text, title };
   } catch {
-    // 降级文本提取
+    // Fallback plain text extraction
     const text = Buffer.from(buffer).toString("latin1").replace(/[^\x20-\x7E\n\r\t]/g, " ");
     return {
       text: `# PDF Document\n\n${text.slice(0, 8000)}`,
@@ -527,7 +476,7 @@ async function extractPdfBuffer(
   }
 }
 
-// ============================ 网页抓取主入口 ============================
+// ============================ Web Fetch Main Entry ============================
 
 export async function fetchUrl(
   url: string,
@@ -537,7 +486,7 @@ export async function fetchUrl(
   const mode = opts.mode ?? "readable";
   const { ac, done } = withTimeout(
     envNum("SRP_WEB_FETCH_TIMEOUT_MS", 20_000),
-    "网页抓取超时",
+    "Web fetch timed out",
     signal,
   );
 
@@ -560,10 +509,10 @@ export async function fetchUrl(
     const arrayBuf = await res.arrayBuffer();
 
     if (arrayBuf.byteLength > maxBytes) {
-      throw new Error(`内容超过 ${Math.round((maxBytes / 1024 / 1024) * 10) / 10} MiB 上限`);
+      throw new Error(`Content exceeds ${Math.round((maxBytes / 1024 / 1024) * 10) / 10} MiB limit.`);
     }
 
-    // 1. PDF 提取
+    // 1. PDF extraction
     if (isPdfUrl(url, contentType)) {
       const { text, title } = await extractPdfBuffer(arrayBuf, url);
       return { text: truncate(text), title, contentType, status: res.status, engine: "unpdf" };
@@ -571,7 +520,7 @@ export async function fetchUrl(
 
     const body = Buffer.from(arrayBuf).toString("utf8");
 
-    // 2. Raw 原始模式
+    // 2. Raw mode
     if (mode === "raw") {
       return {
         text: truncate(body),
@@ -582,7 +531,7 @@ export async function fetchUrl(
       };
     }
 
-    // 3. JSON 格式化
+    // 3. JSON formatting
     if (contentType.includes("json")) {
       try {
         const text = JSON.stringify(JSON.parse(body), null, 2);
@@ -592,9 +541,9 @@ export async function fetchUrl(
       }
     }
 
-    // 4. HTML 处理
+    // 4. HTML processing
     if (contentType.includes("html") || contentType.includes("xhtml")) {
-      // 4.1 尝试 Next.js RSC 提取
+      // 4.1 Attempt Next.js RSC extraction
       const rsc = extractRSCContent(body);
       if (rsc && rsc.content.length >= MIN_USEFUL_CONTENT_LENGTH) {
         return {
@@ -606,7 +555,7 @@ export async function fetchUrl(
         };
       }
 
-      // 4.2 语义化 HTML 转 Markdown
+      // 4.2 Semantic HTML to Markdown
       const title = extractTitleFromHtml(body);
       const markdown = htmlToMarkdown(body);
 
@@ -620,7 +569,7 @@ export async function fetchUrl(
         };
       }
 
-      // 4.3 动态 JS 页面或内容过短：尝试 Jina Reader Fallback
+      // 4.3 Dynamic JS page or short content: attempt Jina Reader fallback
       const jina = await fetchViaJinaReader(url, signal);
       if (jina && jina.text.length >= 100) {
         return {
@@ -641,7 +590,7 @@ export async function fetchUrl(
       };
     }
 
-    // 5. 纯文本及其他类型
+    // 5. Plain text and other types
     return {
       text: truncate(body),
       title: url.split("/").pop() || "Plain Text",
@@ -654,156 +603,19 @@ export async function fetchUrl(
   }
 }
 
-// ============================ Pi 扩展注册 ============================
-
-function syncWebActiveTools(pi: ExtensionAPI, search: boolean, fetch: boolean): void {
-  let active = pi.getActiveTools();
-  if (search) {
-    if (!active.includes("web_search")) active = [...active, "web_search"];
-  } else {
-    active = active.filter((t) => t !== "web_search");
-  }
-  if (fetch) {
-    if (!active.includes("web_fetch")) active = [...active, "web_fetch"];
-  } else {
-    active = active.filter((t) => t !== "web_fetch");
-  }
-  pi.setActiveTools(active);
-}
+// ============================ Tool Registration ============================
 
 export default function (pi: ExtensionAPI) {
-  let searchEnabled = false;
-  let fetchEnabled = false;
-
-  pi.on("session_start", (_event, ctx) => {
-    const cfg = readSrpWebConfig(ctx.cwd);
-    searchEnabled = cfg.search;
-    fetchEnabled = cfg.fetch;
-    syncWebActiveTools(pi, searchEnabled, fetchEnabled);
-  });
-
-  // 注册主控制命令：/srp-web
-  pi.registerCommand("srp-web", {
-    description: "管理与测试轻量联网工具（/srp-web [search|fetch] [on|off] 或 /srp-web [on|off|status]）",
-    getArgumentCompletions: (prefix: string): AutocompleteItem[] | null => {
-      const candidates: AutocompleteItem[] = [
-        { value: "status", label: "status", description: "查看当前网络工具状态与配置" },
-        { value: "search on", label: "search on", description: "开启 web_search 联网搜索工具" },
-        { value: "search off", label: "search off", description: "关闭 web_search 联网搜索工具" },
-        { value: "fetch on", label: "fetch on", description: "开启 web_fetch 网页提取工具" },
-        { value: "fetch off", label: "fetch off", description: "关闭 web_fetch 网页提取工具" },
-        { value: "on", label: "on", description: "开启全部网络工具 (search + fetch)" },
-        { value: "off", label: "off", description: "关闭全部网络工具" },
-        { value: "search ", label: "search <query>", description: "测试执行联网搜索" },
-        { value: "fetch ", label: "fetch <url>", description: "测试抓取网页内容" },
-      ];
-      const trimmed = prefix.trimStart();
-      const filtered = candidates.filter((item) => item.value.startsWith(trimmed));
-      return filtered.length > 0 ? filtered : null;
-    },
-    handler: async (args, ctx) => {
-      const parts = args.trim().split(/\s+/).filter(Boolean);
-      const target = (parts[0] || "status").toLowerCase();
-      const state = (parts[1] || "").toLowerCase();
-
-      if (target === "status" || parts.length === 0) {
-        const timeoutSearch = envNum("SRP_WEB_SEARCH_TIMEOUT_MS", 60_000) / 1000;
-        const timeoutFetch = envNum("SRP_WEB_FETCH_TIMEOUT_MS", 20_000) / 1000;
-        const maxMb = Math.round((envNum("SRP_WEB_FETCH_MAX_BYTES", 4 * 1024 * 1024) / 1024 / 1024) * 10) / 10;
-        ctx.ui.notify(
-          `srp-web 状态:\n• Search: ${searchEnabled ? "已开启" : "已关闭"} (源: Exa MCP, 超时 ${timeoutSearch}s)\n• Fetch: ${fetchEnabled ? "已开启" : "已关闭"} (引擎: RSC/Markdown/PDF/Jina, 上限 ${maxMb}MB, 超时 ${timeoutFetch}s)`,
-          "info",
-        );
-        return;
-      }
-
-      if (target === "search") {
-        if (state === "on") {
-          searchEnabled = true;
-          syncWebActiveTools(pi, searchEnabled, fetchEnabled);
-          ctx.ui.notify("srp-web: web_search 已开启（工具已激活）", "info");
-          return;
-        }
-        if (state === "off") {
-          searchEnabled = false;
-          syncWebActiveTools(pi, searchEnabled, fetchEnabled);
-          ctx.ui.notify("srp-web: web_search 已关闭（工具已取消激活）", "info");
-          return;
-        }
-        // 测试搜索
-        const query = parts.slice(1).join(" ").trim();
-        if (!query) {
-          ctx.ui.notify("用法: /srp-web search on|off 或 /srp-web search <query>", "warning");
-          return;
-        }
-        try {
-          ctx.ui.notify(`正在搜索: "${query}" ...`, "info");
-          const { text } = await searchWeb(query);
-          ctx.ui.notify(`搜索完成 (${text.length} 字符):\n${text.slice(0, 300)}...`, "info");
-        } catch (e) {
-          ctx.ui.notify(`搜索失败: ${String(e)}`, "error");
-        }
-        return;
-      }
-
-      if (target === "fetch") {
-        if (state === "on") {
-          fetchEnabled = true;
-          syncWebActiveTools(pi, searchEnabled, fetchEnabled);
-          ctx.ui.notify("srp-web: web_fetch 已开启（工具已激活）", "info");
-          return;
-        }
-        if (state === "off") {
-          fetchEnabled = false;
-          syncWebActiveTools(pi, searchEnabled, fetchEnabled);
-          ctx.ui.notify("srp-web: web_fetch 已关闭（工具已取消激活）", "info");
-          return;
-        }
-        // 测试抓取
-        const targetUrl = parts.slice(1).join(" ").trim();
-        if (!targetUrl) {
-          ctx.ui.notify("用法: /srp-web fetch on|off 或 /srp-web fetch <url>", "warning");
-          return;
-        }
-        try {
-          ctx.ui.notify(`正在抓取: ${targetUrl} ...`, "info");
-          const res = await fetchUrl(targetUrl);
-          ctx.ui.notify(
-            `抓取成功 [${res.engine}] 《${res.title || "Untitled"}》(${res.text.length} 字符):\n${res.text.slice(0, 300)}...`,
-            "info",
-          );
-        } catch (e) {
-          ctx.ui.notify(`抓取失败: ${String(e)}`, "error");
-        }
-        return;
-      }
-
-      if (target === "on" || target === "off") {
-        const enable = target === "on";
-        searchEnabled = enable;
-        fetchEnabled = enable;
-        syncWebActiveTools(pi, searchEnabled, fetchEnabled);
-        ctx.ui.notify(`srp-web: 已${enable ? "开启并激活" : "关闭并取消激活"}全部网络工具`, "info");
-        return;
-      }
-
-      ctx.ui.notify("用法: /srp-web [search|fetch] [on|off] 或 /srp-web [on|off|status]", "info");
-    },
-  });
-
-  // 注册 web_search 工具
+  // Register web_search tool
   pi.registerTool({
     name: "web_search",
     label: "Web Search",
     description:
-      "联网搜索：通过免 Key 的 Exa MCP 返回带来源的高质量搜索结果。适合实时信息、最新动态和陌生领域调研；需要核对原文时，再对结果 URL 调用 web_fetch。",
+      "Search the web using Exa MCP without an API key. Returns high-quality search results with titles, source URLs, and text snippets. Ideal for real-time information, latest news, and research; use web_fetch on result URLs to inspect full pages.",
     parameters: Type.Object({
-      query: Type.String({ minLength: 1, description: "搜索问题，越具体越好" }),
+      query: Type.String({ minLength: 1, description: "Search query, as specific as possible." }),
     }),
     async execute(_toolCallId, params, signal) {
-      if (!searchEnabled) {
-        throw new Error("web_search 当前已关闭。请在 TUI 中输入 /srp-web search on 开启后重试。");
-      }
       const { text, provider } = await searchWeb(params.query, signal);
       return { content: [{ type: "text", text }], details: { provider } };
     },
@@ -818,28 +630,25 @@ export default function (pi: ExtensionAPI) {
     },
   });
 
-  // 注册 web_fetch 工具
+  // Register web_fetch tool
   pi.registerTool({
     name: "web_fetch",
     label: "Web Fetch",
     description:
-      "智能抓取网页内容：自动提取正文并转为结构化 Markdown（支持 Next.js RSC 解析、PDF 提取、HTML 语义转换，并在 JS 渲染站点自动调用 Jina Reader 兜底）。适合深度阅读文档与网页详情。",
+      "Intelligently fetch and extract content from a web page. Automatically extracts main content and converts to structured Markdown (supports Next.js RSC parsing, PDF extraction, semantic HTML-to-Markdown, and falls back to Jina Reader for JS-rendered pages). Suitable for in-depth reading of documentation and web pages.",
     parameters: Type.Object({
-      url: Type.String({ description: "目标 http(s) URL" }),
+      url: Type.String({ description: "Target http(s) URL." }),
       mode: Type.Optional(
         Type.Enum(
           { readable: "readable", raw: "raw" },
-          { description: "readable=智能提取 Markdown（默认），raw=返回原始内容" },
+          { description: "readable: intelligently extract Markdown (default); raw: return raw content." },
         ),
       ),
     }),
     async execute(_toolCallId, params, signal) {
-      if (!fetchEnabled) {
-        throw new Error("web_fetch 当前已关闭。请在 TUI 中输入 /srp-web fetch on 开启后重试。");
-      }
       const mode = params.mode as "readable" | "raw" | undefined;
       const { text, title, contentType, status, engine } = await fetchUrl(params.url, { mode }, signal);
-      const header = title ? `# ${title}\n\n来源: ${params.url} (引擎: ${engine})\n\n---\n\n` : "";
+      const header = title ? `# ${title}\n\nSource: ${params.url} (Engine: ${engine})\n\n---\n\n` : "";
       return {
         content: [{ type: "text", text: header + text }],
         details: { contentType, status, engine, title, chars: text.length },
