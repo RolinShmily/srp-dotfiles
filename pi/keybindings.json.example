@@ -3,6 +3,7 @@
   "tui.altScreen.lineDown": ["alt+down"],
   "tui.altScreen.halfPageUp": ["alt+shift+up"],
   "tui.altScreen.halfPageDown": ["alt+shift+down"],
+  "app.clipboard.pasteImage": ["alt+v"],
   "app.message.followUp": ["ctrl+q"],
   "app.message.dequeue": ["alt+q"]
 }
