@@ -5,11 +5,11 @@ import { evaluateConsolidatorTrigger } from "../hooks/consolidator-trigger.ts";
 
 export async function handleConsolidateCommand(_args: string, ctx: ExtensionContext, runtime: Runtime): Promise<void> {
   if (!runtime.enabled) {
-    if (ctx.hasUI) ctx.ui.notify("srp-memory 已关闭（输入 /srp-memory on 开启）", "info");
+    if (ctx.hasUI) ctx.ui.notify("memory-log is disabled (run /mem-log on to enable)", "info");
     return;
   }
   if (runtime.consolidatorInFlight) {
-    if (ctx.hasUI) ctx.ui.notify("srp-memory: 长期记忆归档正在进行中", "warning");
+    if (ctx.hasUI) ctx.ui.notify("memory-log: consolidation is already in progress", "warning");
     return;
   }
   runtime.ensureConfig(ctx.cwd);
@@ -19,7 +19,7 @@ export async function handleConsolidateCommand(_args: string, ctx: ExtensionCont
   if (promote.length === 0) {
     if (ctx.hasUI) {
       ctx.ui.notify(
-        `srp-memory: 当前无需归档（缓冲池 ${poolTokens(active).toLocaleString()} tok <= 目标 ${runtime.config.poolTargetTokens.toLocaleString()} tok）`,
+        `memory-log: consolidation not needed (pool buffer ${poolTokens(active).toLocaleString()} tok <= target ${runtime.config.poolTargetTokens.toLocaleString()} tok)`,
         "info",
       );
     }
@@ -40,8 +40,18 @@ export function registerConsolidateCommand(pi: ExtensionAPI, runtime: Runtime): 
   piInstance = pi;
   const handler = async (args: string, ctx: ExtensionContext) => handleConsolidateCommand(args, ctx, runtime);
 
-  pi.registerCommand("srp-memory:consolidate", {
-    description: "立即归档短期观察至长期主题文件（忽略缓冲池阈值）",
+  pi.registerCommand("mem-log:consolidate", {
+    description: "Archive short-term observations to durable topic files immediately (ignore pool threshold)",
+    handler,
+  });
+
+  pi.registerCommand("memory-log:consolidate", {
+    description: "Archive short-term observations to durable topic files immediately (ignore pool threshold)",
+    handler,
+  });
+
+  pi.registerCommand("memory:consolidate", {
+    description: "Archive short-term observations to durable topic files immediately (ignore pool threshold)",
     handler,
   });
 }

@@ -72,7 +72,7 @@ export function evaluateConsolidatorTrigger(pi: ExtensionAPI, runtime: Runtime, 
 
   runtime.consolidatorInFlight = true;
   if (ctx.hasUI) {
-    ctx.ui?.notify(`srp-memory: 长期归档已启动 (${promote.length} 条记录, ~${poolTokens(promote).toLocaleString()} tok)`, "info");
+    ctx.ui?.notify(`memory-log: consolidation started (${promote.length} records, ~${poolTokens(promote).toLocaleString()} tok)`, "info");
   }
   void dispatchConsolidator(pi, runtime, ctx, promote);
 }
@@ -123,13 +123,13 @@ async function dispatchConsolidator(
     runtime.status.workerDone(runId, toDrop.length);
     runtime.refreshFooterGauges(ctx.sessionManager.getBranch(), ctx.getContextUsage?.()?.tokens ?? null);
     if (ctx.hasUI && ctx.ui) {
-      runtime.queueToast(`srp-memory: 长期归档完成，已归档 ${toDrop.length} 条观察记录`, "info", ctx.ui.notify.bind(ctx.ui));
+      runtime.queueToast(`memory-log: consolidation completed, archived ${toDrop.length} observations`, "info", ctx.ui.notify.bind(ctx.ui));
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     runtime.lastWorkerError = message;
     runtime.status.workerError(runId);
-    if (ctx.hasUI) ctx.ui?.notify(`srp-memory: 长期归档运行失败: ${message}`, "error");
+    if (ctx.hasUI) ctx.ui?.notify(`memory-log: consolidation failed: ${message}`, "error");
   } finally {
     runtime.consolidatorController = undefined;
     runtime.consolidatorInFlight = false;

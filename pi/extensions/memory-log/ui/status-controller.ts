@@ -37,7 +37,8 @@ type WorkerState =
   | { kind: "done"; delta?: number }
   | { kind: "error" };
 
-const WIDGET_KEY = "srp-memory";
+const WIDGET_KEY = "memory-log";
+const LEGACY_WIDGET_KEY = "srp-memory";
 const LEGACY_WORKERS_WIDGET_KEY = "srp-memory-workers";
 const LEGACY_STATUS_KEY = "srp-memory";
 const SPINNER_FRAMES = ["◐", "◓", "◑", "◒"] as const;
@@ -72,7 +73,9 @@ export class StatusController {
   attach(ui: StatusUI): void {
     this.ui = ui;
     this.ui.setStatus(LEGACY_STATUS_KEY, undefined);
+    this.ui.setStatus(WIDGET_KEY, undefined);
     this.ui.setWidget(LEGACY_WORKERS_WIDGET_KEY, undefined);
+    this.ui.setWidget(LEGACY_WIDGET_KEY, undefined);
     this.renderWidget();
   }
 
@@ -86,7 +89,9 @@ export class StatusController {
     this.cost = undefined;
     this.ui?.setWidget(WIDGET_KEY, undefined);
     this.ui?.setWidget(LEGACY_WORKERS_WIDGET_KEY, undefined);
+    this.ui?.setWidget(LEGACY_WIDGET_KEY, undefined);
     if (this.ui) this.ui.setStatus(LEGACY_STATUS_KEY, undefined);
+    if (this.ui) this.ui.setStatus(WIDGET_KEY, undefined);
     this.ui = undefined;
   }
 
@@ -190,7 +195,7 @@ export class StatusController {
 
   private renderMemLine(): string {
     const theme = this.ui?.theme;
-    if (!theme) return "srp-memory";
+    if (!theme) return "memory-log";
     const base = `${theme.fg("success", "● mem")}`;
     const g = this.gauges;
     if (!g) return base;

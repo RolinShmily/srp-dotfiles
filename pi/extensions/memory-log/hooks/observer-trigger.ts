@@ -83,7 +83,7 @@ export function evaluateObserverTriggers(pi: ExtensionAPI, runtime: Runtime, ctx
     runtime.trackObserverTask(
       dispatchObserver(pi, runtime, { hasUI, ui, model: ctx.model, sessionManager, getContextUsage: ctx.getContextUsage }, slice),
     );
-    if (hasUI) startToastLines.push(`srp-memory: 观察者已启动 (~${slice.tokens.toLocaleString()} tok)`);
+    if (hasUI) startToastLines.push(`memory-log: observer started (~${slice.tokens.toLocaleString()} tok)`);
   }
 
   if (startToastLines.length > 0) ui?.notify(startToastLines.join("\n"), "info");
@@ -154,7 +154,7 @@ async function dispatchObserver(
     runtime.refreshFooterGauges(ctx.sessionManager.getBranch(), ctx.getContextUsage?.()?.tokens ?? null);
     if (ctx.hasUI && ctx.ui) {
       runtime.queueToast(
-        `srp-memory: 观察者 +${observations.length} (~${slice.tokens.toLocaleString()} tok)`,
+        `memory-log: observer +${observations.length} (~${slice.tokens.toLocaleString()} tok)`,
         "info",
         ctx.ui.notify.bind(ctx.ui),
       );
@@ -163,7 +163,7 @@ async function dispatchObserver(
     const message = error instanceof Error ? error.message : String(error);
     runtime.lastWorkerError = message;
     runtime.status.workerError(runId);
-    if (ctx.hasUI) ctx.ui?.notify(`srp-memory: 观察者运行失败: ${message}`, "error");
+    if (ctx.hasUI) ctx.ui?.notify(`memory-log: observer failed: ${message}`, "error");
   } finally {
     runtime.observersInFlight.delete(runId);
   }

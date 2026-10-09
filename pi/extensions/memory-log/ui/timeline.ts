@@ -95,7 +95,7 @@ export function renderTimeline(branch: Entry[], config: Config, width = 60): str
   const strip = cells.length > 0 ? `${wrap(cells, width)}${GLYPH.tip}` : "(timeline empty)";
 
   return [
-    `srp-memory timeline · 1 格 ≈ ${fmtK(config.chunkTokens)} tok · 累计 ${fmtK(rawTotal)} raw · ${compactions} 次压缩`,
+    `memory-log timeline · 1 cell ≈ ${fmtK(config.chunkTokens)} tok · cumulative ${fmtK(rawTotal)} raw · ${compactions} compaction${compactions === 1 ? "" : "s"}`,
     strip,
     ``,
     `  ${GLYPH.consolidated} .memory (${consolidatedChunks})   ${GLYPH.pool} pool (${poolChunks})   ${GLYPH.raw} raw   ${GLYPH.cut} compaction cut   ${GLYPH.tip} tip`,

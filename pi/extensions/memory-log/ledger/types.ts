@@ -8,7 +8,7 @@ export const OM_OBSERVATIONS_RECORDED = "om.observations.recorded";
 export const OM_OBSERVATIONS_DROPPED = "om.observations.dropped";
 /** Compaction details type stamped into the compaction entry's `details`. */
 export const OM_FOLDED = "om.folded";
-/** Per-session on/off gate state. When absent, `srpMemory.default_enabled` applies. */
+/** Per-session on/off gate state. When absent, defaultEnabled applies. */
 export const OM_ENABLED = "om.enabled";
 /**
  * Per-worker cost record (one per finished worker run). The orchestrator appends these from

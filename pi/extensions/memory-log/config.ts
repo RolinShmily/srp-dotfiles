@@ -78,7 +78,7 @@ const THINKING_LEVEL_VALUES: readonly ModelThinkingLevel[] = [
   "xhigh",
 ] as const;
 
-const SETTINGS_KEYS = ["srpMemory", "srp-memory", "observational-memory"] as const;
+const SETTINGS_KEYS = ["memoryLog", "memory-log", "memLog", "mem-log", "srpMemory", "srp-memory", "observational-memory"] as const;
 const PASSIVE_ENV = "PI_OM_PASSIVE";
 
 function positiveIntegerOrUndefined(value: unknown): number | undefined {
@@ -112,7 +112,7 @@ function normalizeModel(value: unknown, fallback: ConfiguredModel): ConfiguredMo
 /**
  * Resolve the model a worker subprocess should run on.
  *
- * Priority: srp-memory configured model > current session model > pi settings
+ * Priority: memory-log configured model > current session model > pi settings
  * default model. When nothing resolves, return an empty model so the worker
  * omits `--provider`/`--model` and pi resolves its own default — never pin a
  * hardcoded model here.

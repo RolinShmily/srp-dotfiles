@@ -1,11 +1,11 @@
 /**
- * srp-memory — SRP Observational Memory (Orchestrator).
+ * memory-log — Observational Memory Log (Orchestrator).
  *
- * 分层异步子进程观测记忆系统：
- * - Observers: 后台并发提取会话片段，生成带精准时间戳的原子事实观察记录；
- * - Ledger: 随分支持久化记录到当前主会话；
- * - Compaction: 压缩时模型免调用、确定性渲染恢复上下文（带 Journey、Memory Map 与短期缓冲区）；
- * - Consolidator: 自动归档旧记忆至 .memory/<sessionId>/ durable 长期主题文件与 JOURNEY.md。
+ * Tiered asynchronous subprocess observational memory system:
+ * - Observers: Background concurrent distillation of conversation chunks into timestamped atomic facts;
+ * - Ledger: Persists with branches to the current session;
+ * - Compaction: Model-free deterministic context reconstruction (Journey, Memory Map, short-term buffer);
+ * - Consolidator: Auto-archives older observations to durable topic files under .memory/<sessionId>/ and JOURNEY.md.
  */
 
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
@@ -60,7 +60,7 @@ export default function observationalMemory(pi: ExtensionAPI): void {
 
   const setGate = (next: boolean, ctx: ExtensionContext) => {
     if (next === runtime.enabled) {
-      if (ctx.hasUI) ctx.ui.notify(`srp-memory 当前已处于 ${next ? "开启" : "关闭"} 状态`, "info");
+      if (ctx.hasUI) ctx.ui.notify(`memory-log is already ${next ? "enabled" : "disabled"}`, "info");
       return;
     }
     runtime.enabled = next;
@@ -77,59 +77,75 @@ export default function observationalMemory(pi: ExtensionAPI): void {
       runtime.abortAllWorkers();
       runtime.status.detach();
     }
-    if (ctx.hasUI) ctx.ui.notify(`srp-memory 已${next ? "开启" : "关闭"}`, "info");
+    if (ctx.hasUI) ctx.ui.notify(`memory-log is now ${next ? "enabled" : "disabled"}`, "info");
   };
 
-  // 统一主控制命令：/srp-memory [status|on|off|compact|consolidate]
-  pi.registerCommand("srp-memory", {
-    description: "管理观测记忆系统（/srp-memory [status|on|off|compact|consolidate]）",
-    getArgumentCompletions: (prefix: string): AutocompleteItem[] | null => {
-      const candidates: AutocompleteItem[] = [
-        { value: "status", label: "status", description: "查看当前观测记忆系统状态与时间线" },
-        { value: "on", label: "on", description: "为当前会话启用观测记忆" },
-        { value: "off", label: "off", description: "为当前会话停用观测记忆" },
-        { value: "compact", label: "compact", description: "立即执行记忆压缩（忽略阈值）" },
-        { value: "consolidate", label: "consolidate", description: "立即归档短期观察至长期主题文件" },
-      ];
-      const trimmed = prefix.trimStart();
-      const filtered = candidates.filter((item) => item.value.startsWith(trimmed));
-      return filtered.length > 0 ? filtered : null;
-    },
-    handler: async (args: string, ctx: ExtensionContext) => {
-      const action = (args.trim().split(/\s+/)[0] || "").toLowerCase();
+  const getCompletions = (prefix: string): AutocompleteItem[] | null => {
+    const candidates: AutocompleteItem[] = [
+      { value: "status", label: "status", description: "View memory log system status and timeline" },
+      { value: "on", label: "on", description: "Enable memory log for current session" },
+      { value: "off", label: "off", description: "Disable memory log for current session" },
+      { value: "compact", label: "compact", description: "Run memory compaction immediately (ignore context threshold)" },
+      { value: "consolidate", label: "consolidate", description: "Archive short-term observations to durable topic files immediately" },
+    ];
+    const trimmed = prefix.trimStart();
+    const filtered = candidates.filter((item) => item.value.startsWith(trimmed));
+    return filtered.length > 0 ? filtered : null;
+  };
 
-      if (action === "on") {
+  const commandHandler = async (args: string, ctx: ExtensionContext) => {
+    const action = (args.trim().split(/\s+/)[0] || "").toLowerCase();
+
+    if (action === "on") {
+      setGate(true, ctx);
+      return;
+    }
+
+    if (action === "off") {
+      setGate(false, ctx);
+      return;
+    }
+
+    if (action === "compact") {
+      await handleCompactCommand(args, ctx, runtime);
+      return;
+    }
+
+    if (action === "consolidate") {
+      await handleConsolidateCommand(args, ctx, runtime);
+      return;
+    }
+
+    if (action === "status" || action === "timeline" || !action) {
+      if (!action && !runtime.enabled) {
         setGate(true, ctx);
         return;
       }
+      await handleStatusCommand(args, ctx, runtime);
+      return;
+    }
 
-      if (action === "off") {
-        setGate(false, ctx);
-        return;
-      }
+    // Toggle gate if unknown action
+    setGate(!runtime.enabled, ctx);
+  };
 
-      if (action === "compact") {
-        await handleCompactCommand(args, ctx, runtime);
-        return;
-      }
+  // Primary command: /mem-log [status|on|off|compact|consolidate]
+  pi.registerCommand("mem-log", {
+    description: "Manage observational memory log system (/mem-log [status|on|off|compact|consolidate])",
+    getArgumentCompletions: getCompletions,
+    handler: commandHandler,
+  });
 
-      if (action === "consolidate") {
-        await handleConsolidateCommand(args, ctx, runtime);
-        return;
-      }
-
-      if (action === "status" || action === "timeline" || !action) {
-        if (!action && !runtime.enabled) {
-          setGate(true, ctx);
-          return;
-        }
-        await handleStatusCommand(args, ctx, runtime);
-        return;
-      }
-
-      // 切换开关
-      setGate(!runtime.enabled, ctx);
-    },
+  // Aliases for compatibility and convenience
+  pi.registerCommand("memory-log", {
+    description: "Manage observational memory log system (/memory-log [status|on|off|compact|consolidate])",
+    getArgumentCompletions: getCompletions,
+    handler: commandHandler,
+  });
+  pi.registerCommand("memory", {
+    description: "Manage observational memory log system (/memory [status|on|off|compact|consolidate])",
+    getArgumentCompletions: getCompletions,
+    handler: commandHandler,
   });
 
   // Triggers + hooks

@@ -135,25 +135,25 @@ export function registerCompactionTrigger(pi: ExtensionAPI, runtime: Runtime): v
           return;
         }
 
-        if (hasUI) ui?.notify("srp-memory: 已达上下文阈值 — 正在执行记忆压缩（等待处理中的 Observers）…", "info");
+        if (hasUI) ui?.notify("memory-log: context threshold reached — compacting memory (waiting for pending observers)...", "info");
 
         runtime.autoCompactionController = undefined;
         ctx.compact({
           onComplete: () => {
             runtime.compactInFlight = false;
-            if (hasUI) ui?.notify("srp-memory: 记忆压缩完成", "info");
+            if (hasUI) ui?.notify("memory-log: memory compaction completed", "info");
           },
           onError: (error: { message: string }) => {
             runtime.compactInFlight = false;
             if (error.message === "Compaction cancelled") return;
-            if (hasUI) ui?.notify(`srp-memory: ${error.message}`, "error");
+            if (hasUI) ui?.notify(`memory-log: ${error.message}`, "error");
           },
         });
       } catch (error) {
         runtime.compactInFlight = false;
         runtime.autoCompactionController = undefined;
         const msg = error instanceof Error ? error.message : String(error);
-        if (hasUI) ui?.notify(`srp-memory: 压缩触发失败 — ${msg}`, "error");
+        if (hasUI) ui?.notify(`memory-log: compaction trigger failed — ${msg}`, "error");
       }
     })();
   });

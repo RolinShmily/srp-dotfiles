@@ -118,7 +118,7 @@ export function registerCompactionHook(pi: ExtensionAPI, runtime: Runtime): void
 
     const hasUI = ctx.hasUI;
     if (runtime.compactHookInFlight) {
-      if (hasUI) ctx.ui.notify("srp-memory: 检测到另一项压缩正在进行中，已忽略重复触发", "warning");
+      if (hasUI) ctx.ui.notify("memory-log: another compaction is already in progress, skipping duplicate trigger", "warning");
       return { cancel: true };
     }
 
@@ -134,7 +134,7 @@ export function registerCompactionHook(pi: ExtensionAPI, runtime: Runtime): void
       const skip = canSkipObserverWait(branch, snap.firstKeptId, snap.tail, tailTokens, runtime.observersInFlight.values());
       runtime.lastCompactionObserverWait = skip ? "skipped" : "waited";
       if (!skip) {
-        if (hasUI) ctx.ui.notify("srp-memory: 正在等待处理中的 Observers 完成归并…", "info");
+        if (hasUI) ctx.ui.notify("memory-log: waiting for in-flight observers to finish before compaction...", "info");
         await runtime.whenObserversIdle();
         branch = (ctx.sessionManager?.getBranch?.() as Entry[] | undefined) ?? (event.branchEntries as Entry[]);
         snap = snapCutoff(branch, firstKeptEntryId, tailTokens);
