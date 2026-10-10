@@ -1,26 +1,28 @@
 /**
- * srp-theme.ts — Footer and TPS meter extension.
+ * srp-theme.ts — Prompt preview and TPS meter extension.
  *
- * /srp-theme on|off controls both components for the current runtime.
- * Pi's native header is used; no settings.json fields are needed.
+ * Scheme A (Pure Incremental Mode):
+ * Leaves Pi's native Header and Footer untouched so official features
+ * (CH cache hit rate, W cache write, auto-compaction indicator, routed models, etc.)
+ * work out-of-the-box without maintenance drift.
+ *
+ * Adds two lightweight incremental UI enhancements:
+ * 1. belowEditor widget: Displays the last user prompt in powerline style (↳ <prompt>).
+ * 2. Status line item: Real-time streaming TPS meter and sparkline summary.
  */
-
-import { isAbsolute, join, relative, resolve, sep } from "node:path";
 
 import {
   type ExtensionAPI,
   type ExtensionContext,
-  type ReadonlyFooterDataProvider,
   type Theme,
 } from "@earendil-works/pi-coding-agent";
 import {
   truncateToWidth,
   visibleWidth,
   type AutocompleteItem,
-  type Component,
 } from "@earendil-works/pi-tui";
 
-// ============================ Footer Rendering ============================
+// ============================ Prompt Preview Widget ============================
 
 const POWERLINE_SEP_ANSI = "\x1b[38;5;244m";
 const ANSI_RESET = "\x1b[0m";
@@ -52,35 +54,17 @@ export function renderLastPromptLine(
   ];
 }
 
-function sanitizeStatusText(text: string): string {
-  return text.replace(/[\r\n\t]/g, " ").replace(/ +/g, " ").trim();
-}
 
-export function formatTokens(count: number): string {
-  if (count < 1000) return count.toString();
-  if (count < 10000) return `${(count / 1000).toFixed(1)}k`;
-  if (count < 1000000) return `${Math.round(count / 1000)}k`;
-  if (count < 10000000) return `${(count / 1000000).toFixed(1)}M`;
-  return `${Math.round(count / 1000000)}M`;
-}
 
-export function formatCwdForFooter(cwd: string, home?: string): string {
-  if (!home) return cwd;
-  const resolvedCwd = resolve(cwd);
-  const resolvedHome = resolve(home);
-  const rel = relative(resolvedHome, resolvedCwd);
-  const isInside = rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
-  if (!isInside) return cwd;
-  return rel === "" ? "~" : `~${sep}${rel}`;
-}
+// ============================ Incremental Time / Finished Widget ============================
 
 const WEEK_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+type ClockVariant = "full" | "month_day" | "time_only";
+type FinishedVariant = "full" | "compact" | "duration_only";
 
-export function formatDuration(ms: number): string {
+function formatDuration(ms: number): string {
   if (ms < 0) return "0.0s";
-  if (ms < 60_000) {
-    return `${(ms / 1000).toFixed(1)}s`;
-  }
+  if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`;
   if (ms < 3600_000) {
     const totalSecs = Math.round(ms / 1000);
     const mins = Math.floor(totalSecs / 60);
@@ -93,388 +77,122 @@ export function formatDuration(ms: number): string {
   return `${hours}h${mins < 10 ? "0" : ""}${mins}m`;
 }
 
-export type ClockVariant = "full" | "month_day" | "time_only";
-export type FinishedVariant = "full" | "compact" | "duration_only";
+function formatFooterClockVariant(date: Date, variant: ClockVariant): string {
+  const pad = (value: number) => value.toString().padStart(2, "0");
+  const hours = pad(date.getHours());
+  const minutes = pad(date.getMinutes());
 
-export function formatFooterClockVariant(d: Date, variant: ClockVariant): string {
-  const pad = (n: number) => n.toString().padStart(2, "0");
-  const hours = pad(d.getHours());
-  const minutes = pad(d.getMinutes());
+  if (variant === "time_only") return `[${hours}:${minutes}]`;
 
-  if (variant === "time_only") {
-    return `[ ${hours}:${minutes} ]`;
-  }
+  const month = pad(date.getMonth() + 1);
+  const dayOfMonth = pad(date.getDate());
+  if (variant === "month_day") return `[${month}-${dayOfMonth} ${hours}:${minutes}]`;
 
-  const month = pad(d.getMonth() + 1);
-  const date = pad(d.getDate());
-
-  if (variant === "month_day") {
-    return `[ ${month}-${date} ${hours}:${minutes} ]`;
-  }
-
-  const year = d.getFullYear();
-  const day = WEEK_DAYS[d.getDay()];
-  return `[ ${year}-${month}-${date} ${day} ${hours}:${minutes} ]`;
+  return `[${date.getFullYear()}-${month}-${dayOfMonth} ${WEEK_DAYS[date.getDay()]} ${hours}:${minutes}]`;
 }
 
-export function formatFooterClock(d: Date, width: number): string {
-  if (width < 50) return formatFooterClockVariant(d, "time_only");
-  if (width >= 80) return formatFooterClockVariant(d, "full");
-  return formatFooterClockVariant(d, "month_day");
-}
-
-export function formatLoopEndVariant(
+function formatLoopEndVariant(
   finished: Date,
-  now: Date = new Date(),
-  durationMs?: number | null,
-  variant: FinishedVariant = "full",
+  now: Date,
+  durationMs: number | null,
+  variant: FinishedVariant,
 ): string {
-  const pad = (n: number) => n.toString().padStart(2, "0");
+  const pad = (value: number) => value.toString().padStart(2, "0");
   const hasDuration = typeof durationMs === "number" && durationMs >= 0;
-  const durationStr = hasDuration ? formatDuration(durationMs!) : "";
 
-  // 1. Duration-only compact variant
   if (variant === "duration_only") {
-    return hasDuration ? `{ ${durationStr} }` : "";
+    return hasDuration ? `X ${formatDuration(durationMs)}` : "X";
   }
 
   const isCrossYear = finished.getFullYear() !== now.getFullYear();
   const isCrossDay =
-    finished.getMonth() !== now.getMonth() ||
-    finished.getDate() !== now.getDate();
+    finished.getMonth() !== now.getMonth() || finished.getDate() !== now.getDate();
+  const dateOrTime = isCrossYear
+    ? `${finished.getFullYear()}`
+    : isCrossDay
+      ? `${pad(finished.getMonth() + 1)}-${pad(finished.getDate())}`
+      : `${pad(finished.getHours())}:${pad(finished.getMinutes())}`;
 
-  let dateOrTime = "";
-  if (isCrossYear) {
-    dateOrTime = `${finished.getFullYear()}`;
-  } else if (isCrossDay) {
-    dateOrTime = `${pad(finished.getMonth() + 1)}-${pad(finished.getDate())}`;
-  } else {
-    dateOrTime = `${pad(finished.getHours())}:${pad(finished.getMinutes())}`;
-  }
-
-  const durationSuffix = hasDuration ? ` · ${durationStr}` : "";
-
-  // 2. Word-stripped compact variant
-  if (variant === "compact") {
-    return `{ ${dateOrTime}${durationSuffix} }`;
-  }
-
-  // 3. Full variant (retaining prepositions)
-  let prefix = "at";
-  if (isCrossYear) {
-    prefix = "in";
-  } else if (isCrossDay) {
-    prefix = "on";
-  }
-
-  return `{ finished ${prefix} ${dateOrTime}${durationSuffix} }`;
+  const details = hasDuration ? `${formatDuration(durationMs)} ${dateOrTime}` : dateOrTime;
+  return `X ${details}`;
 }
 
-export function formatLoopEndTime(
-  finished: Date,
-  now: Date = new Date(),
-  durationMs?: number | null,
-): string {
-  return formatLoopEndVariant(finished, now, durationMs, "full");
-}
-
-export function getLastLoopInfoFromSession(ctx: ExtensionContext): {
+function getLastLoopInfoFromSession(ctx: ExtensionContext): {
   endTime: Date;
   durationMs: number | null;
 } | null {
   try {
     const entries = ctx.sessionManager?.getEntries?.() ?? [];
-    let lastAssistantIdx = -1;
-    let lastAssistantDate: Date | null = null;
+    let assistantIndex = -1;
+    let endTime: Date | null = null;
 
     for (let i = entries.length - 1; i >= 0; i--) {
       const entry = entries[i] as any;
-      if (entry?.type === "message" && entry?.message?.role === "assistant" && entry?.timestamp) {
-        const d = new Date(entry.timestamp);
-        if (!isNaN(d.getTime())) {
-          lastAssistantIdx = i;
-          lastAssistantDate = d;
-          break;
-        }
+      if (entry?.type !== "message" || entry?.message?.role !== "assistant" || !entry?.timestamp) continue;
+      const timestamp = new Date(entry.timestamp);
+      if (!Number.isNaN(timestamp.getTime())) {
+        assistantIndex = i;
+        endTime = timestamp;
+        break;
       }
     }
 
-    if (!lastAssistantDate || lastAssistantIdx === -1) {
-      return null;
-    }
+    if (!endTime || assistantIndex < 0) return null;
 
-    // Find the closest preceding user message from lastAssistantIdx
     let durationMs: number | null = null;
-    for (let i = lastAssistantIdx - 1; i >= 0; i--) {
+    for (let i = assistantIndex - 1; i >= 0; i--) {
       const entry = entries[i] as any;
-      if (entry?.type === "message" && entry?.message?.role === "user" && entry?.timestamp) {
-        const startDate = new Date(entry.timestamp);
-        if (!isNaN(startDate.getTime())) {
-          const diff = lastAssistantDate.getTime() - startDate.getTime();
-          if (diff >= 0) {
-            durationMs = diff;
-          }
-          break;
-        }
+      if (entry?.type !== "message" || entry?.message?.role !== "user" || !entry?.timestamp) continue;
+      const startTime = new Date(entry.timestamp);
+      if (!Number.isNaN(startTime.getTime())) {
+        const duration = endTime.getTime() - startTime.getTime();
+        durationMs = duration >= 0 ? duration : null;
+        break;
       }
     }
 
-    return {
-      endTime: lastAssistantDate,
-      durationMs,
-    };
+    return { endTime, durationMs };
   } catch {
     return null;
   }
 }
 
-export function getLastLoopEndTimeFromSession(ctx: ExtensionContext): Date | null {
-  return getLastLoopInfoFromSession(ctx)?.endTime ?? null;
-}
-
-export function buildCustomFooter(
-  ctx: ExtensionContext,
-  tui: any,
+function renderTimeAndFinishedLine(
+  lastLoopEndTime: Date | null,
+  lastLoopDurationMs: number | null,
+  width: number,
   theme: Theme,
-  footerData: ReadonlyFooterDataProvider,
-  tpsMeter?: TpsMeter,
-  getLastLoopEndTime?: () => Date | null,
-  getLastLoopDuration?: () => number | null,
-): Component {
-  const unsub = footerData.onBranchChange(() => tui.requestRender());
+): string[] {
+  const now = new Date();
+  const candidates: string[] = [];
 
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  let interval: ReturnType<typeof setInterval> | null = null;
+  if (lastLoopEndTime) {
+    const fullFinished = formatLoopEndVariant(lastLoopEndTime, now, lastLoopDurationMs, "full");
+    const compactFinished = formatLoopEndVariant(lastLoopEndTime, now, lastLoopDurationMs, "compact");
+    const durationFinished = formatLoopEndVariant(lastLoopEndTime, now, lastLoopDurationMs, "duration_only");
 
-  const scheduleTick = () => {
-    const now = Date.now();
-    const delay = Math.max(100, 60_000 - (now % 60_000));
-    timer = setTimeout(() => {
-      tui.requestRender();
-      interval = setInterval(() => {
-        tui.requestRender();
-      }, 60_000);
-    }, delay);
-  };
+    candidates.push(
+      `${fullFinished} ${formatFooterClockVariant(now, "full")}`,
+      `${fullFinished} ${formatFooterClockVariant(now, "month_day")}`,
+      `${fullFinished} ${formatFooterClockVariant(now, "time_only")}`,
+    );
+    if (compactFinished !== fullFinished) {
+      candidates.push(`${compactFinished} ${formatFooterClockVariant(now, "time_only")}`);
+    }
+    if (durationFinished && durationFinished !== compactFinished && durationFinished !== fullFinished) {
+      candidates.push(`${durationFinished} ${formatFooterClockVariant(now, "time_only")}`);
+    }
+  } else {
+    candidates.push(
+      formatFooterClockVariant(now, "full"),
+      formatFooterClockVariant(now, "month_day"),
+      formatFooterClockVariant(now, "time_only"),
+    );
+  }
 
-  scheduleTick();
-
-  return {
-    dispose() {
-      unsub();
-      if (timer) clearTimeout(timer);
-      if (interval) clearInterval(interval);
-    },
-    invalidate() {},
-    render(width: number): string[] {
-      let input = 0;
-      let output = 0;
-      let cacheRead = 0;
-      let cacheWrite = 0;
-      let cost = 0;
-
-      for (const entry of ctx.sessionManager.getEntries()) {
-        if (entry.type === "message" && entry.message.role === "assistant") {
-          input += entry.message.usage?.input ?? 0;
-          output += entry.message.usage?.output ?? 0;
-          cacheRead += entry.message.usage?.cacheRead ?? 0;
-          cacheWrite += entry.message.usage?.cacheWrite ?? 0;
-          cost += entry.message.usage?.cost?.total ?? 0;
-        } else if (entry.type === "message" && entry.message.role === "toolResult" && entry.message.usage) {
-          input += entry.message.usage.input ?? 0;
-          output += entry.message.usage.output ?? 0;
-          cacheRead += entry.message.usage.cacheRead ?? 0;
-          cacheWrite += entry.message.usage.cacheWrite ?? 0;
-          cost += entry.message.usage.cost?.total ?? 0;
-        }
-      }
-
-      const contextUsage = ctx.getContextUsage?.();
-      const contextWindow = contextUsage?.contextWindow ?? ctx.model?.contextWindow ?? 0;
-      const contextPercentVal = contextUsage?.percent ?? 0;
-      const contextPercentStr = contextUsage?.percent != null ? `${contextPercentVal.toFixed(1)}%` : "?";
-
-      const home = process.env.HOME || process.env.USERPROFILE || "";
-      const rawCwd = ctx.cwd || process.cwd();
-      let pwd = formatCwdForFooter(rawCwd, home);
-      const branch = footerData.getGitBranch();
-      if (branch) {
-        pwd = `${pwd} (${branch})`;
-      }
-      const sessionName = ctx.sessionManager.getSessionName?.();
-      if (sessionName) {
-        pwd = `${pwd} • ${sessionName}`;
-      }
-
-      const now = new Date();
-      const lastLoopEnd = getLastLoopEndTime?.() ?? null;
-      const lastLoopDuration = getLastLoopDuration?.() ?? null;
-      const pwdWidth = visibleWidth(pwd);
-      const minGap = 2;
-
-      const candidates: string[] = [];
-
-      if (lastLoopEnd) {
-        // 1. Adjust clock variant first while finished capsule stays full
-        const fullFinished = formatLoopEndVariant(lastLoopEnd, now, lastLoopDuration, "full");
-        if (fullFinished) {
-          candidates.push(`${fullFinished} ${formatFooterClockVariant(now, "full")}`);
-          candidates.push(`${fullFinished} ${formatFooterClockVariant(now, "month_day")}`);
-          candidates.push(`${fullFinished} ${formatFooterClockVariant(now, "time_only")}`);
-        }
-
-        // 2. When clock degrades to time_only, compact the finished capsule
-        const compactFinished = formatLoopEndVariant(lastLoopEnd, now, lastLoopDuration, "compact");
-        if (compactFinished && compactFinished !== fullFinished) {
-          candidates.push(`${compactFinished} ${formatFooterClockVariant(now, "time_only")}`);
-        }
-
-        const durationFinished = formatLoopEndVariant(lastLoopEnd, now, lastLoopDuration, "duration_only");
-        if (durationFinished && durationFinished !== compactFinished && durationFinished !== fullFinished) {
-          candidates.push(`${durationFinished} ${formatFooterClockVariant(now, "time_only")}`);
-        }
-
-        // 3. Fallback to time-only clock if finished capsule cannot fit
-        candidates.push(formatFooterClockVariant(now, "time_only"));
-      } else {
-        // Smoothly degrade clock when no finished record is available
-        candidates.push(formatFooterClockVariant(now, "full"));
-        candidates.push(formatFooterClockVariant(now, "month_day"));
-        candidates.push(formatFooterClockVariant(now, "time_only"));
-      }
-
-      let selectedRight = "";
-      let matched = false;
-
-      for (const candidate of candidates) {
-        if (pwdWidth + minGap + visibleWidth(candidate) <= width) {
-          selectedRight = candidate;
-          matched = true;
-          break;
-        }
-      }
-
-      let pwdLine: string;
-      if (matched && selectedRight) {
-        const rightWidth = visibleWidth(selectedRight);
-        const padSpaces = " ".repeat(Math.max(minGap, width - pwdWidth - rightWidth));
-        pwdLine = theme.fg("dim", pwd) + padSpaces + theme.fg("dim", selectedRight);
-      } else {
-        if (pwdWidth <= width) {
-          pwdLine = theme.fg("dim", pwd);
-        } else {
-          pwdLine = truncateToWidth(theme.fg("dim", pwd), width, theme.fg("dim", "..."));
-        }
-      }
-
-      const statsParts: string[] = [];
-      if (input) statsParts.push(`↑${formatTokens(input)}`);
-      if (output) statsParts.push(`↓${formatTokens(output)}`);
-      if (cacheRead) statsParts.push(`R${formatTokens(cacheRead)}`);
-      if (cacheWrite) statsParts.push(`W${formatTokens(cacheWrite)}`);
-      if (cost > 0) statsParts.push(`$${cost.toFixed(3)}`);
-
-      const contextDisplay = `${contextPercentStr}/${formatTokens(contextWindow)}`;
-      if (contextPercentVal > 90) {
-        statsParts.push(theme.fg("error", contextDisplay));
-      } else if (contextPercentVal > 70) {
-        statsParts.push(theme.fg("warning", contextDisplay));
-      } else {
-        statsParts.push(contextDisplay);
-      }
-
-      let statsLeft = statsParts.join(" ");
-      let statsLeftWidth = visibleWidth(statsLeft);
-      if (statsLeftWidth > width) {
-        statsLeft = truncateToWidth(statsLeft, width, "...");
-        statsLeftWidth = visibleWidth(statsLeft);
-      }
-
-      const modelId = ctx.model?.id || "no-model";
-      let rightSide = modelId;
-      if (ctx.model?.reasoning) {
-        // ctx.thinkingLevel is live getter, matching native footer state
-        const thinkingLevel = ctx.thinkingLevel || "off";
-        rightSide = thinkingLevel === "off" ? `${modelId} • thinking off` : `${modelId} • ${thinkingLevel}`;
-      }
-      if (footerData.getAvailableProviderCount() > 1 && ctx.model?.provider) {
-        rightSide = `(${ctx.model.provider}) ${rightSide}`;
-      }
-
-      // Extract extension statuses
-      const statuses = footerData.getExtensionStatuses();
-      const memText = statuses.get("memory-log") || statuses.get("srp-memory") || statuses.get("om");
-
-      const minPadding = 2;
-      const rightWidth = visibleWidth(rightSide);
-
-      let tpsText = "";
-      let tpsWidth = 0;
-
-      if (tpsMeter && tpsMeter.enabled) {
-        // Prioritize right-side model/provider visibility, adaptively folding TPS
-        const availableForTps = width - statsLeftWidth - minPadding - rightWidth - minPadding;
-        tpsText = tpsMeter.renderAdaptive(theme, availableForTps);
-        tpsWidth = tpsText ? visibleWidth(tpsText) : 0;
-      } else {
-        const tpsRaw = statuses.get("tps");
-        if (tpsRaw) {
-          const rawSanitized = sanitizeStatusText(tpsRaw);
-          const rawWidth = visibleWidth(rawSanitized);
-          if (statsLeftWidth + minPadding + rawWidth + minPadding + rightWidth <= width) {
-            tpsText = rawSanitized;
-            tpsWidth = rawWidth;
-          }
-        }
-      }
-
-      let statsLine: string;
-
-      if (tpsText && tpsWidth > 0) {
-        // Ample space: stats left, TPS center, model right
-        const remaining = width - statsLeftWidth - tpsWidth - rightWidth;
-        const padLeft = " ".repeat(Math.max(minPadding, Math.floor(remaining / 2)));
-        const padRight = " ".repeat(Math.max(minPadding, remaining - Math.floor(remaining / 2)));
-        statsLine = theme.fg("dim", statsLeft) + padLeft + tpsText + padRight + theme.fg("dim", rightSide);
-      } else {
-        // When TPS folded: prioritize statsLeft and rightSide
-        if (statsLeftWidth + minPadding + rightWidth <= width) {
-          const padding = " ".repeat(Math.max(minPadding, width - statsLeftWidth - rightWidth));
-          statsLine = theme.fg("dim", statsLeft) + padding + theme.fg("dim", rightSide);
-        } else {
-          // Ultra-narrow viewport: truncate right side
-          const availableForRight = width - statsLeftWidth - minPadding;
-          if (availableForRight > 0) {
-            const truncRight = truncateToWidth(rightSide, availableForRight, "");
-            const padding = " ".repeat(Math.max(1, width - statsLeftWidth - visibleWidth(truncRight)));
-            statsLine = theme.fg("dim", statsLeft) + padding + theme.fg("dim", truncRight);
-          } else {
-            statsLine = theme.fg("dim", statsLeft);
-          }
-        }
-      }
-
-      const lines: string[] = [pwdLine, statsLine];
-
-      // 1. memory-log on a dedicated line below stats
-      if (memText) {
-        lines.push(truncateToWidth(sanitizeStatusText(memText), width, theme.fg("dim", "...")));
-      }
-
-      // 2. Other non-TPS / memory-log statuses
-      const otherStatuses: string[] = [];
-      for (const [k, v] of statuses.entries()) {
-        if (k !== "tps" && k !== "memory-log" && k !== "srp-memory" && k !== "om") {
-          otherStatuses.push(sanitizeStatusText(v));
-        }
-      }
-      if (otherStatuses.length > 0) {
-        lines.push(truncateToWidth(otherStatuses.join(" "), width, theme.fg("dim", "...")));
-      }
-
-      return lines;
-    },
-  };
+  const content = candidates.find((candidate) => visibleWidth(candidate) <= width) ?? candidates.at(-1)!;
+  const line = truncateToWidth(content, width, "…");
+  return [theme.fg("dim", line)];
 }
 
 // ============================ TPS Meter Module ============================
@@ -929,26 +647,26 @@ export default function (pi: ExtensionAPI) {
   const tpsMeter = new TpsMeter();
 
   const installFooter = (ctx: ExtensionContext): void => {
+    // Keep Pi's native footer active; this widget is purely incremental.
+    ctx.ui.setFooter(undefined);
     ctx.ui.setWidget(
       "srp-footer",
-      () => ({
-        invalidate() {},
-        render(width: number): string[] {
-          return renderLastPromptLine(lastUserPrompt, width);
-        },
-      }),
+      (tui, theme) => {
+        const clockTimer = setInterval(() => tui.requestRender(), 30_000);
+        return {
+          invalidate() {},
+          dispose() {
+            clearInterval(clockTimer);
+          },
+          render(width: number): string[] {
+            return [
+              ...renderLastPromptLine(lastUserPrompt, width),
+              ...renderTimeAndFinishedLine(lastLoopEndTime, lastLoopDurationMs, width, theme),
+            ];
+          },
+        };
+      },
       { placement: "belowEditor" },
-    );
-    ctx.ui.setFooter((tui, theme, footerData) =>
-      buildCustomFooter(
-        ctx,
-        tui,
-        theme,
-        footerData,
-        tpsMeter,
-        () => lastLoopEndTime,
-        () => lastLoopDurationMs,
-      ),
     );
   };
 
@@ -968,8 +686,9 @@ export default function (pi: ExtensionAPI) {
     tpsMeter.reset(ctx);
 
     if (ctx.mode === "tui") {
-      // Restore the native header when reloading a previous extension version.
+      // Restore native header & footer
       ctx.ui.setHeader(undefined);
+      ctx.ui.setFooter(undefined);
       removeFooter(ctx);
     }
   });
@@ -1033,11 +752,11 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.registerCommand("srp-theme", {
-    description: "Toggle SRP Footer and TPS Meter on/off",
+    description: "Toggle SRP prompt widget and TPS meter on/off",
     getArgumentCompletions: (prefix: string): AutocompleteItem[] | null => {
       const candidates: AutocompleteItem[] = [
-        { value: "on", label: "on", description: "Enable Footer and TPS" },
-        { value: "off", label: "off", description: "Disable Footer and TPS" },
+        { value: "on", label: "on", description: "Enable prompt preview and TPS meter" },
+        { value: "off", label: "off", description: "Disable prompt preview and TPS meter" },
       ];
       const filtered = candidates.filter((item) => item.value.startsWith(prefix.trimStart()));
       return filtered.length > 0 ? filtered : null;
@@ -1054,6 +773,7 @@ export default function (pi: ExtensionAPI) {
       tpsMeter.enabled = enabled;
 
       if (ctx.mode === "tui") {
+        ctx.ui.setFooter(undefined);
         if (enabled) installFooter(ctx);
         else removeFooter(ctx);
       }
@@ -1065,7 +785,7 @@ export default function (pi: ExtensionAPI) {
         tpsMeter.stopTick();
         ctx.ui.setStatus("tps", undefined);
       }
-      ctx.ui.notify(`srp-theme: ${enabled ? "Enabled" : "Disabled"} Footer and TPS`, "info");
+      ctx.ui.notify(`srp-theme: ${enabled ? "Enabled" : "Disabled"} prompt widget and TPS`, "info");
     },
   });
 }

@@ -7,17 +7,24 @@
     // =========================================================================
     "actions": 
     [
-        // 【关键修复】将 Alt+v 映射为 CSI-u 转义序列 (\u001b[118;3u)
+        // 【关键修复】将 Pi 拓展所需的 Alt 组合键映射为 CSI-u 转义序列
         // 背景: Zellij 0.40+ 启用了 Kitty Keyboard Protocol，内层 CLI (如 Pi) 强依赖 CSI-u 格式识别 Alt 组合键。
-        // 此配置让 Windows Terminal 发送标准的 CSI-u，实现跨 Zellij / WSL 稳定粘贴 Windows 截图。
-        {
-            "command": 
-            {
-                "action": "sendInput",
-                "input": "\u001b[118;3u"
-            },
-            "id": "User.sendInput.AltV"
-        }
+        // 传统 ESC 前缀模式下 \x1b + 字母 会被终端协议层当作控制序列吞掉，例如:
+        //   \x1b c = ECMA-48 RIS (Reset to Initial State)
+        //   \x1b n = ECMA-48 LS2 (Locking Shift 2)
+        //   \x1b s = ANSI SCP  (Save Cursor Position)
+        // CSI-u 格式: \x1b[<ascii>;3u (3 = Alt modifier)，可被 Zellij 正确透穿到 Pi。
+        //
+        // Alt+v (118) → Pi clipboard.pasteImage 粘贴截图
+        { "command": { "action": "sendInput", "input": "\u001b[118;3u" }, "id": "User.sendInput.AltV" },
+        // Alt+c  (99) → Pi continue-signal 恢复中断的 agent 工作
+        { "command": { "action": "sendInput", "input": "\u001b[99;3u"  }, "id": "User.sendInput.AltC" },
+        // Alt+m (109) → Pi tui-asr 开始/停止语音听写
+        { "command": { "action": "sendInput", "input": "\u001b[109;3u" }, "id": "User.sendInput.AltM" },
+        // Alt+n (110) → Pi tui-asr 取消当前听写
+        { "command": { "action": "sendInput", "input": "\u001b[110;3u" }, "id": "User.sendInput.AltN" },
+        // Alt+s (115) → Pi prompt-snipaste 打开 Prompt 片段选择器
+        { "command": { "action": "sendInput", "input": "\u001b[115;3u" }, "id": "User.sendInput.AltS" }
     ],
 
     // =========================================================================
@@ -39,11 +46,12 @@
     // =========================================================================
     "keybindings": 
     [
-        // 绑定 CSI-u Alt+v (用于 Pi / CLI 等贴图)
-        {
-            "id": "User.sendInput.AltV",
-            "keys": "alt+v"
-        },
+        // Pi 拓展 Alt 组合键 → CSI-u 透穿绑定
+        { "id": "User.sendInput.AltV", "keys": "alt+v" },
+        { "id": "User.sendInput.AltC", "keys": "alt+c" },
+        { "id": "User.sendInput.AltM", "keys": "alt+m" },
+        { "id": "User.sendInput.AltN", "keys": "alt+n" },
+        { "id": "User.sendInput.AltS", "keys": "alt+s" },
         // 基础剪贴板与查找
         {
             "id": "Terminal.CopyToClipboard",
