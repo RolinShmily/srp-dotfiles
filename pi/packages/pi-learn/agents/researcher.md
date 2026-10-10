@@ -1,7 +1,7 @@
 ---
 name: researcher
 description: Web researcher — searches the web and synthesizes findings
-tools: web_search, web_fetch, safe_bash
+tools: sub_web_search, sub_web_fetch, sub_safe_bash
 thinking: medium
 system-prompt: append
 auto-exit: true

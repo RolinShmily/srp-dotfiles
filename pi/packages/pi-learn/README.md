@@ -14,7 +14,8 @@ This is a personal system I built for myself, shared as-is. Built as a pi config
 - `extensions/quiz/` — graded questions with instant feedback (✓/✗, correct answer, explanation)
 - `extensions/md-log/` — link a markdown file to the session
 - `extensions/visual-tools/` — tools for visualization subagents
-- `agents/` — `researcher`, `svg-maker`, `mermaid-maker`: the subagents the system delegates to
+- `subagents/` — bundled pane-based subagent runtime (tmux + Zellij), providing `sub_agent`, `sub_agent_message`, `sub_agents_list`, and status tracking
+- `agents/` — `researcher`, `svg-maker`, `mermaid-maker`, `scout`, `worker`: the subagents the system delegates to
 
 ## Install
 
@@ -29,7 +30,8 @@ Then open pi in that directory. (Or copy the pieces you want into your existing 
 ## Requirements
 
 - [pi](https://github.com/earendil-works/pi)
-- A subagent implementation, so the system can spawn the researcher and the visual makers. Recommended: [pi-interactive-subagents](https://github.com/amosblomqvist/pi-interactive-subagents) (tmux only). With it, everything works out of the box. Any other implementation works too, but expect to adapt the agent definitions, e.g. `agents/researcher.md` lists `safe_bash` in its tools, which is specific to that extension.
+- Multiplexer: tmux or Zellij (required only when spawning async subagents like `researcher` or diagram makers into background panes).
+- **Subagents (Batteries-Included)**: The `subagents/` submodule is bundled directly inside this package. It registers `sub_agent`, `sub_agent_message`, and `sub_agents_list` under the `sub_` namespace so it never collides with any global `subagent` CLI or extensions. All visual and web tools (`write_mermaid`, `render_svg`, `sub_web_search`, etc.) are resolved natively.
 - `ask-user-question` — use the copy bundled here. Its tool is named **`learn_ask_questions`** so it can coexist with a global `ask_user_question` extension instead of replacing it; the teaching skills and the md-log extension all target the bundled one. Both register the same shared UI lock (`__piSharedUiLock`), so popups from either still serialize against each other instead of fighting.
 
 ## Notes

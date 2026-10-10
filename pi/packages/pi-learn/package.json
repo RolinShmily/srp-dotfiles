@@ -17,7 +17,8 @@
   "pi": {
     "extensions": [
       "./index.ts",
-      "./extensions"
+      "./extensions",
+      "./subagents/index.ts"
     ],
     "skills": [
       "./skills"

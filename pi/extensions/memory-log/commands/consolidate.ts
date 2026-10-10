@@ -44,14 +44,4 @@ export function registerConsolidateCommand(pi: ExtensionAPI, runtime: Runtime): 
     description: "Archive short-term observations to durable topic files immediately (ignore pool threshold)",
     handler,
   });
-
-  pi.registerCommand("memory-log:consolidate", {
-    description: "Archive short-term observations to durable topic files immediately (ignore pool threshold)",
-    handler,
-  });
-
-  pi.registerCommand("memory:consolidate", {
-    description: "Archive short-term observations to durable topic files immediately (ignore pool threshold)",
-    handler,
-  });
 }

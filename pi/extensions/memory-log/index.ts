@@ -136,18 +136,6 @@ export default function observationalMemory(pi: ExtensionAPI): void {
     handler: commandHandler,
   });
 
-  // Aliases for compatibility and convenience
-  pi.registerCommand("memory-log", {
-    description: "Manage observational memory log system (/memory-log [status|on|off|compact|consolidate])",
-    getArgumentCompletions: getCompletions,
-    handler: commandHandler,
-  });
-  pi.registerCommand("memory", {
-    description: "Manage observational memory log system (/memory [status|on|off|compact|consolidate])",
-    getArgumentCompletions: getCompletions,
-    handler: commandHandler,
-  });
-
   // Triggers + hooks
   registerObserverTrigger(pi, runtime);
   registerConsolidatorTrigger(pi, runtime);

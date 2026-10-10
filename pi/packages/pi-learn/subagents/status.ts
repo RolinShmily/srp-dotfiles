@@ -7,9 +7,9 @@ export const DEFAULT_STATUS_LINE_LIMIT = 4;
 export const MAX_STATUS_NAME_LENGTH = 72;
 export const MAX_STATUS_LINE_LENGTH = 120;
 
-const PACKAGE_ROOT = join(dirname(fileURLToPath(import.meta.url)), "../..");
-const DEFAULT_STATUS_CONFIG_PATH = join(PACKAGE_ROOT, "config.json");
-const STATUS_CONFIG_EXAMPLE_PATH = join(PACKAGE_ROOT, "config.json.example");
+const SUBAGENTS_ROOT = dirname(fileURLToPath(import.meta.url));
+const DEFAULT_STATUS_CONFIG_PATH = join(SUBAGENTS_ROOT, "config.json");
+const STATUS_CONFIG_EXAMPLE_PATH = join(SUBAGENTS_ROOT, "config.json.example");
 
 export type SubagentStatusKind = "starting" | "active" | "waiting" | "stalled" | "running";
 export type SubagentStatusSource = "pi" | "claude";

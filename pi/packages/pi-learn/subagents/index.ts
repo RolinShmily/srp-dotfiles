@@ -215,6 +215,7 @@ function getToolExtensionPath(tool: string): string | undefined {
   if ((SPAWNING_TOOLS as readonly string[]).includes(tool)) {
     return fileURLToPath(import.meta.url);
   }
+  const visualToolsDir = join(SUBAGENTS_DIR, "../extensions/visual-tools/tools");
   const extBase = join(getAgentConfigDir(), "extensions");
   const map: Record<string, string> = {
     // Tools this package ships. Deliberately `sub_`-prefixed copies rather than
@@ -224,10 +225,19 @@ function getToolExtensionPath(tool: string): string | undefined {
     sub_web_search: join(SUBAGENTS_DIR, "tools", "web.ts"),
     sub_web_fetch: join(SUBAGENTS_DIR, "tools", "web.ts"),
     sub_safe_bash: join(SUBAGENTS_DIR, "tools", "safe-bash.ts"),
+    // Native visual tools for pi-learn makers (mermaid-maker, svg-maker)
+    write_mermaid: join(visualToolsDir, "mermaid_tools.ts"),
+    edit_mermaid: join(visualToolsDir, "mermaid_tools.ts"),
+    render_mermaid: join(visualToolsDir, "mermaid_tools.ts"),
+    write_svg: join(visualToolsDir, "svg_tools.ts"),
+    edit_svg: join(visualToolsDir, "svg_tools.ts"),
+    render_svg: join(visualToolsDir, "svg_tools.ts"),
+    // Un-prefixed aliases fallback to bundled implementations when external ones are absent
+    web_search: join(SUBAGENTS_DIR, "tools", "web.ts"),
+    web_fetch: join(SUBAGENTS_DIR, "tools", "web.ts"),
+    safe_bash: join(SUBAGENTS_DIR, "tools", "safe-bash.ts"),
     // Tools that some other package may provide under the upstream layout.
     // Absent in most setups; existence-checked below before being granted.
-    web_search: join(extBase, "web-search", "index.ts"),
-    web_fetch: join(extBase, "web-fetch", "index.ts"),
     video_extract: join(extBase, "video-extract", "index.ts"),
     youtube_search: join(extBase, "youtube-search", "index.ts"),
     google_image_search: join(extBase, "google-image-search", "index.ts"),
@@ -253,7 +263,7 @@ const SUBAGENT_ALLOWLIST: Set<string> | null = (() => {
 })();
 
 function getBundledAgentsDir(): string {
-  return join(SUBAGENTS_DIR, "../../agents");
+  return join(SUBAGENTS_DIR, "../agents");
 }
 
 function getFrontmatterValue(frontmatter: string, key: string): string | undefined {

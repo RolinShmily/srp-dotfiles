@@ -287,14 +287,14 @@ so it survives cloning anywhere. Edit the package in the repo and restart Pi —
 
 ##### Enabling a bundled local package
 
-The two packages under `pi/packages/` are large, so they are deliberately **not** listed in
-`manifest.json`'s `piPackages` and a fresh deploy will not load them. To use one, add it back to the
+The `pi-learn` package under `pi/packages/` (which bundles its own `subagents` runtime) is large, so it is deliberately **not** listed in
+`manifest.json`'s `piPackages` and a fresh deploy will not load it. To use it, add it back to the
 OS section you deploy:
 
 ```jsonc
 // manifest.json
 "piPackages": [
-  // add the package you want:
+  // add the package:
   "@repo/pi/packages/pi-learn",
   "npm:context-mode",
   "npm:pi-antigravity"

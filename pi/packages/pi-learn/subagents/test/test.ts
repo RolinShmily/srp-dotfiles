@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { visibleWidth } from "@earendil-works/pi-tui";
-import * as subagentsModule from "../pi-extension/subagents/index.ts";
+import * as subagentsModule from "../index.ts";
 
 import {
   getLeafId,
@@ -28,9 +28,9 @@ import {
   mergeNewEntries,
   seedSubagentSessionFile,
   summarizeSessionStats,
-} from "../pi-extension/subagents/session.ts";
+} from "../session.ts";
 
-import { shellEscape } from "../pi-extension/subagents/mux.ts";
+import { shellEscape } from "../mux.ts";
 import {
   advanceStatusState,
   capStatusLines,
@@ -43,20 +43,20 @@ import {
   observeStatus,
   loadStatusConfig,
   parseStatusConfig,
-} from "../pi-extension/subagents/status.ts";
+} from "../status.ts";
 import {
   createSubagentActivityRecorder,
   getSubagentActivityFile,
   readSubagentActivityFile,
-} from "../pi-extension/subagents/activity.ts";
+} from "../activity.ts";
 import {
   shouldMarkUserTookOver,
   shouldAutoExitOnAgentEnd,
   findLatestAssistantError,
   runningChildrenCount,
-} from "../pi-extension/subagents/subagent-done.ts";
-import subagentDoneExtension from "../pi-extension/subagents/subagent-done.ts";
-import { __pollForExitTest__ } from "../pi-extension/subagents/mux.ts";
+} from "../subagent-done.ts";
+import subagentDoneExtension from "../subagent-done.ts";
+import { __pollForExitTest__ } from "../mux.ts";
 
 // --- Helpers ---
 

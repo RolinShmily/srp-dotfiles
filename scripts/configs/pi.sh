@@ -159,12 +159,10 @@ fi
 copy_each_into "extensions" "$allowed_ext"
 prune_extensions "$allowed_ext"
 
-# ---------- 4. skills / prompts / agents ----------
-# agents 不检查孤儿: pi-learn 包会在每次会话通过 syncAgents() 往目标目录写入
-# mermaid-maker.md / svg-maker.md，那些不是遗留副本，所以不提醒。
+# ---------- 4. skills / prompts ----------
+# agents 由 pi-learn 包自带并在每次会话通过 syncAgents() 自动同步到目标目录
 copy_each_into "skills";  report_orphans "skills"
 copy_each_into "prompts"; report_orphans "prompts"
-copy_each_into "agents"
 
 # ---------- 5. packages ----------
 # 本地 Pi 包**不做复制**。manifest 的 piPackages 里写 @repo/pi/packages/<name>，

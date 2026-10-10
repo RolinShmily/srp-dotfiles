@@ -6,7 +6,7 @@ Async subagents for [pi](https://github.com/badlogic/pi-mono), running in tmux o
 
 ## How it works
 
-`subagent()` returns immediately. The sub-agent runs in its own pane — a right split off the parent pi pane, so pane creation never steals keyboard focus. A live widget above the input tracks every running sub-agent, and when one finishes, its result is steered into the main session as a notification that triggers a new turn.
+`sub_agent()` returns immediately. The sub-agent runs in its own pane — a right split off the parent pi pane, so pane creation never steals keyboard focus. A live widget above the input tracks every running sub-agent, and when one finishes, its result is steered into the main session as a notification that triggers a new turn.
 
 ```
 ╭─ Subagents ──────────────────────────── 2 running ─╮
@@ -17,7 +17,7 @@ Async subagents for [pi](https://github.com/badlogic/pi-mono), running in tmux o
 
 Spawn several in parallel — they run concurrently and steer results back independently as each finishes.
 
-Panes are kept evenly sized on tmux: the extension re-applies an `even-horizontal` layout after every spawn and exit (debounced). The layout is a single constant, `SUBAGENT_TMUX_LAYOUT` in `pi-extension/subagents/mux.ts` — change it to any named tmux layout (`main-vertical`, `tiled`, …). Zellij instead picks a placement per spawn (split the largest pane that can still hold a subagent, otherwise stack onto an existing subagent pane, otherwise open a tab); the thresholds are `PI_SUBAGENT_ZELLIJ_MIN_COLUMNS` and `PI_SUBAGENT_ZELLIJ_MIN_ROWS`.
+Panes are kept evenly sized on tmux: the extension re-applies an `even-horizontal` layout after every spawn and exit (debounced). The layout is a single constant, `SUBAGENT_TMUX_LAYOUT` in `mux.ts` — change it to any named tmux layout (`main-vertical`, `tiled`, …). Zellij instead picks a placement per spawn (split the largest pane that can still hold a subagent, otherwise stack onto an existing subagent pane, otherwise open a tab); the thresholds are `PI_SUBAGENT_ZELLIJ_MIN_COLUMNS` and `PI_SUBAGENT_ZELLIJ_MIN_ROWS`.
 
 If your shell startup is slow and launch commands get dropped before the prompt is ready, raise the delay:
 
@@ -42,8 +42,8 @@ subagent implementation or with a repo's own `web_search` / `web_fetch` tools.
 ### Spawning
 
 ```typescript
-subagent({ agent: "scout", task: "Analyze the auth module" });
-subagent({ agent: "worker", name: "dark-mode", task: "Implement the dark mode toggle" });
+sub_agent({ agent: "scout", task: "Analyze the auth module" });
+sub_agent({ agent: "worker", name: "dark-mode", task: "Implement the dark mode toggle" });
 ```
 
 | Parameter | Type | Default | Description |

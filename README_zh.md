@@ -286,15 +286,14 @@ Pi 的配置模板按正式 JSON 是否已存在来部署：
 
 ##### 想用仓库里自带的本地包？
 
-`pi/packages/` 下的两个包体积较大，所以**有意不写进** `manifest.json` 的 `piPackages`，
-全新部署不会加载它们。需要哪个就把哪个加回你部署的那个 OS 段：
+`pi/packages/pi-learn` 体积较大且包含内置 subagents 子模块，所以**有意不写进** `manifest.json` 的 `piPackages`，
+全新部署不会加载它。需要时把它加回你部署的那个 OS 段：
 
 ```jsonc
 // manifest.json
 "piPackages": [
   // 加上你要用的那个包：
   "@repo/pi/packages/pi-learn",
-  "@repo/pi/packages/pi-interactive-subagents",
   "npm:context-mode",
   "npm:pi-antigravity"
 ]

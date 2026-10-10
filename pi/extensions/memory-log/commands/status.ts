@@ -47,14 +47,4 @@ export function registerStatusCommand(pi: ExtensionAPI, runtime: Runtime): void 
     description: "View observational memory log running status",
     handler,
   });
-
-  pi.registerCommand("memory-log:status", {
-    description: "View observational memory log running status",
-    handler,
-  });
-
-  pi.registerCommand("memory:status", {
-    description: "View observational memory log running status",
-    handler,
-  });
 }

@@ -32,14 +32,4 @@ export function registerCompactCommand(pi: ExtensionAPI, runtime: Runtime): void
     description: "Run memory compaction immediately (ignore context threshold)",
     handler,
   });
-
-  pi.registerCommand("memory-log:compact", {
-    description: "Run memory compaction immediately (ignore context threshold)",
-    handler,
-  });
-
-  pi.registerCommand("memory:compact", {
-    description: "Run memory compaction immediately (ignore context threshold)",
-    handler,
-  });
 }
