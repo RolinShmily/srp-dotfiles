@@ -90,10 +90,16 @@
         "target": "~/.vimrc"
       },
       {
-        "name": "btop",
+        "name": "btop-conf",
+        "method": "copy",
+        "source": "btop/btop-linux.conf",
+        "target": "~/.config/btop/btop.conf"
+      },
+      {
+        "name": "btop-themes",
         "method": "link",
-        "source": "btop",
-        "target": "~/.config/btop"
+        "source": "btop/themes",
+        "target": "~/.config/btop/themes"
       },
       {
         "name": "fastfetch",
@@ -199,10 +205,16 @@
         "target": "~/.vimrc"
       },
       {
-        "name": "btop",
+        "name": "btop-conf",
+        "method": "copy",
+        "source": "btop/btop-linux.conf",
+        "target": "~/.config/btop/btop.conf"
+      },
+      {
+        "name": "btop-themes",
         "method": "link",
-        "source": "btop",
-        "target": "~/.config/btop"
+        "source": "btop/themes",
+        "target": "~/.config/btop/themes"
       },
       {
         "name": "fastfetch",
@@ -454,7 +466,7 @@
       {
         "name": "btop-persist-conf",
         "method": "copy",
-        "source": "btop/btop.conf",
+        "source": "btop/btop-win.conf",
         "target": "$SCOOP/persist/btop/btop.conf",
         "when": "$SCOOP/persist/btop"
       },
