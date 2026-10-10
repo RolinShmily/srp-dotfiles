@@ -36,6 +36,9 @@ function Expand-PathToken {
         }
         return $PROFILE
     }
+    if ($p.Contains('%LOCALAPPDATA%')) {
+        $p = $p.Replace('%LOCALAPPDATA%', [Environment]::GetFolderPath('LocalApplicationData'))
+    }
     if ($p.Contains('%APPDATA%')) {
         $p = $p.Replace('%APPDATA%', [Environment]::GetFolderPath('ApplicationData'))
     }

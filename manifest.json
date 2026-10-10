@@ -481,6 +481,13 @@
         "target": "%APPDATA%/Code/User/settings.json"
       },
       {
+        "name": "windows-terminal-settings",
+        "method": "copy",
+        "source": "windows-terminal/settings.json.example",
+        "target": "%LOCALAPPDATA%/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json",
+        "when": "%LOCALAPPDATA%/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState"
+      },
+      {
         "name": "pi",
         "method": "custom"
       }
