@@ -400,7 +400,8 @@
       "subagent",
       "image-generate.ts",
       "memory-log",
-      "oai-subquota.ts"
+      "oai-subquota.ts",
+      "windows-wheel-fix.ts"
     ],
     "piPackages": [
       "npm:@upstash/context7-pi",
