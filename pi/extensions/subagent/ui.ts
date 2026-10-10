@@ -1,50 +1,18 @@
 /**
  * subagent/ui.ts — status widget for the observability pane above the editor.
  *
- * Visual style ported from the SRP dotfiles extension suite:
- *   neon pink (#ff7eb3) -> coral (#f75c7e) -> violet (#7c3aed)
- * Cards are box-drawn with a gradient rule so a run stays recognisable at a
- * glance. All text is English because the lines can reach the model.
+ * This is intentionally a compact, borderless list. All text is English
+ * because the lines can reach the model.
  *
  * State model is upstream's (`RunState`), not the SRP status snapshot: the child
  * writes `metadata.json` itself, so no screen scraping is involved.
  */
 
 import type { Theme } from "@earendil-works/pi-coding-agent";
-import { truncateToWidth } from "@earendil-works/pi-tui";
 import { readSessionUsage, type RunMetadata, type RunState, type SessionUsage } from "./shared.ts";
 
-// ============================ Gradient palette ============================
-
-const PINK: [number, number, number] = [255, 126, 179];
-const CORAL: [number, number, number] = [247, 92, 126];
-const VIOLET: [number, number, number] = [124, 58, 237];
-
-function interpolate(from: [number, number, number], to: [number, number, number], t: number): [number, number, number] {
-  const clamped = Math.max(0, Math.min(1, t));
-  return [
-    Math.round(from[0] + (to[0] - from[0]) * clamped),
-    Math.round(from[1] + (to[1] - from[1]) * clamped),
-    Math.round(from[2] + (to[2] - from[2]) * clamped),
-  ];
-}
-
-/** ANSI truecolor escape for position `t` (0..1) along the pink→coral→violet ramp. */
-function gradientAnsi(t: number): string {
-  const rgb = t < 0.4 ? interpolate(PINK, CORAL, t / 0.4) : interpolate(CORAL, VIOLET, (t - 0.4) / 0.6);
-  return `\x1b[38;2;${rgb[0]};${rgb[1]};${rgb[2]}m`;
-}
-
-const RESET = "\x1b[0m";
-
-/** Paint a rule with the SRP gradient instead of a flat theme colour. */
-function gradientRule(text: string): string {
-  if (!text) return "";
-  const span = Math.max(1, text.length - 1);
-  let out = "";
-  for (let i = 0; i < text.length; i++) out += gradientAnsi(i / span) + text[i];
-  return out + RESET;
-}
+// Theme helpers already produce valid terminal sequences. Avoid adding manual
+// ANSI codes here: widgets receive strings that may already be styled.
 
 // ============================ Formatting helpers ============================
 
@@ -99,7 +67,7 @@ export interface RunWidgetRow {
 }
 
 /**
- * Render the subagent widget card. Returns plain lines because
+ * Render the subagent status list. It uses plain lines because
  * `ctx.ui.setWidget` takes rendered strings, not TUI components.
  */
 export function renderRunWidget(rows: RunWidgetRow[], theme: Theme, maxRows = 5): string[] {
@@ -108,12 +76,12 @@ export function renderRunWidget(rows: RunWidgetRow[], theme: Theme, maxRows = 5)
   const visible = rows.slice(0, maxRows);
   const overflow = rows.length - visible.length;
 
-  const busiest = rows.some((row) => row.state === "busy") ? "busy" : rows.some((row) => row.state === "starting") ? "starting" : "idle";
-  const title = `${theme.fg("accent", "◈")} ${theme.bold("Subagents")}`;
-  const header: string =
-    gradientRule(`╭─ ${title} `) +
-    theme.fg("dim", `─── ${rows.length} active · ${busiest} `) +
-    gradientRule("─╮");
+  const busiest = rows.some((row) => row.state === "busy")
+    ? "busy"
+    : rows.some((row) => row.state === "starting")
+      ? "starting"
+      : "idle";
+  const header = `${theme.fg("accent", "◆")} ${theme.bold("Subagents")} ${theme.fg("dim", `· ${rows.length} active · ${busiest}`)}`;
 
   const body = visible.map(({ run, state }) => {
     const elapsed = formatElapsed((Date.now() - Date.parse(run.createdAt)) / 1000);
@@ -121,7 +89,7 @@ export function renderRunWidget(rows: RunWidgetRow[], theme: Theme, maxRows = 5)
 
     const name = run.name ?? run.handle;
     const handleTag = run.name ? theme.fg("dim", ` (${run.handle})`) : "";
-    const modelTag = theme.fg("muted", ` ${run.model.split("/").pop()}`);
+    const modelTag = theme.fg("muted", ` · ${run.model.split("/").pop()}`);
 
     let detail = "";
     const usage = readSessionUsage(run.sessionFile);
@@ -133,14 +101,9 @@ export function renderRunWidget(rows: RunWidgetRow[], theme: Theme, maxRows = 5)
       detail = ` ${theme.fg("error", run.error.split("\n")[0])}`;
     }
 
-    const left = `  ${theme.fg("dim", elapsed.padStart(6))}  ${icon} ${theme.bold(name)}${handleTag}`;
-    const right = `${label}${modelTag}${detail}`;
-    return left + "  " + right;
+    return `  ${icon} ${theme.bold(name)}${handleTag} ${label} ${theme.fg("dim", elapsed)}${modelTag}${detail}`;
   });
 
-  const footer = overflow > 0 ? `╰─ ${theme.fg("muted", `+${overflow} more`)} ` : null;
-  const closing = footer ?? "╰";
-  const bodyLines = body.map((line) => gradientRule("│") + " " + line);
-
-  return [header, ...bodyLines, closing + gradientRule("─".repeat(24) + "╯")];
+  if (overflow > 0) body.push(`  ${theme.fg("muted", `+${overflow} more`)}`);
+  return [header, ...body];
 }

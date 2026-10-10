@@ -131,7 +131,7 @@ export default function subagentExtension(pi: ExtensionAPI) {
       }
 
       widgetContext.ui.setWidget("subagents", renderRunWidget(activeRuns, widgetContext.ui.theme), {
-        placement: "belowEditor",
+        placement: "aboveEditor",
       });
     };
 
