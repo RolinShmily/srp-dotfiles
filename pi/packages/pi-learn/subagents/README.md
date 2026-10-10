@@ -4,6 +4,8 @@ Async subagents for [pi](https://github.com/badlogic/pi-mono), running in tmux o
 
 **tmux + Zellij fork.** Based on [amosblomqvist/pi-interactive-subagents](https://github.com/amosblomqvist/pi-interactive-subagents) (tmux-only), with the Zellij backend taken from the upstream original [HazAT/pi-interactive-subagents](https://github.com/HazAT/pi-interactive-subagents). cmux and WezTerm are not carried over.
 
+**Cross-platform.** Launch commands are rendered per platform (`renderSubagentCommand` in `mux.ts`): POSIX `bash` on Linux/macOS/WSL, PowerShell on native Windows, executed through a `.sh` / `.ps1` script. Native Windows therefore needs **Zellij** — tmux has no Windows build — while tmux is the default everywhere else.
+
 ## How it works
 
 `sub_agent()` returns immediately. The sub-agent runs in its own pane — a right split off the parent pi pane, so pane creation never steals keyboard focus. A live widget above the input tracks every running sub-agent, and when one finishes, its result is steered into the main session as a notification that triggers a new turn.
@@ -23,6 +25,10 @@ If your shell startup is slow and launch commands get dropped before the prompt 
 
 ```bash
 export PI_SUBAGENT_SHELL_READY_DELAY_MS=2500   # default: 500
+```
+
+```powershell
+$env:PI_SUBAGENT_SHELL_READY_DELAY_MS = 2500  # default: 500
 ```
 
 ## Tools
@@ -190,6 +196,14 @@ zellij --session pi   # then run pi inside it
 ```
 
 Set `PI_SUBAGENT_MUX=tmux|zellij` to pin the backend when pi runs inside one multiplexer but subagents should use the other.
+
+### Windows
+
+- **Multiplexer: Zellij only.** tmux has no native Windows build, so use Zellij (`zellij --session pi`, then run `pi` inside it) — WSL and Git Bash are not required for the launch path itself.
+- **No shell configuration needed.** Subagents are launched through a generated `.ps1` run as `powershell -NoProfile -ExecutionPolicy Bypass -File`, so it works whether the pane's default shell is `cmd.exe` or PowerShell, and the machine execution policy does not matter. PowerShell 5.1 reads the script as UTF-8 (a BOM is written).
+- **`cwd`** may be a Windows path (`C:\work`, `\\server\share`) — it is written as `Set-Location -LiteralPath`, and a bad path aborts the launch with exit code 1 (same as POSIX `cd … && …`).
+- **Agent files may use CRLF.** `---` frontmatter is parsed with `\r?\n`, so agents authored with Notepad/VS Code on Windows are discovered normally.
+- **Known limitation:** agents with `cli: claude` rely on the bundled Stop-hook plugin (`plugin/hooks/on-stop.sh`), which needs a POSIX shell plus `python3`. On native Windows they only work under WSL/Git Bash with Python installed; no agent bundled with pi-learn uses `cli: claude`.
 
 ## Acknowledgements
 

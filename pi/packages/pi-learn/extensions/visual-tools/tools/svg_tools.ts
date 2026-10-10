@@ -14,16 +14,19 @@
  * one file.
  *
  * Rendering shells out to rsvg-convert (librsvg — good system-font handling),
- * falling back to ImageMagick's `magick` if rsvg-convert is absent. Both are
- * system binaries; no node render deps. Module-level session state persists
- * across this child process's tool calls, isolated from any parallel maker.
+ * falling back to ImageMagick's `magick`, and finally to a headless
+ * Chromium/Edge screenshot (the one rasterizer usually present on Windows).
+ * No node render deps. Module-level session state persists across this child
+ * process's tool calls, isolated from any parallel maker.
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent"
 import { Type } from "typebox"
+import { pathToFileURL } from "node:url"
 import {
   applyEdit,
   existsSync,
+  findChrome,
   join,
   mkdirSync,
   publish,
@@ -43,7 +46,38 @@ type RenderDetails = { ok: boolean; path: string; filename?: string }
 
 let session: Session | null = null
 
-/** Render an SVG file to PNG via rsvg-convert, falling back to magick. */
+/**
+ * Intrinsic size of an SVG, scaled up for crispness, used for the headless
+ * browser fallback (its screenshot is sized by the window, not the document).
+ * Reads width/height, then viewBox, then a 800x600 default; clamped to 4000px.
+ */
+function svgPixelSize(svgPath: string, scale = 2): { width: number; height: number } {
+  let svg = ""
+  try {
+    svg = readFileSync(svgPath, "utf8")
+  } catch {
+    // Fall through to the defaults below.
+  }
+  const attr = (name: string): number | undefined => {
+    const m = svg.match(new RegExp(`<svg[^>]*\\b${name}\\s*=\\s*"([\\d.]+)`, "i"))
+    const v = m ? Number.parseFloat(m[1]) : NaN
+    return Number.isFinite(v) && v > 0 ? v : undefined
+  }
+  let width = attr("width")
+  let height = attr("height")
+  if (width === undefined || height === undefined) {
+    const vb = svg.match(/<svg[^>]*\bviewBox\s*=\s*"\s*[-\d.]+\s+[-\d.]+\s+([\d.]+)\s+([\d.]+)/i)
+    if (vb) {
+      width ??= Number.parseFloat(vb[1])
+      height ??= Number.parseFloat(vb[2])
+    }
+  }
+  const clamp = (v: number | undefined, fallback: number) =>
+    Math.min(4000, Math.max(16, Math.round((v ?? fallback) * scale)))
+  return { width: clamp(width, 800), height: clamp(height, 600) }
+}
+
+/** Render an SVG file to PNG: rsvg-convert, then magick, then headless browser. */
 async function renderSvg(svgPath: string, outPath: string, workDir: string) {
   // rsvg-convert renders at the SVG's intrinsic size; -z 2 doubles it for crispness.
   let res = await run("rsvg-convert", ["-z", "2", svgPath, "-o", outPath], {
@@ -51,13 +85,38 @@ async function renderSvg(svgPath: string, outPath: string, workDir: string) {
     timeoutMs: RENDER_TIMEOUT_MS,
   })
   if (res.code === 0 && existsSync(outPath)) return { ok: true as const, res }
-  // Fallback: ImageMagick. -density 192 (~2x of 96dpi) for a crisp raster.
+
+  // Fallback 1: ImageMagick. -density 192 (~2x of 96dpi) for a crisp raster.
   const magick = await run("magick", ["-density", "192", "-background", "white", svgPath, outPath], {
     cwd: workDir,
     timeoutMs: RENDER_TIMEOUT_MS,
   })
   if (magick.code === 0 && existsSync(outPath)) return { ok: true as const, res: magick }
-  return { ok: false as const, res: res.code !== null ? res : magick }
+  let lastRes = res.code !== null ? res : magick
+
+  // Fallback 2: headless Chromium/Edge screenshot. This is what makes the tool
+  // work on stock Windows, where both rsvg-convert and ImageMagick are absent.
+  const browser = findChrome()
+  if (browser) {
+    const { width, height } = svgPixelSize(svgPath)
+    const shot = await run(
+      browser,
+      [
+        "--headless",
+        "--disable-gpu",
+        "--hide-scrollbars",
+        "--default-background-color=FFFFFFFF",
+        `--window-size=${width},${height}`,
+        `--screenshot=${outPath}`,
+        pathToFileURL(svgPath).href,
+      ],
+      { cwd: workDir, timeoutMs: RENDER_TIMEOUT_MS },
+    )
+    if (shot.code === 0 && existsSync(outPath)) return { ok: true as const, res: shot }
+    if (lastRes.code !== null) lastRes = shot
+  }
+
+  return { ok: false as const, res: lastRes }
 }
 
 export default function svgToolsExtension(pi: ExtensionAPI) {

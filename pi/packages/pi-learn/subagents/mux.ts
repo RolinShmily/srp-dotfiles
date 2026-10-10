@@ -24,6 +24,12 @@
  *     focused pane, which races when the user switches tabs.
  *   - `dump-screen` on a non-focused pane returns empty unless `--full` is used,
  *     and subagent panes are deliberately unfocused.
+ *
+ * Cross-platform: on native Windows the pane shell is PowerShell/cmd (not a
+ * POSIX shell), so launch commands are rendered per platform by
+ * `renderSubagentCommand()` and executed via a `.ps1`/`.sh` script chosen by
+ * `sendLongCommand()`. Zellij is the only usable backend there; tmux has no
+ * native Windows build.
  */
 import { execFile, execFileSync } from "node:child_process";
 import { promisify } from "node:util";
@@ -53,7 +59,13 @@ function hasCommand(command: string): boolean {
 
   let available = false;
   try {
-    execFileSync("sh", ["-c", `command -v ${command}`], { stdio: "ignore" });
+    if (process.platform === "win32") {
+      // Native Windows has no `sh`; `where.exe` is the PATHEXT-aware lookup
+      // that also resolves `zellij.exe` / `tmux.exe` on PATH.
+      execFileSync("where.exe", [command], { stdio: "ignore" });
+    } else {
+      execFileSync("sh", ["-c", `command -v ${command}`], { stdio: "ignore" });
+    }
     available = true;
   } catch {
     available = false;
@@ -102,6 +114,10 @@ export function isMuxAvailable(): boolean {
 }
 
 export function muxSetupHint(): string {
+  if (process.platform === "win32") {
+    // tmux has no native Windows build; Zellij does.
+    return "Start pi inside Zellij (`zellij --session pi`, then run `pi`).";
+  }
   return (
     "Start pi inside tmux (`tmux new -A -s pi 'pi'`) " +
     "or Zellij (`zellij --session pi`, then run `pi`)."
@@ -120,6 +136,25 @@ function requireMuxBackend(): MuxBackend {
 
 export function shellEscape(s: string): string {
   return "'" + s.replace(/'/g, "'\\''") + "'";
+}
+
+/**
+ * Escape a value for PowerShell. Single-quoted strings are literal in PS;
+ * embedded single quotes are escaped by doubling them (POSIX `'\''` is NOT
+ * valid PowerShell).
+ */
+export function psEscape(s: string): string {
+  return "'" + s.replace(/'/g, "''") + "'";
+}
+
+// Tokens made solely of these characters are emitted unquoted in PowerShell
+// argument position. Anything else (@ splatting, $ interpolation, whitespace,
+// quotes, operators, ...) gets single-quoted — inside single quotes every byte
+// is literal, so this is always safe.
+const PS_SAFE_TOKEN = /^[A-Za-z0-9_.:/\\+\-]+$/;
+
+function psToken(s: string): string {
+  return s !== "" && PS_SAFE_TOKEN.test(s) ? s : psEscape(s);
 }
 
 function tailLines(text: string, lines: number): string {
@@ -665,9 +700,74 @@ export function sendCommand(surface: string, command: string): void {
 }
 
 /**
+ * Render a subagent launch/resume command for the current platform's pane
+ * shell.
+ *
+ * - POSIX (linux/macOS/WSL): bash —
+ *   `cd 'x' && VAR='v' pi ...; echo '__SUBAGENT_DONE_'$?'__'`
+ * - Windows native: PowerShell — `$env:VAR = 'v'` assignments, `Set-Location`,
+ *   and a `$LASTEXITCODE`-based sentinel (PS `$?` is a boolean, and POSIX env
+ *   prefixes / `&&` are syntax errors in PowerShell).
+ *
+ * `spec.args` must be RAW argv tokens (no shell quoting); escaping happens here
+ * per shell so the POSIX and PowerShell renderings can never drift.
+ */
+export interface SubagentCommandSpec {
+  /** Working directory the command runs in, or null to inherit. */
+  cwd: string | null;
+  /** Environment variables set for the child process. */
+  env: Array<[string, string]>;
+  /** Raw argv tokens; args[0] is the binary (emitted unquoted). */
+  args: string[];
+}
+
+export function renderSubagentCommand(spec: SubagentCommandSpec): {
+  script: string;
+  scriptExt: ".sh" | ".ps1";
+} {
+  const renderArgs = (escape: (s: string) => string): string =>
+    spec.args.length > 0 ? [spec.args[0], ...spec.args.slice(1).map(escape)].join(" ") : "";
+
+  if (process.platform === "win32") {
+    const lines: string[] = [];
+    if (spec.cwd) {
+      // `Set-Location` on a missing path is a *non-terminating* error, so
+      // without this guard the child pi would silently run in the inherited
+      // cwd. `-ErrorAction Stop` + try/catch mirrors POSIX `cd 'x' && …`:
+      // on failure emit the sentinel with exit code 1 and stop.
+      lines.push(
+        `try { Set-Location -LiteralPath ${psEscape(spec.cwd)} -ErrorAction Stop } catch { Write-Output '__SUBAGENT_DONE_1__'; exit 1 }`,
+      );
+    }
+    for (const [key, value] of spec.env) lines.push(`$env:${key} = ${psEscape(value)}`);
+    lines.push(renderArgs(psToken));
+    // $LASTEXITCODE is the native-command exit code (PS `$?` is a boolean).
+    // ${LASTEXITCODE} braces are REQUIRED inside the double-quoted string:
+    // without them PS parses the variable name as "LASTEXITCODE__" (underscores
+    // are valid name chars) which is always undefined → empty sentinel.
+    // If the binary itself was not found, $LASTEXITCODE stays null — emit 127
+    // (bash's command-not-found code) so pollForExit still terminates.
+    lines.push(
+      `if ($null -eq $LASTEXITCODE) { Write-Output '__SUBAGENT_DONE_127__' } else { Write-Output "__SUBAGENT_DONE_\${LASTEXITCODE}__" }`,
+    );
+    return { script: lines.join("\n"), scriptExt: ".ps1" };
+  }
+
+  const envPrefix = spec.env.map(([key, value]) => `${key}=${shellEscape(value)}`).join(" ");
+  const cdPrefix = spec.cwd ? `cd ${shellEscape(spec.cwd)} && ` : "";
+  const script = `${cdPrefix}${envPrefix ? envPrefix + " " : ""}${renderArgs(shellEscape)}; echo '__SUBAGENT_DONE_'$?'__'`;
+  return { script, scriptExt: ".sh" };
+}
+
+/**
  * Send a long command to a pane by writing it to a script file first.
  * This avoids terminal line-wrapping issues that break commands exceeding the
  * pane's column width when sent character-by-character via sendCommand.
+ *
+ * The script extension decides how it is executed: `.sh` via `bash`, `.ps1`
+ * via an explicit `powershell -NoProfile -ExecutionPolicy Bypass -File` — so it
+ * works no matter whether the pane's default shell is cmd or PowerShell, and
+ * ignores the machine execution policy.
  *
  * By default the script is written to a temp directory, but callers can pass a
  * stable path (for example under session artifacts) so the exact invocation is
@@ -680,25 +780,51 @@ export function sendLongCommand(
   command: string,
   options?: { scriptPath?: string; scriptPreamble?: string },
 ): string {
+  const isWin = process.platform === "win32";
+  const ext = isWin ? ".ps1" : ".sh";
   const scriptPath =
     options?.scriptPath ??
     join(
       tmpdir(),
       "pi-subagent-scripts",
-      `cmd-${Date.now()}-${Math.random().toString(16).slice(2, 8)}.sh`,
+      `cmd-${Date.now()}-${Math.random().toString(16).slice(2, 8)}${ext}`,
     );
   mkdirSync(dirname(scriptPath), { recursive: true });
 
-  const scriptParts = ["#!/bin/bash"];
+  const isSh = scriptPath.endsWith(".sh");
+  const scriptParts: string[] = [];
+  if (isSh) {
+    scriptParts.push("#!/usr/bin/env bash");
+  }
   if (options?.scriptPreamble) {
     scriptParts.push(options.scriptPreamble.trimEnd());
   }
   scriptParts.push(command);
 
-  writeFileSync(scriptPath, scriptParts.join("\n") + "\n", {
-    mode: 0o755,
-  });
-  sendCommand(surface, `bash ${shellEscape(scriptPath)}`);
+  let content = scriptParts.join(isSh ? "\n" : "\r\n") + "\n";
+  if (isSh) {
+    content = content.replace(/\r\n/g, "\n");
+  } else if (isWin) {
+    // UTF-8 BOM: PowerShell 5.1 reads no-BOM files as ANSI and would garble
+    // non-ASCII paths/names inside the script.
+    content = "\uFEFF" + content;
+  }
+  writeFileSync(scriptPath, content, { mode: 0o755 });
+
+  if (isSh) {
+    if (isWin) {
+      // Git Bash accepts forward-slash Windows paths; `shellEscape`'s `'\''`
+      // POSIX trick is not portable here, so quote with double quotes.
+      sendCommand(surface, `bash "${scriptPath.replace(/\\/g, "/")}"`);
+    } else {
+      sendCommand(surface, `bash ${shellEscape(scriptPath)}`);
+    }
+  } else {
+    sendCommand(
+      surface,
+      `powershell -NoProfile -ExecutionPolicy Bypass -File "${scriptPath}"`,
+    );
+  }
   return scriptPath;
 }
 

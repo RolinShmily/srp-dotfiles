@@ -30,7 +30,7 @@ Then open pi in that directory. (Or copy the pieces you want into your existing 
 ## Requirements
 
 - [pi](https://github.com/earendil-works/pi)
-- Multiplexer: tmux or Zellij (required only when spawning async subagents like `researcher` or diagram makers into background panes).
+- Multiplexer: tmux or Zellij (required only when spawning async subagents like `researcher` or diagram makers into background panes). On **native Windows** use **Zellij** — tmux has no Windows build; mermaid/SVG rendering falls back to Chrome or Edge.
 - **Subagents (Batteries-Included)**: The `subagents/` submodule is bundled directly inside this package. It registers `sub_agent`, `sub_agent_message`, and `sub_agents_list` under the `sub_` namespace so it never collides with any global `subagent` CLI or extensions. All visual and web tools (`write_mermaid`, `render_svg`, `sub_web_search`, etc.) are resolved natively.
 - `ask-user-question` — use the copy bundled here. Its tool is named **`learn_ask_questions`** so it can coexist with a global `ask_user_question` extension instead of replacing it; the teaching skills and the md-log extension all target the bundled one. Both register the same shared UI lock (`__piSharedUiLock`), so popups from either still serialize against each other instead of fighting.
 

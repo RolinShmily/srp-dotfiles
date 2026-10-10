@@ -16,6 +16,8 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from
 // rsvg-convert lives under MacPorts (/opt/local/bin); magick/gs under
 // /usr/local/bin; Homebrew under /opt/homebrew/bin. Augment PATH so the child
 // pi process (which may have inherited a thin PATH) still resolves them.
+// POSIX-only: on Windows these directories do not exist and messing with PATH
+// would risk a duplicate (case-insensitive) entry next to `Path`.
 export const EXTRA_PATH = ["/opt/local/bin", "/usr/local/bin", "/opt/homebrew/bin"]
 
 // Transient session/preview files live under the OS temp dir (NOT the vault),
@@ -23,23 +25,40 @@ export const EXTRA_PATH = ["/opt/local/bin", "/usr/local/bin", "/opt/homebrew/bi
 export const STAGING_ROOT = join(tmpdir(), "pi-visual-tools")
 export const FILES_DIRNAME = "viz"
 
-export const CHROME_CANDIDATES = [
+// Chromium-*flavoured* browsers only: mermaid-cli drives one through CDP
+// (puppeteer), and the SVG renderer uses it as a headless rasterizer fallback.
+// Edge is listed alongside Chrome because it is the one guaranteed-present
+// Chromium browser on Windows.
+export const BROWSER_CANDIDATES = [
   // macOS
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
   "/Applications/Chromium.app/Contents/MacOS/Chromium",
+  "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
   // Linux
   "/usr/bin/google-chrome",
   "/usr/bin/google-chrome-stable",
   "/usr/bin/chromium",
   "/usr/bin/chromium-browser",
+  "/usr/bin/microsoft-edge",
+  "/usr/bin/microsoft-edge-stable",
   // Windows
   "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
   "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
-  ...(process.env.LOCALAPPDATA ? [join(process.env.LOCALAPPDATA, "Google", "Chrome", "Application", "chrome.exe")] : []),
+  "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
+  "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+  ...(process.env.LOCALAPPDATA
+    ? [
+        join(process.env.LOCALAPPDATA, "Google", "Chrome", "Application", "chrome.exe"),
+        join(process.env.LOCALAPPDATA, "Microsoft", "Edge", "Application", "msedge.exe"),
+      ]
+    : []),
 ]
 
+/** @deprecated kept for callers written before Edge support; same list. */
+export const CHROME_CANDIDATES = BROWSER_CANDIDATES
+
 export function findChrome(): string | undefined {
-  for (const c of CHROME_CANDIDATES) if (existsSync(c)) return c
+  for (const c of BROWSER_CANDIDATES) if (existsSync(c)) return c
   return undefined
 }
 
@@ -50,16 +69,59 @@ export interface RunResult {
   timedOut: boolean
 }
 
+/**
+ * Quote a single token for cmd.exe. Node's `shell: true` joins argv with plain
+ * spaces and does not escape, so any path containing a space would split; we
+ * quote explicitly instead (cmd.exe escapes an embedded `"` by doubling it).
+ */
+export function winCmdQuote(arg: string): string {
+  return /[\s"&|<>^()]/.test(arg) ? `"${arg.replace(/"/g, '""')}"` : arg
+}
+
+/**
+ * Resolve the real executable + argv for a spawn.
+ *
+ * Windows cannot run a `.cmd`/`.bat` shim through CreateProcess (npm bin shims
+ * are `.cmd`), and `shell: true` mangles arguments containing spaces. So for a
+ * `.cmd`/`.bat` target we build an explicitly-quoted command line and hand it
+ * to `cmd.exe /d /s /c` (the outer pair of quotes is required so `/s` strips
+ * exactly that pair, whatever the last token looks like).
+ */
+export function spawnTarget(
+  cmd: string,
+  args: string[],
+): { file: string; args: string[]; windowsVerbatimArguments?: boolean } {
+  if (process.platform !== "win32" || !/\.(cmd|bat)$/i.test(cmd)) {
+    return { file: cmd, args }
+  }
+  const comspec = process.env.ComSpec || process.env.COMSPEC || "cmd.exe"
+  const line = [cmd, ...args].map(winCmdQuote).join(" ")
+  return { file: comspec, args: ["/d", "/s", "/c", `"${line}"`], windowsVerbatimArguments: true }
+}
+
+/** Child env with an augmented PATH on POSIX only (see EXTRA_PATH). */
+function childEnv(extra?: Record<string, string>): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = { ...process.env, ...(extra ?? {}) }
+  if (process.platform !== "win32") {
+    // Resolve the existing key case-insensitively so we never end up with both
+    // `PATH` and `Path`.
+    const key = Object.keys(env).find((k) => k.toUpperCase() === "PATH") ?? "PATH"
+    env[key] = [...EXTRA_PATH, env[key] ?? ""].filter(Boolean).join(delimiter)
+  }
+  return env
+}
+
 export function run(
   cmd: string,
   args: string[],
   opts: { cwd: string; timeoutMs: number; env?: Record<string, string> },
 ): Promise<RunResult> {
   return new Promise((resolveRun) => {
-    const augmentedPath = [...EXTRA_PATH, process.env.PATH ?? ""].join(delimiter)
-    const child = spawn(cmd, args, {
+    const target = spawnTarget(cmd, args)
+    const child = spawn(target.file, target.args, {
       cwd: opts.cwd,
-      env: { ...process.env, ...(opts.env ?? {}), PATH: augmentedPath },
+      env: childEnv(opts.env),
+      windowsVerbatimArguments: target.windowsVerbatimArguments,
     })
     let stdout = ""
     let stderr = ""

@@ -2,7 +2,7 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 import { keyHint } from "@earendil-works/pi-coding-agent";
 import { Type, type Static } from "typebox";
 import { Box, Text, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   readdirSync,
@@ -13,7 +13,7 @@ import {
   copyFileSync,
   unlinkSync,
 } from "node:fs";
-import { homedir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import {
   isMuxAvailable,
   muxSetupHint,
@@ -22,7 +22,7 @@ import {
   sendLongCommand,
   pollForExit,
   closeSurface,
-  shellEscape,
+  renderSubagentCommand,
   readScreen,
 } from "./mux.ts";
 
@@ -290,11 +290,13 @@ function parseSessionMode(value: string | undefined): SubagentSessionMode | unde
 }
 
 function parseAgentDefinition(content: string, fallbackName: string): AgentDefinition | null {
-  const match = content.match(/^---\n([\s\S]*?)\n---/);
+  // `\r?\n`: agent files authored or checked out on Windows use CRLF; a
+  // LF-only pattern would make every such agent silently undiscoverable.
+  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   if (!match) return null;
 
   const frontmatter = match[1];
-  const body = content.replace(/^---\n[\s\S]*?\n---\n*/, "").trim();
+  const body = content.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n*/, "").trim();
   const systemPromptMode = getFrontmatterValue(frontmatter, "system-prompt");
 
   return {
@@ -356,7 +358,7 @@ function resolveSubagentPaths(
   const cwdIsFromAgent = !params.cwd && agentDefs?.cwd != null;
   const cwdBase = cwdIsFromAgent ? getAgentConfigDir() : process.cwd();
   const effectiveCwd = rawCwd
-    ? rawCwd.startsWith("/")
+    ? isAbsolute(rawCwd)
       ? rawCwd
       : join(cwdBase, rawCwd)
     : null;
@@ -849,6 +851,9 @@ function buildSubagentToolAllowlist(
  * resume path so the two can never drift. Env vars (PI_SUBAGENT_AGENT /
  * PI_SUBAGENT_ALLOWED / PI_CODING_AGENT_DIR) and cwd are the caller's
  * responsibility since they differ slightly between launch and resume.
+ *
+ * Values are pushed UNQUOTED — `renderSubagentCommand()` applies the
+ * shell-appropriate escaping (bash on POSIX, PowerShell on Windows).
  */
 function applySandboxToParts(
   parts: string[],
@@ -857,7 +862,7 @@ function applySandboxToParts(
 ): void {
   if (loadout.model) {
     const model = loadout.thinking ? `${loadout.model}:${loadout.thinking}` : loadout.model;
-    parts.push("--model", shellEscape(model));
+    parts.push("--model", model);
   }
 
   if (loadout.identity) {
@@ -872,7 +877,7 @@ function applySandboxToParts(
     const spPath = join(opts.artifactDir, `context/${spSafeName || "subagent"}-sysprompt-${spTimestamp}.md`);
     mkdirSync(dirname(spPath), { recursive: true });
     writeFileSync(spPath, loadout.identity, "utf8");
-    parts.push(flag, shellEscape(spPath));
+    parts.push(flag, spPath);
   }
 
   // Default-deny: disable global extension discovery and re-enable only the
@@ -880,7 +885,7 @@ function applySandboxToParts(
   // was intentionally unrestricted (e.g. a fork clone) and is replayed as-is.
   if (loadout.toolAllowlist) {
     parts.push("--no-extensions");
-    parts.push("--tools", shellEscape(loadout.toolAllowlist));
+    parts.push("--tools", loadout.toolAllowlist);
 
     const extPaths = new Set<string>();
     for (const tool of loadout.toolAllowlist.split(",")) {
@@ -888,7 +893,7 @@ function applySandboxToParts(
       if (extPath && existsSync(extPath)) extPaths.add(extPath);
     }
     for (const extPath of extPaths) {
-      parts.push("-e", shellEscape(extPath));
+      parts.push("-e", extPath);
     }
   }
 }
@@ -1026,7 +1031,7 @@ function steerSubagent(
   } catch (error: any) {
     return {
       error:
-        `Failed to deliver message to subagent "${running.name}" via tmux: ` +
+        `Failed to deliver message to subagent "${running.name}" via the terminal multiplexer: ` +
         `${error?.message ?? String(error)}`,
     };
   }
@@ -1262,44 +1267,59 @@ async function launchSubagent(
     ? params.task
     : `${roleBlock}\n\n${modeHint}\n\n${params.task}\n\n${summaryInstruction}`;
   // ── Claude Code CLI path ──
+  // NOTE: this path relies on the bundled Stop-hook plugin
+  // (plugin/hooks/on-stop.sh), which needs a POSIX shell plus python3. On
+  // native Windows it therefore only works under a POSIX layer (WSL / Git
+  // Bash); the bundled pi-learn agents use the `pi` path below instead.
   if (agentDefs?.cli === "claude") {
-    const sentinelFile = `/tmp/pi-claude-${id}-done`;
+    if (process.platform === "win32") {
+      // The bundled Stop hook (plugin/hooks/on-stop.sh) needs a POSIX shell and
+      // python3, so on native Windows the completion sentinel never appears and
+      // the watcher must fall back to screen scraping. Warn instead of letting
+      // the spawn look healthy.
+      console.error(
+        "[subagents] cli: claude on native Windows needs Git Bash + python3 for the " +
+          "Stop-hook sentinel; completion detection may be unreliable. Prefer WSL, " +
+          "or use a pi-based agent.",
+      );
+    }
+    const sentinelFile = join(tmpdir(), `pi-claude-${id}-done`);
     const pluginDir = join(SUBAGENTS_DIR, "plugin");
 
-    const cmdParts: string[] = [];
-    cmdParts.push(`PI_CLAUDE_SENTINEL=${shellEscape(sentinelFile)}`);
-    cmdParts.push("claude");
-    cmdParts.push("--dangerously-skip-permissions");
+    const claudeArgs: string[] = ["claude", "--dangerously-skip-permissions"];
 
     if (existsSync(pluginDir)) {
-      cmdParts.push("--plugin-dir", shellEscape(pluginDir));
+      claudeArgs.push("--plugin-dir", pluginDir);
     }
 
     if (effectiveModel) {
-      cmdParts.push("--model", shellEscape(effectiveModel));
+      claudeArgs.push("--model", effectiveModel);
     }
 
     const sp = agentDefs.body;
     if (sp) {
-      cmdParts.push("--append-system-prompt", shellEscape(sp));
+      claudeArgs.push("--append-system-prompt", sp);
     }
 
     // Always pass the task as the prompt — even for resumed sessions,
     // the caller's task is the follow-up instruction.
-    cmdParts.push(shellEscape(params.task));
+    claudeArgs.push(params.task);
 
-    const cdPrefix = effectiveCwd ? `cd ${shellEscape(effectiveCwd)} && ` : "";
-    const command = `${cdPrefix}${cmdParts.join(" ")}; echo '__SUBAGENT_DONE_'$?'__'`;
+    const { script, scriptExt } = renderSubagentCommand({
+      cwd: effectiveCwd ?? null,
+      env: [["PI_CLAUDE_SENTINEL", sentinelFile]],
+      args: claudeArgs,
+    });
 
     const launchScriptName = `${(params.name || "subagent")
       .toLowerCase()
       .replace(/[^a-z0-9\s-]/g, "")
       .replace(/\s+/g, "-")
       .replace(/-+/g, "-")
-      .replace(/^-|-$/g, "") || "subagent"}-${id}.sh`;
+      .replace(/^-|-$/g, "") || "subagent"}-${id}${scriptExt}`;
     const launchScriptFile = join(artifactDir, "subagent-scripts", launchScriptName);
 
-    sendLongCommand(surface, command, {
+    sendLongCommand(surface, script, {
       scriptPath: launchScriptFile,
       scriptPreamble: [
         `# Claude Code subagent launch script for ${params.name}`,
@@ -1332,12 +1352,13 @@ async function launchSubagent(
 
   // ── Pi CLI path ──
 
-  // Build pi command
+  // Build pi command (raw argv tokens; shell escaping happens in
+  // renderSubagentCommand — bash on POSIX, PowerShell on Windows)
   const parts: string[] = ["pi"];
-  parts.push("--session", shellEscape(subagentSessionFile));
+  parts.push("--session", subagentSessionFile);
 
   const subagentDonePath = join(SUBAGENTS_DIR, "subagent-done.ts");
-  parts.push("-e", shellEscape(subagentDonePath));
+  parts.push("-e", subagentDonePath);
 
   // Resolve the config dir the child sees: a target-local .pi/agent/ wins,
   // else the propagated global dir. Captured once so the launch env and the
@@ -1374,28 +1395,27 @@ async function launchSubagent(
   // the shared helper (same code path resume uses — they can't drift).
   applySandboxToParts(parts, loadout, { artifactDir, name: params.name });
 
-  // Build env prefix: subagent identity + config dir propagation + spawn allowlist
-  const envParts: string[] = [];
+  // Build env pairs: subagent identity + config dir propagation + spawn allowlist
+  const envPairs: Array<[string, string]> = [];
 
   if (resolvedAgentDir) {
-    envParts.push(`PI_CODING_AGENT_DIR=${shellEscape(resolvedAgentDir)}`);
+    envPairs.push(["PI_CODING_AGENT_DIR", resolvedAgentDir]);
   }
 
   if (grantSpawning && agentDefs?.subagentAgents) {
-    envParts.push(`PI_SUBAGENT_ALLOWED=${shellEscape(agentDefs.subagentAgents.join(","))}`);
+    envPairs.push(["PI_SUBAGENT_ALLOWED", agentDefs.subagentAgents.join(",")]);
   }
-  envParts.push(`PI_SUBAGENT_NAME=${shellEscape(params.name)}`);
+  envPairs.push(["PI_SUBAGENT_NAME", params.name]);
   if (params.agent) {
-    envParts.push(`PI_SUBAGENT_AGENT=${shellEscape(params.agent)}`);
+    envPairs.push(["PI_SUBAGENT_AGENT", params.agent]);
   }
   if (agentDefs?.autoExit) {
-    envParts.push(`PI_SUBAGENT_AUTO_EXIT=1`);
+    envPairs.push(["PI_SUBAGENT_AUTO_EXIT", "1"]);
   }
-  envParts.push(`PI_SUBAGENT_SESSION=${shellEscape(subagentSessionFile)}`);
-  envParts.push(`PI_SUBAGENT_ID=${shellEscape(id)}`);
-  envParts.push(`PI_SUBAGENT_ACTIVITY_FILE=${shellEscape(activityFile)}`);
-  envParts.push(`PI_SUBAGENT_SURFACE=${shellEscape(surface)}`);
-  const envPrefix = envParts.join(" ") + " ";
+  envPairs.push(["PI_SUBAGENT_SESSION", subagentSessionFile]);
+  envPairs.push(["PI_SUBAGENT_ID", id]);
+  envPairs.push(["PI_SUBAGENT_ACTIVITY_FILE", activityFile]);
+  envPairs.push(["PI_SUBAGENT_SURFACE", surface]);
 
   // Pass task and skill prompts to the sub-agent.
   // Only full-context fork mode gets a direct task argument because it already
@@ -1424,23 +1444,25 @@ async function launchSubagent(
     taskDelivery: launchBehavior.taskDelivery,
     taskArg,
   })) {
-    parts.push(shellEscape(promptArg));
+    parts.push(promptArg);
   }
 
-  // Resolve cwd — param overrides agent default, supports absolute and relative paths.
-  // This was already computed above so session placement, PI_CODING_AGENT_DIR, and cd agree.
-  const cdPrefix = effectiveCwd ? `cd ${shellEscape(effectiveCwd)} && ` : "";
-
-  const piCommand = cdPrefix + envPrefix + parts.join(" ");
-  const command = `${piCommand}; echo '__SUBAGENT_DONE_'$?'__'`;
+  // Render the launch script for the platform's pane shell (bash on POSIX,
+  // PowerShell on Windows). cwd was already computed above so session
+  // placement, PI_CODING_AGENT_DIR, and cd agree.
+  const { script, scriptExt } = renderSubagentCommand({
+    cwd: effectiveCwd ?? null,
+    env: envPairs,
+    args: parts,
+  });
   const launchScriptName = `${(params.name || "subagent")
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, "")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "") || "subagent"}-${id}.sh`;
+    .replace(/^-|-$/g, "") || "subagent"}-${id}${scriptExt}`;
   const launchScriptFile = join(artifactDir, "subagent-scripts", launchScriptName);
-  sendLongCommand(surface, command, {
+  sendLongCommand(surface, script, {
     scriptPath: launchScriptFile,
     scriptPreamble: [
       `# Subagent launch script for ${params.name}`,
@@ -1477,8 +1499,11 @@ async function launchSubagent(
  * and removes the entry from runningSubagents.
  */
 const CLAUDE_SESSIONS_DIR = join(
-  process.env.HOME ?? "/tmp",
-  ".pi", "agent", "sessions", "claude-code",
+  homedir(),
+  ".pi",
+  "agent",
+  "sessions",
+  "claude-code",
 );
 
 function copyClaudeSession(sentinelFile: string): string | null {
@@ -1488,7 +1513,7 @@ function copyClaudeSession(sentinelFile: string): string | null {
     const transcriptPath = readFileSync(transcriptFile, "utf-8").trim();
     if (!transcriptPath || !existsSync(transcriptPath)) return null;
     mkdirSync(CLAUDE_SESSIONS_DIR, { recursive: true });
-    const filename = transcriptPath.split("/").pop() ?? `claude-${Date.now()}.jsonl`;
+    const filename = basename(transcriptPath) || `claude-${Date.now()}.jsonl`;
     const dest = join(CLAUDE_SESSIONS_DIR, filename);
     copyFileSync(transcriptPath, dest);
     return filename;
@@ -2170,12 +2195,13 @@ export default function subagentsExtension(pi: ExtensionAPI) {
         const surface = createSurface(name);
         await new Promise<void>((resolve) => setTimeout(resolve, getShellReadyDelayMs()));
 
-        // Build pi resume command
-        const parts = ["pi", "--session", shellEscape(sessionPath)];
+        // Build pi resume command (raw argv tokens; shell escaping happens in
+        // renderSubagentCommand — bash on POSIX, PowerShell on Windows)
+        const parts = ["pi", "--session", sessionPath];
 
         // Load subagent-done extension so the agent can self-terminate if needed
         const subagentDonePath = join(SUBAGENTS_DIR, "subagent-done.ts");
-        parts.push("-e", shellEscape(subagentDonePath));
+        parts.push("-e", subagentDonePath);
 
         const sessionId = ctx.sessionManager.getSessionId();
         const artifactDir = getArtifactDir(ctx.sessionManager.getSessionDir(), sessionId);
@@ -2200,37 +2226,39 @@ export default function subagentsExtension(pi: ExtensionAPI) {
           );
           mkdirSync(dirname(resumeMsgFile), { recursive: true });
           writeFileSync(resumeMsgFile, message, "utf8");
-          parts.push(shellEscape(`@${resumeMsgFile}`));
+          parts.push(`@${resumeMsgFile}`);
         }
 
-        // Build env prefix — replay the snapshot's config dir + spawn whitelist
+        // Build env pairs — replay the snapshot's config dir + spawn whitelist
         // so the resumed process resolves the same agents/extensions and keeps
         // the same nested-spawn restriction it originally ran with.
-        const resumeEnvParts: string[] = [];
+        const resumeEnvPairs: Array<[string, string]> = [];
         const resumeAgentDir = loadout.agentDir ?? process.env.PI_CODING_AGENT_DIR ?? null;
         if (resumeAgentDir) {
-          resumeEnvParts.push(`PI_CODING_AGENT_DIR=${shellEscape(resumeAgentDir)}`);
+          resumeEnvPairs.push(["PI_CODING_AGENT_DIR", resumeAgentDir]);
         }
         if (loadout.spawnable && loadout.spawnable.length > 0) {
-          resumeEnvParts.push(`PI_SUBAGENT_ALLOWED=${shellEscape(loadout.spawnable.join(","))}`);
+          resumeEnvPairs.push(["PI_SUBAGENT_ALLOWED", loadout.spawnable.join(",")]);
         }
         if (loadout.agent) {
-          resumeEnvParts.push(`PI_SUBAGENT_AGENT=${shellEscape(loadout.agent)}`);
+          resumeEnvPairs.push(["PI_SUBAGENT_AGENT", loadout.agent]);
         }
-        resumeEnvParts.push(`PI_SUBAGENT_NAME=${shellEscape(name)}`);
-        resumeEnvParts.push(`PI_SUBAGENT_SESSION=${shellEscape(sessionPath)}`);
-        resumeEnvParts.push(`PI_SUBAGENT_ID=${shellEscape(id)}`);
-        resumeEnvParts.push(`PI_SUBAGENT_ACTIVITY_FILE=${shellEscape(activityFile)}`);
+        resumeEnvPairs.push(["PI_SUBAGENT_NAME", name]);
+        resumeEnvPairs.push(["PI_SUBAGENT_SESSION", sessionPath]);
+        resumeEnvPairs.push(["PI_SUBAGENT_ID", id]);
+        resumeEnvPairs.push(["PI_SUBAGENT_ACTIVITY_FILE", activityFile]);
         if (autoExit) {
-          resumeEnvParts.push(`PI_SUBAGENT_AUTO_EXIT=1`);
+          resumeEnvPairs.push(["PI_SUBAGENT_AUTO_EXIT", "1"]);
         }
-        const resumeEnvPrefix = resumeEnvParts.join(" ") + " ";
 
         // Resume in the subagent's original cwd so its tools (safe_bash, edits)
-        // operate where they did before.
-        const resumeCdPrefix = loadout.cwd ? `cd ${shellEscape(loadout.cwd)} && ` : "";
-
-        const command = `${resumeCdPrefix}${resumeEnvPrefix}${parts.join(" ")}; echo '__SUBAGENT_DONE_'$?'__'`;
+        // operate where they did before. Shell escaping happens in
+        // renderSubagentCommand (bash on POSIX, PowerShell on Windows).
+        const { script, scriptExt } = renderSubagentCommand({
+          cwd: loadout.cwd ?? null,
+          env: resumeEnvPairs,
+          args: parts,
+        });
         const launchScriptFile = join(
           artifactDir,
           "subagent-scripts",
@@ -2239,9 +2267,9 @@ export default function subagentsExtension(pi: ExtensionAPI) {
             .replace(/[^a-z0-9\s-]/g, "")
             .replace(/\s+/g, "-")
             .replace(/-+/g, "-")
-            .replace(/^-|-$/g, "") || "resume"}-resume-${Date.now()}.sh`,
+            .replace(/^-|-$/g, "") || "resume"}-resume-${Date.now()}${scriptExt}`,
         );
-        sendLongCommand(surface, command, {
+        sendLongCommand(surface, script, {
           scriptPath: launchScriptFile,
           scriptPreamble: [
             `# Subagent resume script for ${name}`,

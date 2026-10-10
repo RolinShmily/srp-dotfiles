@@ -26,9 +26,20 @@ const DANGEROUS_PATTERNS = [
 	/\binit\s+0\b/,
 	/\bkill\s+-9\s+1\b/,
 	/\bkillall\b/,
+	// ── Windows (cmd.exe / PowerShell) ──
+	// Native Windows also ships Git Bash, so the POSIX patterns above still
+	// matter there; these cover the cmd/PowerShell idioms that would otherwise
+	// slip straight through this guard.
+	// Categorical: no safe non-destructive use.
+	/\b(format|Format-Volume|Clear-Disk|diskpart|bcdedit|vssadmin|takeown)\b/i,
+	/\b(Stop-Computer|Restart-Computer)\b/i,
+	// Recursive delete/format aimed at a drive root or the user profile.
+	/\b(del|erase)\s+[^|]*\/[a-z]*[sq][a-z]*\b[^|]*\b[a-z]:[\\/]?\*?\s*$/i,
+	/\b(rd|rmdir)\s+\/s\b[^|]*\b[a-z]:[\\/]?\s*$/i,
+	/\bRemove-Item\b[^|]*-(?:Recurse|Force)[^|]*(?:\b[a-z]:[\\/]?\*?\s*$|\$env:USERPROFILE|\$HOME|~)/i,
 ];
 
-function isDangerous(command: string): string | null {
+export function isDangerous(command: string): string | null {
 	const normalized = command.replace(/\\\n/g, " ");
 	for (const pattern of DANGEROUS_PATTERNS) {
 		if (pattern.test(normalized)) {
@@ -45,7 +56,8 @@ export default function (pi: ExtensionAPI) {
 		name: "sub_safe_bash",
 		label: "Safe Bash",
 		description:
-			"Execute a bash command. Blocks dangerous commands (rm -rf /, sudo, mkfs, etc.).",
+			"Execute a bash command. Blocks dangerous commands (rm -rf /, sudo, mkfs, " +
+				"format/diskpart, Remove-Item -Recurse -Force, etc.).",
 		parameters: Type.Object({
 			command: Type.String({ description: "Bash command to execute" }),
 			timeout: Type.Optional(
