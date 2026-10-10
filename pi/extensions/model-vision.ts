@@ -404,7 +404,7 @@ async function analyzeImage(
 export default function (pi: ExtensionAPI) {
   pi.registerTool({
     name: "model_vision",
-    label: "Vision",
+    label: "model_vision",
     description:
       "Analyze an image using a vision model and return a textual description. Supports local PNG/JPEG/WebP/GIF/BMP file paths or public http(s) URLs. Use prompt to specify OCR, error diagnosis, UI inspection, or detailed description.",
     parameters: Type.Object({
@@ -433,7 +433,7 @@ export default function (pi: ExtensionAPI) {
       const text = (context.lastComponent as Text | undefined) ?? new Text("", 0, 0);
       const { image } = args as { image?: string };
       const display = image && image.length > 50 ? "..." + image.slice(-47) : image || "";
-      text.setText(theme.fg("toolTitle", theme.bold("vision ")) + theme.fg("accent", display));
+      text.setText(theme.fg("toolTitle", theme.bold("model_vision ")) + theme.fg("accent", display));
       return text;
     },
   });

@@ -508,18 +508,13 @@ function dimText(ctx: ExtensionContext | ExtensionCommandContext, text: string):
 let activeCtx: ExtensionContext | ExtensionCommandContext | null = null;
 let latestSnapshot: CodexUsageSnapshot | undefined;
 
-function getTerminalWidth(): number {
-  return process.stdout?.columns ?? process.stderr?.columns ?? 80;
-}
-
+/**
+ * Format quota text for Pi's shared extension-status row.
+ * It must stay compact because Pi combines all extension statuses before
+ * applying the footer width limit.
+ */
 export function formatRightAlignedStatusline(snapshot: CodexUsageSnapshot, now = new Date()): string {
-  const line = formatStatusline(snapshot, now);
-  const termWidth = getTerminalWidth();
-  const lineW = visibleWidth(line);
-  if (termWidth <= lineW) return line;
-
-  // \u200B zero-width space prevents .trim() from stripping leading \u00A0 non-breaking spaces
-  return `\u200b${"\u00a0".repeat(Math.max(0, termWidth - lineW))}${line}`;
+  return formatStatusline(snapshot, now);
 }
 
 function setFooterStatus(ctx: ExtensionContext | ExtensionCommandContext, snapshot: CodexUsageSnapshot | undefined): void {
