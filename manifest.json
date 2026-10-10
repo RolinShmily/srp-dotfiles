@@ -66,7 +66,8 @@
       "custom-providers",
       "subagent",
       "image-generate.ts",
-      "memory-log"
+      "memory-log",
+      "oai-subquota.ts"
     ],
     "piPackages": [
       "npm:@upstash/context7-pi",
@@ -398,7 +399,8 @@
       "custom-providers",
       "subagent",
       "image-generate.ts",
-      "memory-log"
+      "memory-log",
+      "oai-subquota.ts"
     ],
     "piPackages": [
       "npm:@upstash/context7-pi",
