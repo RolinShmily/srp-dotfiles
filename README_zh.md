@@ -258,6 +258,9 @@ bash scripts/configs/pi.sh
 | :--- | :--- | :--- |
 | `zshrc` / `vimrc` / `btop` / `fastfetch` / `yazi` / `zellij` / `tmux` | `link` | `~/.config/<name>` 一条指向仓库的软链，改仓库即时生效 |
 | `pi` | `custom` | `~/.pi/agent/` 下为真实副本；`.example` 模板先检查正式目标是否存在，存在则保留并旁存模板 |
+| `windows-terminal-settings` | `custom` | 局部覆盖 Windows Terminal 设置，保留机器生成的 `defaultProfile` / `profiles.list` |
+
+Windows Terminal 不使用普通的整文件 `copy`：模板不声明机器相关的 `defaultProfile` 和 `profiles.list`；目标已有 `settings.json` 时，只递归覆盖模板中声明的字段，并保留目标中其他未声明字段。目标不存在时才直接用模板创建。
 
 Pi 的配置模板按正式 JSON 是否已存在来部署：
 
@@ -267,7 +270,7 @@ Pi 的配置模板按正式 JSON 是否已存在来部署：
 
 同一规则也适用于 `code/settings.json.example`（目标为 Windows 的 `%APPDATA%/Code/User/settings.json`）。如果旁边已有 `*.json.example`，部署会用仓库模板更新该示例文件，不会覆盖正式 JSON。
 
-即：新建时 `settings.json` 的 `packages` 由 manifest 决定；用户已有的配置不会被合并或改写。
+即：对于 Pi，新建时 `settings.json` 的 `packages` 由 manifest 决定；已有配置不会被合并或改写。Windows Terminal 是例外：它使用上文所述的局部覆盖策略。
 仓库里删掉一个 skill/extension 后，目标目录里的旧副本**不会自动删除**，部署时会打印一行 `目标里存在仓库中已不存在的项` 提醒你手动清理。
 
 #### 本地 Pi 包不复制

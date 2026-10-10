@@ -16,7 +16,9 @@
        - 现代 Python 运行时安装 (从 manifest.json 的 windows.pythonManager 读取)
     3. 配置部署模块 (config - 只做派发):
        - Windows 用户级环境变量配置 (SHELL -> pwsh.exe，保障 Zellij 等多端识别)
-       - 自动根据 manifest.json 的 windows.configs 覆盖式复制（全部使用 copy，不用软链）：
+       - 自动根据 manifest.json 的 windows.configs 部署配置：
+         * 普通配置使用覆盖式复制（不使用软链）
+         * Windows Terminal 使用局部覆盖，保留机器生成的 defaultProfile / profiles.list
          * Vim 原生配置与 Windows 兼容配置 (%USERPROFILE%\.vimrc & %USERPROFILE%\_vimrc)
          * WezTerm 工业级配置与专属背景图 (%USERPROFILE%\.config\wezterm\)
          * PowerShell 7 全局 Profile ($PROFILE)

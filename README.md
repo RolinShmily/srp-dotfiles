@@ -258,7 +258,10 @@ bash scripts/configs/pi.sh
 | :--- | :--- | :--- |
 | `zshrc` / `vimrc` / `btop` / `fastfetch` / `yazi` / `zellij` / `tmux` | `link` | One symlink under `~/.config/<name>` pointing at the repo; edits apply live |
 | `pi` | `custom` | Real copies under `~/.pi/agent/`; `.example` templates check for the destination JSON and preserve it when present |
+| `windows-terminal-settings` | `custom` | Partially overwrites Windows Terminal settings while preserving machine-generated `defaultProfile` / `profiles.list` |
 | `piCliLinks` (inside `pi`) | `link` | `~/.pi/agent/bin/<name>` symlinks pointing at the **deployed** extension copy, so a CLI and the extension pi loads never drift apart |
+
+Windows Terminal does not use a normal whole-file `copy`: the template omits machine-specific `defaultProfile` and `profiles.list`. When the target `settings.json` exists, only fields declared by the template are recursively overwritten; all other target fields are preserved. A missing target is created directly from the template.
 
 Pi's configuration templates check whether the destination JSON already exists:
 
@@ -268,7 +271,7 @@ Pi's configuration templates check whether the destination JSON already exists:
 
 The same rule applies to `code/settings.json.example` (Windows target: `%APPDATA%/Code/User/settings.json`). If a `*.json.example` sidecar already exists, it is refreshed from the repository template; the actual JSON remains untouched.
 
-So: **new `settings.json` files get `packages` from the manifest; existing user configuration is never merged or rewritten.**
+So for Pi: **new `settings.json` files get `packages` from the manifest; existing configuration is never merged or rewritten.** Windows Terminal is the exception described above and uses partial overwrite semantics.
 After deleting a skill/extension from the repo, the stale copy in the target is **not deleted automatically** — the deploy prints a `目标里存在仓库中已不存在的项` line so you can clean it up deliberately.
 
 #### Local Pi packages are not copied
