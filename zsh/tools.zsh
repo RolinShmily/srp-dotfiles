@@ -8,6 +8,14 @@ if command -v zellij &>/dev/null; then
 fi
 
 # -------------------------------- #
+# tmux (终端复用器)
+# -------------------------------- #
+# t a -t 0  ->  tmux attach -t 0
+if command -v tmux &>/dev/null; then
+    alias t='tmux'
+fi
+
+# -------------------------------- #
 # Yazi (终端文件管理器 & cwd 同步函数)
 # -------------------------------- #
 if command -v yazi &>/dev/null; then

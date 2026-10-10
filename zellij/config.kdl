@@ -3,9 +3,12 @@
 //
 
 keybinds clear-defaults=true {
-    locked {
-        bind "Ctrl g" { SwitchToMode "normal"; }
-    }
+    // Zellij's built-in default binds Ctrl q to Quit. `clear-defaults=true`
+    // already drops it, but unbind it explicitly so it stays disabled even if
+    // the defaults are ever re-enabled (Ctrl q is too easy to hit by accident
+    // next to the Ctrl o / Ctrl p / Ctrl t mode keys).
+    unbind "Ctrl q"
+
     pane {
         bind "left" { MoveFocus "left"; }
         bind "down" { MoveFocus "down"; }
@@ -52,41 +55,9 @@ keybinds clear-defaults=true {
         bind "n" { NewTab; SwitchToMode "normal"; }
         bind "r" { SwitchToMode "renametab"; TabNameInput 0; }
         bind "s" { ToggleActiveSyncTab; SwitchToMode "normal"; }
-        bind "Ctrl t" { SwitchToMode "normal"; }
+        bind "Ctrl w" { SwitchToMode "normal"; }
         bind "x" { CloseTab; SwitchToMode "normal"; }
         bind "tab" { ToggleTab; }
-    }
-    resize {
-        bind "left" { Resize "Increase left"; }
-        bind "down" { Resize "Increase down"; }
-        bind "up" { Resize "Increase up"; }
-        bind "right" { Resize "Increase right"; }
-        bind "+" { Resize "Increase"; }
-        bind "-" { Resize "Decrease"; }
-        bind "=" { Resize "Increase"; }
-        bind "I" { Resize "Decrease up"; }
-        bind "J" { Resize "Decrease left"; }
-        bind "K" { Resize "Decrease down"; }
-        bind "L" { Resize "Decrease right"; }
-        bind "i" { Resize "Increase up"; }
-        bind "j" { Resize "Increase left"; }
-        bind "k" { Resize "Increase down"; }
-        bind "l" { Resize "Increase right"; }
-        bind "Ctrl n" { SwitchToMode "normal"; }
-    }
-    move {
-        bind "left" { MovePane "left"; }
-        bind "down" { MovePane "down"; }
-        bind "up" { MovePane "up"; }
-        bind "right" { MovePane "right"; }
-        bind "i" { MovePane "up"; }
-        bind "j" { MovePane "left"; }
-        bind "k" { MovePane "down"; }
-        bind "l" { MovePane "right"; }
-        bind "Ctrl h" { SwitchToMode "normal"; }
-        bind "n" { MovePane; }
-        bind "p" { MovePaneBackwards; }
-        bind "tab" { MovePane; }
     }
     scroll {
         bind "e" { EditScrollback; SwitchToMode "normal"; }
@@ -119,7 +90,7 @@ keybinds clear-defaults=true {
             }
             SwitchToMode "normal"
         }
-        bind "w" {
+        bind "s" {
             LaunchOrFocusPlugin "session-manager" {
                 floating true
                 move_to_focused_tab true
@@ -127,18 +98,25 @@ keybinds clear-defaults=true {
             SwitchToMode "normal"
         }
     }
+    // Bottom-right hint bar is generated from these bindings. Keep only the
+    // three groups actually used: Alt f (floating), Alt +/- (resize) and
+    // Alt i/j/k/l (focus, in the block below).
+    // Dropped: Alt b (NewPane), Alt [ / Alt ] (swap layouts) and Alt =
+    // (a redundant unshifted alias for Alt +).
     shared_except "locked" {
         bind "Alt +" { Resize "Increase"; }
         bind "Alt -" { Resize "Decrease"; }
-        bind "Alt =" { Resize "Increase"; }
-        bind "Alt [" { PreviousSwapLayout; }
-        bind "Alt ]" { NextSwapLayout; }
         bind "Alt f" { ToggleFloatingPanes; }
-        bind "Ctrl g" { SwitchToMode "locked"; }
-        bind "Alt b" { NewPane; }
-    }
-    shared_except "locked" "move" {
-        bind "Ctrl h" { SwitchToMode "move"; }
+        // Alt 1-9: jump straight to that tab, from any mode (no prefix).
+        bind "Alt 1" { GoToTab 1; }
+        bind "Alt 2" { GoToTab 2; }
+        bind "Alt 3" { GoToTab 3; }
+        bind "Alt 4" { GoToTab 4; }
+        bind "Alt 5" { GoToTab 5; }
+        bind "Alt 6" { GoToTab 6; }
+        bind "Alt 7" { GoToTab 7; }
+        bind "Alt 8" { GoToTab 8; }
+        bind "Alt 9" { GoToTab 9; }
     }
     shared_except "locked" "session" {
         bind "Ctrl o" { SwitchToMode "session"; }
@@ -152,17 +130,11 @@ keybinds clear-defaults=true {
     shared_except "locked" "scroll" "search" "tmux" {
         bind "Ctrl b" { SwitchToMode "tmux"; }
     }
-    shared_except "locked" "scroll" "search" {
-        bind "Ctrl s" { SwitchToMode "scroll"; }
-    }
     shared_except "locked" "tab" {
-        bind "Ctrl t" { SwitchToMode "tab"; }
+        bind "Ctrl w" { SwitchToMode "tab"; }
     }
     shared_except "locked" "pane" {
         bind "Ctrl p" { SwitchToMode "pane"; }
-    }
-    shared_except "locked" "resize" {
-        bind "Ctrl n" { SwitchToMode "resize"; }
     }
     shared_except "normal" "locked" "entersearch" {
         bind "enter" { SwitchToMode "normal"; }
@@ -188,7 +160,6 @@ keybinds clear-defaults=true {
         bind "j" { PageScrollUp; }
         bind "k" { ScrollDown; }
         bind "l" { PageScrollDown; }
-        bind "Ctrl s" { SwitchToMode "normal"; }
         bind "u" { HalfPageScrollUp; }
     }
     entersearch {
@@ -417,8 +388,9 @@ scroll_mode_sync false
 // Options:
 //   - true (default)
 //   - false
-// 
-// session_serialization false
+// Disabled: sessions are attached explicitly by name (see the `t` tmux alias),
+// so we do not want Zellij resurrecting stale pane/session state after a restart.
+session_serialization false
  
 // Whether pane viewports are serialized along with the session, default is false
 // Options:
