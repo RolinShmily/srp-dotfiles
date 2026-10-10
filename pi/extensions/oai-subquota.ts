@@ -392,7 +392,7 @@ export function formatStatusline(snapshot: CodexUsageSnapshot, now = new Date())
   if (secondary) {
     parts.push(`7d:${pct(secondary.leftPercent)}`);
     const r7d = formatDuration(resetSeconds(secondary, now));
-    if (r7d) parts.push(`↺${r7d}`);
+    if (r7d) parts.push(`↺ ${r7d}`);
   }
 
   return parts.length > 0 ? `sub(codex) ${parts.join(" ")}` : "sub(codex) unavailable";
