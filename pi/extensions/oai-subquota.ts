@@ -6,7 +6,7 @@
  *   banked rate-limit resets, and flexible credits).
  * - Renders a boxed quota summary in chat transcript on `/oai-subquota [codex]`.
  * - Displays a persistent, right-aligned single-line status in the footer:
- *     sub(codex) 5h:100% ↺3h40m 7d:71% ↺4d5h
+ *     sub(codex) 5h:100% 7d:71% ↺4d5h
  * - Provider-scoped: active exclusively when current model provider is "openai-codex".
  *   Automatically clears when switching away and restores upon switching back.
  * - Turn-based hot refresh: passively collects x-codex-* headers during agent loops
@@ -387,8 +387,6 @@ export function formatStatusline(snapshot: CodexUsageSnapshot, now = new Date())
 
   if (primary) {
     parts.push(`5h:${pct(primary.leftPercent)}`);
-    const r5h = formatDuration(resetSeconds(primary, now));
-    if (r5h) parts.push(`↺${r5h}`);
   }
 
   if (secondary) {
