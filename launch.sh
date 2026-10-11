@@ -671,6 +671,7 @@ fi
 # ------------------------------------------------------------------
 # 7. 交互式启动菜单 (无参数直接运行时)
 # ------------------------------------------------------------------
+while true; do
 echo -e "${CYAN}====================================================${RESET}"
 echo -e "${BOLD}$(i18n menu.title)${RESET}"
 echo -e "${CYAN}====================================================${RESET}"
@@ -686,6 +687,7 @@ echo -e "$(i18n menu.all)"
 echo -e "$(i18n menu.install)"
 echo -e "$(i18n menu.config)"
 echo -e "$(i18n menu.switch "$TARGET_OS")"
+echo -e "$(i18n menu.language "$I18N_LANG")"
 echo -e "$(i18n menu.exit)"
 echo -e "${CYAN}----------------------------------------------------${RESET}"
 read -rp "$(i18n menu.choice) " choice
@@ -697,10 +699,12 @@ case "$choice" in
         echo ""
         run_config
         print_summary_report
+        break
         ;;
     2)
         run_install
         print_summary_report
+        break
         ;;
     3)
         read -rp "$(i18n menu.force) " force_choice
@@ -709,6 +713,7 @@ case "$choice" in
         fi
         run_config
         print_summary_report
+        break
         ;;
     4)
         echo ""
@@ -730,6 +735,20 @@ case "$choice" in
         echo ""
         run_config
         print_summary_report
+        break
+        ;;
+    5)
+        echo "$(i18n menu.language_prompt)"
+        echo "$(i18n menu.english)"
+        echo "$(i18n menu.chinese)"
+        read -rp "$(i18n menu.language_choice) " language_choice
+        case "$language_choice" in
+            1) set_i18n_language en ;;
+            2) set_i18n_language zh ;;
+            *) log_error "$(i18n menu.invalid_choice "$language_choice")"; continue ;;
+        esac
+        log_info "$(i18n menu.language_changed "$I18N_LANG")"
+        continue
         ;;
     0)
         log_info "$(i18n menu.safe_exit)"
@@ -737,6 +756,7 @@ case "$choice" in
         ;;
     *)
         log_error "$(i18n menu.invalid_choice "$choice")"
-        exit 1
+        continue
         ;;
 esac
+done

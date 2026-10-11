@@ -629,50 +629,68 @@ if ($Action -ne '' -and $Action -ne 'launch') {
 # -------------------------------------------------------------------------
 # 7. 交互式启动菜单 (无参数直接运行时)
 # -------------------------------------------------------------------------
-Clear-Host
-Write-Host "====================================================" -ForegroundColor Cyan
-Write-Host (Get-I18n 'menu.title') -ForegroundColor Cyan
-Write-Host "====================================================" -ForegroundColor Cyan
-Write-Host (Get-I18n 'menu.os' @("$([Environment]::OSVersion.Version.Major) ($([Environment]::OSVersion.VersionString))")) -ForegroundColor Green
-Write-Host (Get-I18n 'menu.home' @($UserHome)) -ForegroundColor Yellow
-Write-Host " PowerShell: PS $($PSVersionTable.PSVersion.ToString())" -ForegroundColor Cyan
-Write-Host (Get-I18n 'menu.manifest' @($ManifestFile)) -ForegroundColor Magenta
-Write-Host "----------------------------------------------------" -ForegroundColor Cyan
-Write-Host (Get-I18n 'menu.choose')
-Write-Host (Get-I18n 'menu.all') -ForegroundColor Green
-Write-Host (Get-I18n 'menu.install')
-Write-Host (Get-I18n 'menu.config')
-Write-Host (Get-I18n 'menu.exit')
-Write-Host "----------------------------------------------------" -ForegroundColor Cyan
+while ($true) {
+    Clear-Host
+    Write-Host "====================================================" -ForegroundColor Cyan
+    Write-Host (Get-I18n 'menu.title') -ForegroundColor Cyan
+    Write-Host "====================================================" -ForegroundColor Cyan
+    Write-Host (Get-I18n 'menu.os' @("$([Environment]::OSVersion.Version.Major) ($([Environment]::OSVersion.VersionString))")) -ForegroundColor Green
+    Write-Host (Get-I18n 'menu.home' @($UserHome)) -ForegroundColor Yellow
+    Write-Host " PowerShell: PS $($PSVersionTable.PSVersion.ToString())" -ForegroundColor Cyan
+    Write-Host (Get-I18n 'menu.manifest' @($ManifestFile)) -ForegroundColor Magenta
+    Write-Host "----------------------------------------------------" -ForegroundColor Cyan
+    Write-Host (Get-I18n 'menu.choose')
+    Write-Host (Get-I18n 'menu.all') -ForegroundColor Green
+    Write-Host (Get-I18n 'menu.install')
+    Write-Host (Get-I18n 'menu.config')
+    Write-Host (Get-I18n 'menu.language' @($Global:DF_Lang))
+    Write-Host (Get-I18n 'menu.exit')
+    Write-Host "----------------------------------------------------" -ForegroundColor Cyan
 
-$choice = Read-Host (Get-I18n 'menu.choice')
-if ([string]::IsNullOrWhiteSpace($choice)) { $choice = "1" }
+    $choice = Read-Host (Get-I18n 'menu.choice')
+    if ([string]::IsNullOrWhiteSpace($choice)) { $choice = "1" }
 
-switch ($choice) {
-    "1" {
-        Run-Install
-        Write-Host ""
-        Run-Config -ForceDeploy:$Force
-        Show-Summary-Report
-    }
-    "2" {
-        Run-Install
-        Show-Summary-Report
-    }
-    "3" {
-        Run-Config -ForceDeploy:$Force
-        Show-Summary-Report
-    }
-    "0" {
-        Write-LogInfo (Get-I18n 'menu.safeExit')
-        exit 0
-    }
-    default {
-        Write-LogError (Get-I18n 'menu.invalid' @($choice))
-        exit 1
+    switch ($choice) {
+        "1" {
+            Run-Install
+            Write-Host ""
+            Run-Config -ForceDeploy:$Force
+            Show-Summary-Report
+            exit 0
+        }
+        "2" {
+            Run-Install
+            Show-Summary-Report
+            exit 0
+        }
+        "3" {
+            Run-Config -ForceDeploy:$Force
+            Show-Summary-Report
+            exit 0
+        }
+        "4" {
+            Write-Host (Get-I18n 'menu.languagePrompt')
+            Write-Host (Get-I18n 'menu.english')
+            Write-Host (Get-I18n 'menu.chinese')
+            $languageChoice = Read-Host (Get-I18n 'menu.languageChoice')
+            switch ($languageChoice) {
+                "1" { Set-I18nLanguage -Language 'en' }
+                "2" { Set-I18nLanguage -Language 'zh' }
+                default {
+                    Write-LogError (Get-I18n 'menu.invalid' @($languageChoice))
+                    continue
+                }
+            }
+            Write-LogInfo (Get-I18n 'menu.languageChanged' @($Global:DF_Lang))
+            continue
+        }
+        "0" {
+            Write-LogInfo (Get-I18n 'menu.safeExit')
+            exit 0
+        }
+        default {
+            Write-LogError (Get-I18n 'menu.invalid' @($choice))
+            continue
+        }
     }
 }
-
-Write-Host "`n====================================================" -ForegroundColor Cyan
-Write-LogSuccess (Get-I18n 'menu.done')
-Write-Host "====================================================" -ForegroundColor Cyan

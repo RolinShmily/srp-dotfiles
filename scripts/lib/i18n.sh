@@ -126,6 +126,12 @@ i18n() {
             menu.install) printf '  2) Install system dependencies only\n' ;;
             menu.config) printf '  3) Deploy configuration only\n' ;;
             menu.switch) printf '  4) Switch/select OS profile (current: %s)\n' "$@" ;;
+            menu.language) printf '  5) Change language / 切换语言 (current: %s)\n' "$@" ;;
+            menu.language_prompt) printf 'Language / 语言:\n' ;;
+            menu.english) printf '  1) English\n' ;;
+            menu.chinese) printf '  2) 中文\n' ;;
+            menu.language_choice) printf 'Choose [1/2]: ' ;;
+            menu.language_changed) printf 'Language / 语言: %s\n' "$@" ;;
             menu.exit) printf '  0) Exit\n' ;;
             menu.choice) printf 'Choose [1/2/3/4/0, default 1]: ' ;;
             menu.force) printf 'Enable force overwrite mode (-f)? [y/N]: ' ;;
@@ -247,6 +253,12 @@ i18n() {
             menu.install) printf '  2) 仅安装系统依赖 (Install Packages)\n' ;;
             menu.config) printf '  3) 仅部署配置文件 (Deploy Configs)\n' ;;
             menu.switch) printf '  4) 切换/指定操作系统 (当前: %s)\n' "$@" ;;
+            menu.language) printf '  5) 切换语言 / Change language (当前/current: %s)\n' "$@" ;;
+            menu.language_prompt) printf '语言 / Language:\n' ;;
+            menu.english) printf '  1) English\n' ;;
+            menu.chinese) printf '  2) 中文\n' ;;
+            menu.language_choice) printf '请选择 [1/2]: ' ;;
+            menu.language_changed) printf '语言 / Language: %s\n' "$@" ;;
             menu.exit) printf '  0) 退出\n' ;;
             menu.choice) printf '请输入选项 [1/2/3/4/0, 默认 1]: ' ;;
             menu.force) printf '是否开启强制覆盖模式 (-f)? [y/N]: ' ;;
