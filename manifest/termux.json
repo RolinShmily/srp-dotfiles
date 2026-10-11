@@ -43,7 +43,9 @@
     "@antfu/ni",
     "live-server"
   ],
-  "skillsAdd": [],
+  "skillsAdd": [
+    "QingYunA/answer-me-with-html"
+  ],
   "configs": [
     {
       "name": "zshrc",
