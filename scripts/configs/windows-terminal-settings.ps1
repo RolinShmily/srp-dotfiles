@@ -14,6 +14,11 @@ param (
 
 $ErrorActionPreference = "Stop"
 
+if (-not (Get-Command Get-I18n -ErrorAction SilentlyContinue)) {
+    . (Join-Path $PSScriptRoot "..\lib\i18n.ps1")
+    Set-I18nLanguage -Language (if ($env:DF_LANG) { $env:DF_LANG } else { 'en' })
+}
+
 if (-not (Get-Command Write-LogInfo -ErrorAction SilentlyContinue)) {
     function Write-LogInfo    { param([string]$Msg) Write-Host "[INFO] $Msg" }
     function Write-LogSuccess { param([string]$Msg) Write-Host "[OK]   $Msg" }
@@ -23,7 +28,7 @@ $source = Join-Path $DotfilesDir "windows-terminal\settings.json.example"
 $target = Join-Path $env:LOCALAPPDATA "Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json"
 
 if (-not (Test-Path -LiteralPath $source)) {
-    throw "Windows Terminal 模板不存在: $source"
+    throw (Get-I18n 'wt.templateMissing' @($source))
 }
 
 # 去掉 JSONC 注释，但保留字符串内容（例如 URL 中的 //）。
@@ -182,7 +187,7 @@ function Merge-JsonObject {
 
 $sourceConfig = ConvertFrom-Jsonc -Text ([System.IO.File]::ReadAllText($source, [System.Text.Encoding]::UTF8))
 if ($sourceConfig -isnot [System.Collections.IDictionary]) {
-    throw "Windows Terminal 模板根节点必须是 JSON 对象: $source"
+    throw (Get-I18n 'wt.sourceRoot' @($source))
 }
 
 $targetParent = Split-Path -Parent $target
@@ -192,13 +197,13 @@ if (-not (Test-Path -LiteralPath $targetParent)) {
 
 if (-not (Test-Path -LiteralPath $target)) {
     Copy-Item -LiteralPath $source -Destination $target -Force
-    Write-LogSuccess "[windows-terminal-settings] 目标不存在，已使用模板创建: $target"
+    Write-LogSuccess (Get-I18n 'wt.created' @($target))
     return
 }
 
 $targetConfig = ConvertFrom-Jsonc -Text ([System.IO.File]::ReadAllText($target, [System.Text.Encoding]::UTF8))
 if ($targetConfig -isnot [System.Collections.IDictionary]) {
-    throw "Windows Terminal 正式配置根节点必须是 JSON 对象: $target"
+    throw (Get-I18n 'wt.targetRoot' @($target))
 }
 
 Merge-JsonObject -Target $targetConfig -Source $sourceConfig
@@ -215,4 +220,4 @@ try {
     }
 }
 
-Write-LogSuccess "[windows-terminal-settings] 已局部覆盖，保留 defaultProfile / profiles.list: $target"
+Write-LogSuccess (Get-I18n 'wt.done' @($target))

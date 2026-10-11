@@ -8,6 +8,11 @@
 #   $Global:DF_Force         是否强制覆盖 (bool)
 # 并定义 Write-LogInfo / Write-LogWarn / Write-LogSuccess / Write-LogError
 
+if (-not (Get-Command Get-I18n -ErrorAction SilentlyContinue)) {
+    . (Join-Path $PSScriptRoot "i18n.ps1")
+    Set-I18nLanguage -Language (if ($env:DF_LANG) { $env:DF_LANG } else { 'en' })
+}
+
 function Get-DeployUserHome {
     if ($env:USERPROFILE) { return $env:USERPROFILE }
     return $HOME
@@ -86,7 +91,7 @@ function Remove-OrArchiveTarget {
     param([string]$Target, [string]$BackupDir)
 
     if ($Global:DF_Force) {
-        Write-LogWarn "[强制模式] 删除现有目标: $Target"
+        Write-LogWarn (Get-I18n 'deploy.forceDelete' @($Target))
         Remove-TargetEntry -Target $Target
         return
     }
@@ -98,10 +103,10 @@ function Remove-OrArchiveTarget {
         $backupPath = Join-Path $BackupDir (Split-Path -Leaf $Target)
         try {
             Move-Item -LiteralPath $Target -Destination $backupPath -Force -ErrorAction Stop
-            Write-LogWarn "已归档现有目标: $Target -> $backupPath"
+            Write-LogWarn (Get-I18n 'deploy.backup' @($Target, $backupPath))
             return
         } catch {
-            Write-LogWarn "归档失败，直接删除: $Target"
+            Write-LogWarn (Get-I18n 'deploy.archiveFailed' @($Target))
         }
     }
     Remove-TargetEntry -Target $Target
@@ -119,7 +124,7 @@ function Deploy-LinkItem {
     )
 
     if (-not (Test-Path -LiteralPath $Source)) {
-        Write-LogError "[$Name] 源不存在: $Source"
+        Write-LogError (Get-I18n 'deploy.sourceMissing' @($Name, $Source))
         return $false
     }
 
@@ -146,7 +151,7 @@ function Deploy-LinkItem {
         $item = Get-Item -LiteralPath $Target -Force
         if ($item.LinkType -in @('SymbolicLink', 'Junction') -and
             ($item.Target -eq $Source -or $item.Target -contains $Source)) {
-            Write-LogInfo "[$Name] 链接已正确指向: $Target"
+            Write-LogInfo (Get-I18n 'deploy.linkCorrect' @($Name, $Target))
             return $true
         }
         Remove-OrArchiveTarget -Target $Target -BackupDir $BackupDir
@@ -155,7 +160,7 @@ function Deploy-LinkItem {
     # 1. 符号链接
     try {
         New-Item -ItemType SymbolicLink -Path $Target -Target $Source -Force -ErrorAction Stop | Out-Null
-        Write-LogSuccess "[$Name] 已链接: $Target"
+        Write-LogSuccess (Get-I18n 'deploy.linked' @($Name, $Target))
         return $true
     } catch { }
 
@@ -166,18 +171,18 @@ function Deploy-LinkItem {
         } else {
             New-Item -ItemType HardLink -Path $Target -Target $Source -Force -ErrorAction Stop | Out-Null
         }
-        Write-LogSuccess "[$Name] 已链接(免特权): $Target"
+        Write-LogSuccess (Get-I18n 'deploy.linkedFallback' @($Name, $Target))
         return $true
     } catch { }
 
     # 3. 最终降级: 复制
-    Write-LogWarn "[$Name] 无法创建链接，降级为复制: $Target"
+    Write-LogWarn (Get-I18n 'deploy.linkCopyFallback' @($Name, $Target))
     if ($isDir) {
         Copy-Item -LiteralPath $Source -Destination $Target -Recurse -Force
     } else {
         Copy-Item -LiteralPath $Source -Destination $Target -Force
     }
-    Write-LogSuccess "[$Name] 已复制: $Target"
+    Write-LogSuccess (Get-I18n 'deploy.copied' @($Name, $Target))
     return $true
 }
 
@@ -196,12 +201,12 @@ function Deploy-CopyItem {
     )
 
     if (-not (Test-Path -LiteralPath $Source)) {
-        Write-LogError "[$Name] 源不存在: $Source"
+        Write-LogError (Get-I18n 'deploy.sourceMissing' @($Name, $Source))
         return $false
     }
 
     if ($IfMissing -and (Test-Path -LiteralPath $Target) -and -not $Global:DF_Force) {
-        Write-LogInfo "[$Name] 目标已存在，按 ifMissing 保留不动: $Target"
+        Write-LogInfo (Get-I18n 'deploy.ifMissing' @($Name, $Target))
         return $true
     }
 
@@ -218,13 +223,13 @@ function Deploy-CopyItem {
         New-Item -ItemType Directory -Path $Target -Force | Out-Null
         foreach ($child in Get-ChildItem -LiteralPath $Source) {
             if ($Exclude -contains $child.Name) {
-                Write-LogInfo "[$Name] 按 exclude 跳过: $($child.Name)"
+                Write-LogInfo (Get-I18n 'deploy.exclude' @($Name, $child.Name))
                 continue
             }
             Deploy-CopyItem -Source $child.FullName -Target (Join-Path $Target $child.Name) `
                             -Name "$Name [$($child.Name)]" -BackupDir $BackupDir | Out-Null
         }
-        Write-LogSuccess "[$Name] 已覆盖复制(排除: $($Exclude -join ', ')): $Target"
+        Write-LogSuccess (Get-I18n 'deploy.overwriteExclude' @($Name, ($Exclude -join ', '), $Target))
         return $true
     }
 
@@ -240,7 +245,7 @@ function Deploy-CopyItem {
     # (Scoop persist 用硬链接实现，删后重建会打断链接导致应用读到旧文件)
     if (-not $isDir -and $existing -and -not $existing.PSIsContainer) {
         [System.IO.File]::WriteAllBytes($Target, [System.IO.File]::ReadAllBytes($Source))
-        Write-LogSuccess "[$Name] 已原地覆盖: $Target"
+        Write-LogSuccess (Get-I18n 'deploy.overwriteInPlace' @($Name, $Target))
         return $true
     }
 
@@ -249,7 +254,7 @@ function Deploy-CopyItem {
     }
 
     Copy-Item -LiteralPath $Source -Destination $Target -Recurse -Force
-    Write-LogSuccess "[$Name] 已覆盖复制: $Target"
+    Write-LogSuccess (Get-I18n 'deploy.overwrite' @($Name, $Target))
     return $true
 }
 
@@ -260,11 +265,11 @@ function Get-ExampleTarget {
 
     $existing = Get-Item -LiteralPath $Target -Force -ErrorAction SilentlyContinue
     if ($existing) {
-        Write-LogInfo "目标已存在，保留原文件并将模板复制为: $Target.example"
+        Write-LogInfo (Get-I18n 'deploy.exampleExisting' @($Target))
         return "$Target.example"
     }
 
-    Write-LogInfo "目标不存在，使用模板创建: $Target"
+    Write-LogInfo (Get-I18n 'deploy.exampleMissing' @($Target))
     return $Target
 }
 

@@ -130,6 +130,10 @@ cd ~/.dotfiles
 # 强制覆盖模式 (跳过旧配置冲突询问)
 ./launch.sh config -f
 
+# 界面默认英文；使用 zh 切换为中文
+./launch.sh --lang zh
+./launch.sh all debian-vps --lang en
+
 # 显式指定操作系统/profile
 ./launch.sh install arch
 ./launch.sh all debian-homeserver  # 完整 HomeServer 配置，含 Pi Web
@@ -165,6 +169,10 @@ cd ~/.dotfiles
 
 # 强制覆盖模式
 .\start.ps1 config -Force
+
+# 界面默认英文；使用 zh 切换为中文
+.\start.ps1 help -Lang en
+.\start.ps1 all -Lang zh
 ```
 
 ---

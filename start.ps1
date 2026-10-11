@@ -41,7 +41,10 @@ param (
     [string]$Action = '',
 
     [Alias('f')]
-    [switch]$Force
+    [switch]$Force,
+
+    [ValidateSet('en', 'zh', 'cn', '')]
+    [string]$Lang = ''
 )
 
 # 确保控制台输出使用 UTF-8 编码
@@ -64,6 +67,12 @@ $OutputEncoding = [System.Text.Encoding]::UTF8
 $DotfilesDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $ManifestFile = Join-Path $DotfilesDir "manifest.json"
 $UserHome = $env:USERPROFILE
+
+. (Join-Path $DotfilesDir "scripts\lib\i18n.ps1")
+if ([string]::IsNullOrWhiteSpace($Lang)) {
+    $Lang = if ($env:DF_LANG) { $env:DF_LANG } else { 'en' }
+}
+Set-I18nLanguage -Language $Lang
 
 # 日志输出助手 (格式对标 Unix bash)
 function Write-LogInfo { param([string]$Msg) Write-Host "[INFO] " -ForegroundColor Blue -NoNewline; Write-Host $Msg }
@@ -94,9 +103,9 @@ try {
             # 1.2 秒内连按两次：彻底终止整个流程
             $eventArgs.Cancel = $false
             Write-Host "`n"
-            Write-LogError "连续检测到 Ctrl+C，已彻底终止安装部署流程！"
+            Write-LogError (Get-I18n 'abort.doubleCtrlC')
             if ($script:CurrentStepName) {
-                $script:ReportFailed.Add("$($script:CurrentStepName) (用户连续 Ctrl+C 终止)")
+                $script:ReportFailed.Add("$($script:CurrentStepName) (double Ctrl+C)")
             }
             Show-Summary-Report
             [System.Environment]::Exit(130)
@@ -106,7 +115,7 @@ try {
             $script:LastCtrlCTime = $now
             $script:StepInterrupted = $true
             Write-Host "`n"
-            Write-LogWarn "已手动中断当前步骤: [$($script:CurrentStepName)] (1秒内再次按下 Ctrl+C 将彻底退出脚本)"
+            Write-LogWarn (Get-I18n 'interrupt.skip' @($script:CurrentStepName))
         }
     }
 } catch {
@@ -123,7 +132,7 @@ function Invoke-Step {
     $script:StepInterrupted = $false
 
     while ($true) {
-        Write-LogInfo "正在执行: $Name ..."
+        Write-LogInfo (Get-I18n 'step.running' @($Name))
         $stepFailed = $false
         $errorDetails = ""
 
@@ -131,10 +140,10 @@ function Invoke-Step {
             $global:LASTEXITCODE = 0
             & $ScriptBlock
 
-            # 检查是否有单次 Ctrl+C 打断
+            # Check whether the current step was interrupted once.
             if ($script:StepInterrupted) {
                 $script:StepInterrupted = $false
-                $script:ReportSkipped.Add("$Name (手动中断跳过)")
+                $script:ReportSkipped.Add("$Name (interrupted)")
                 $script:CurrentStepName = ""
                 return $false
             }
@@ -143,17 +152,17 @@ function Invoke-Step {
             if ($null -ne $global:LASTEXITCODE -and $global:LASTEXITCODE -ne 0 -and $global:LASTEXITCODE -ne -1978335189) {
                 # 注意: -1978335189 为 winget 提示软件包已安装且已是最新版的正常返回码
                 $stepFailed = $true
-                $errorDetails = "命令返回非零退出码: $global:LASTEXITCODE"
+                $errorDetails = Get-I18n 'step.exitCode' @($global:LASTEXITCODE)
             }
         } catch [System.Management.Automation.PipelineStoppedException] {
             $script:StepInterrupted = $false
-            $script:ReportSkipped.Add("$Name (手动中断跳过)")
+            $script:ReportSkipped.Add("$Name (interrupted)")
             $script:CurrentStepName = ""
             return $false
         } catch {
             if ($script:StepInterrupted) {
                 $script:StepInterrupted = $false
-                $script:ReportSkipped.Add("$Name (手动中断跳过)")
+                $script:ReportSkipped.Add("$Name (interrupted)")
                 $script:CurrentStepName = ""
                 return $false
             }
@@ -168,40 +177,40 @@ function Invoke-Step {
         }
 
         # 报错拦截处理
-        Write-LogError "步骤 [$Name] 执行失败！($errorDetails)"
+        Write-LogError (Get-I18n 'step.failed' @($Name, $errorDetails))
 
         Write-Host "----------------------------------------------------" -ForegroundColor Yellow
-        Write-Host " 遇到执行异常，请选择后续处理方式："
-        Write-Host "   [S] 跳过此步并继续 (Skip) " -NoNewline; Write-Host "[推荐/默认]" -ForegroundColor Green
-        Write-Host "   [R] 重试此步骤 (Retry)"
-        Write-Host "   [A] 终止并退出 (Abort)"
+        Write-Host (Get-I18n 'prompt.failure')
+        Write-Host (Get-I18n 'prompt.skip') -ForegroundColor Green
+        Write-Host (Get-I18n 'prompt.retry')
+        Write-Host (Get-I18n 'prompt.abort')
         Write-Host "----------------------------------------------------" -ForegroundColor Yellow
 
-        $choice = Read-Host " 请选择 [s/r/a, 默认 s]"
+        $choice = Read-Host (Get-I18n 'prompt.choice')
         if ([string]::IsNullOrWhiteSpace($choice)) { $choice = "s" }
 
         switch ($choice.ToLower().Trim()) {
             "s" {
-                Write-LogWarn "已手动跳过步骤: $Name"
-                $script:ReportSkipped.Add("$Name (手动跳过: $errorDetails)")
+                Write-LogWarn (Get-I18n 'step.manualSkip' @($Name))
+                $script:ReportSkipped.Add("$Name (manual skip: $errorDetails)")
                 $script:CurrentStepName = ""
                 return $false
             }
             "r" {
-                Write-LogInfo "正在重试步骤: $Name ..."
+                Write-LogInfo (Get-I18n 'step.retrying' @($Name))
                 $script:StepInterrupted = $false
                 continue
             }
             "a" {
-                Write-LogError "用户主动终止安装部署流程。"
-                $script:ReportFailed.Add("$Name (用户中止: $errorDetails)")
+                Write-LogError (Get-I18n 'step.userAbort')
+                $script:ReportFailed.Add("$Name (user abort: $errorDetails)")
                 $script:CurrentStepName = ""
                 Show-Summary-Report
                 exit 1
             }
             default {
-                Write-LogWarn "输入无法识别，默认跳过此步骤。"
-                $script:ReportSkipped.Add("$Name (手动跳过: $errorDetails)")
+                Write-LogWarn (Get-I18n 'step.invalidDefaultSkip')
+                $script:ReportSkipped.Add("$Name (default skip: $errorDetails)")
                 $script:CurrentStepName = ""
                 return $false
             }
@@ -211,31 +220,31 @@ function Invoke-Step {
 
 function Show-Summary-Report {
     Write-Host "`n================================================================" -ForegroundColor Cyan
-    Write-Host "                SrP-Dotfiles 安装与部署审计报告                " -ForegroundColor Cyan
+    Write-Host (Get-I18n 'report.title') -ForegroundColor Cyan
     Write-Host "================================================================" -ForegroundColor Cyan
 
     $totalSuccess = $script:ReportSuccess.Count
     $totalSkipped = $script:ReportSkipped.Count
     $totalFailed  = $script:ReportFailed.Count
 
-    Write-Host " 🎯 目标操作系统: Windows $([Environment]::OSVersion.Version.Major) ($([Environment]::OSVersion.VersionString))" -ForegroundColor Green
-    Write-Host " 👤 当前用户目录: $UserHome" -ForegroundColor Yellow
-    Write-Host " ⏱️ 报告生成时间: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')" -ForegroundColor Cyan
+    Write-Host (Get-I18n 'report.os' @("$([Environment]::OSVersion.Version.Major) ($([Environment]::OSVersion.VersionString))")) -ForegroundColor Green
+    Write-Host (Get-I18n 'report.userHome' @($UserHome)) -ForegroundColor Yellow
+    Write-Host (Get-I18n 'report.time' @((Get-Date -Format 'yyyy-MM-dd HH:mm:ss'))) -ForegroundColor Cyan
     Write-Host "----------------------------------------------------------------" -ForegroundColor Cyan
 
     # 1. 成功项
     if ($totalSuccess -gt 0) {
-        Write-Host "✔ 成功完成 ($totalSuccess 项):" -ForegroundColor Green
+        Write-Host (Get-I18n 'report.success' @($totalSuccess)) -ForegroundColor Green
         foreach ($item in $script:ReportSuccess) {
             Write-Host "  [OK] $item" -ForegroundColor Green
         }
     } else {
-        Write-Host "ℹ 没有成功完成的项目。" -ForegroundColor Yellow
+        Write-Host (Get-I18n 'report.none') -ForegroundColor Yellow
     }
 
     # 2. 跳过项
     if ($totalSkipped -gt 0) {
-        Write-Host "`n⚠ 跳过/忽略项目 ($totalSkipped 项):" -ForegroundColor Yellow
+        Write-Host "`n$(Get-I18n 'report.skipped' @($totalSkipped))" -ForegroundColor Yellow
         foreach ($item in $script:ReportSkipped) {
             Write-Host "  [SKIP] $item" -ForegroundColor Yellow
         }
@@ -243,7 +252,7 @@ function Show-Summary-Report {
 
     # 3. 失败项
     if ($totalFailed -gt 0) {
-        Write-Host "`n✖ 失败/中止项目 ($totalFailed 项):" -ForegroundColor Red
+        Write-Host "`n$(Get-I18n 'report.failed' @($totalFailed))" -ForegroundColor Red
         foreach ($item in $script:ReportFailed) {
             Write-Host "  [FAIL] $item" -ForegroundColor Red
         }
@@ -251,11 +260,11 @@ function Show-Summary-Report {
 
     Write-Host "----------------------------------------------------------------" -ForegroundColor Cyan
     if ($totalSkipped -gt 0 -or $totalFailed -gt 0) {
-        Write-Host " 💡 提示: 针对跳过或未完成的项目，您可以在排查网络/依赖后单独重试：" -ForegroundColor Yellow
-        Write-Host "    - 仅重新安装依赖: .\start.ps1 install" -ForegroundColor Cyan
-        Write-Host "    - 仅重新部署配置: .\start.ps1 config" -ForegroundColor Cyan
+        Write-Host (Get-I18n 'report.hint') -ForegroundColor Yellow
+        Write-Host (Get-I18n 'report.install') -ForegroundColor Cyan
+        Write-Host (Get-I18n 'report.config') -ForegroundColor Cyan
     } else {
-        Write-Host " 🎉 恭喜！所有安装与部署项目均完美就绪！" -ForegroundColor Green
+        Write-Host (Get-I18n 'report.complete') -ForegroundColor Green
     }
     Write-Host "================================================================" -ForegroundColor Cyan
 }
@@ -284,27 +293,27 @@ $Global:MANIFEST_OS = $ManifestOs
 # -------------------------------------------------------------------------
 
 function Set-Pwsh-ExecutionPolicy {
-    Invoke-Step -Name "配置 PowerShell 远程签名执行策略 (RemoteSigned)" -ScriptBlock {
+    Invoke-Step -Name (Get-I18n 'install.policy') -ScriptBlock {
         Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force -ErrorAction Stop
-        Write-LogSuccess "PowerShell 执行策略已设置为 RemoteSigned。"
+        Write-LogSuccess (Get-I18n 'install.policyDone')
     }
 }
 
 function Install-Winget-Packages {
-    Write-Host "`n--- [阶段 1/4] 安装核心系统与终端套件 (Winget) ---" -ForegroundColor Cyan
+    Write-Host (Get-I18n 'install.wingetStage') -ForegroundColor Cyan
     if (-not (Get-Command "winget" -ErrorAction SilentlyContinue)) {
-        Write-LogError "未检测到 winget 命令，请确保系统已安装应用安装程序 (App Installer)。"
+        Write-LogError (Get-I18n 'install.wingetMissing')
         return
     }
 
     $packages = Get-ManifestArray -Os "windows" -Key "wingetPackages"
     if ($packages.Count -eq 0) {
-        Write-LogWarn "manifest.json 中未定义 winget_packages，跳过本阶段。"
+        Write-LogWarn (Get-I18n 'install.manifestMissing')
         return
     }
 
     foreach ($pkgId in $packages) {
-        Invoke-Step -Name "Winget 软件包 [$pkgId]" -ScriptBlock {
+        Invoke-Step -Name (Get-I18n 'install.wingetPackage' @($pkgId)) -ScriptBlock {
             $installArgs = @("install", "--id", $pkgId, "--source", "winget", "--accept-source-agreements", "--accept-package-agreements")
             if ($pkgId -eq "Git.Git") { $installArgs += "-e" }
             & winget @installArgs
@@ -313,16 +322,16 @@ function Install-Winget-Packages {
 }
 
 function Install-And-Configure-Scoop {
-    Write-Host "`n--- [阶段 2/4] 配置 Scoop 环境与镜像源加速 ---" -ForegroundColor Cyan
+    Write-Host (Get-I18n 'install.scoopStage') -ForegroundColor Cyan
 
     # 1. 检测并安装 Scoop
-    Invoke-Step -Name "Scoop 包管理器安装与环境就绪" -ScriptBlock {
+    Invoke-Step -Name (Get-I18n 'install.scoopSetup') -ScriptBlock {
         if (-not (Get-Command "scoop" -ErrorAction SilentlyContinue)) {
             Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
         }
         $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "User") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "Machine")
         if (-not (Get-Command "scoop" -ErrorAction SilentlyContinue)) {
-            throw "Scoop 命令未能加入当前环境 PATH"
+            throw (Get-I18n 'install.scoopPathError')
         }
     }
 
@@ -335,7 +344,7 @@ function Install-And-Configure-Scoop {
             $bName = $matches[1].Trim()
             $bUrl = $matches[2].Trim()
 
-            Invoke-Step -Name "Scoop 镜像源 Bucket [$bName]" -ScriptBlock {
+            Invoke-Step -Name (Get-I18n 'install.scoopBucket' @($bName)) -ScriptBlock {
                 if ($bName -eq "main") {
                     if ($installedBuckets -match "\bmain\b") {
                         scoop bucket rm main | Out-Null
@@ -353,7 +362,7 @@ function Install-And-Configure-Scoop {
     # 3. 如果包含 aria2，则配置多线程下载优化 (包管理器基础能力加速与防错加固)
     $scoopPkgs = Get-ManifestArray -Os "windows" -Key "scoopPackages"
     if ($scoopPkgs -contains "aria2") {
-        Invoke-Step -Name "Aria2 多线程下载优化配置" -ScriptBlock {
+        Invoke-Step -Name (Get-I18n 'install.aria2') -ScriptBlock {
             scoop install aria2
             # 即时将 Scoop shims 加入当前进程 PATH，杜绝找不到 aria2c 的情况
             $shimsPath = Join-Path $UserHome "scoop\shims"
@@ -372,56 +381,56 @@ function Install-And-Configure-Scoop {
 }
 
 function Install-Scoop-Packages {
-    Write-Host "`n--- [阶段 3/4] 安装 Scoop 扩展软件包与字体 ---" -ForegroundColor Cyan
+    Write-Host (Get-I18n 'install.scoopStage3') -ForegroundColor Cyan
 
     $packages = Get-ManifestArray -Os "windows" -Key "scoopPackages"
     foreach ($pkg in $packages) {
         if ($pkg -eq "aria2") { continue }
-        Invoke-Step -Name "Scoop 扩展软件/字体 [$pkg]" -ScriptBlock {
+        Invoke-Step -Name (Get-I18n 'install.scoopPackage' @($pkg)) -ScriptBlock {
             scoop install $pkg
         }
     }
 }
 
 function Install-Python-Runtime {
-    Write-Host "`n--- [阶段 4/5] 安装现代 Python 环境与管理器 ---" -ForegroundColor Cyan
+    Write-Host (Get-I18n 'install.pythonStage') -ForegroundColor Cyan
 
     $pyManager = Get-ManifestValue -Os "windows" -Key "pythonManager"
     if ($pyManager -eq "uv") {
-        Invoke-Step -Name "Astral uv 现代 Python 包管理器" -ScriptBlock {
+        Invoke-Step -Name (Get-I18n 'install.pythonManager') -ScriptBlock {
             if (-not (Get-Command "uv" -ErrorAction SilentlyContinue)) {
                 irm https://astral.sh/uv/install.ps1 | iex
             }
             $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "User") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "Machine")
             if (-not (Get-Command "uv" -ErrorAction SilentlyContinue)) {
-                throw "uv 命令未找到"
+                throw (Get-I18n 'install.pythonMissing')
             }
         }
 
-        Invoke-Step -Name "官方最新 Python 运行时 (通过 uv)" -ScriptBlock {
+        Invoke-Step -Name (Get-I18n 'install.pythonRuntime') -ScriptBlock {
             uv python install
         }
     }
 }
 
 function Install-Npm-Globals {
-    Write-Host "`n--- [阶段 5/5] 安装全局 npm 开发套件 ---" -ForegroundColor Cyan
+    Write-Host (Get-I18n 'install.npmStage') -ForegroundColor Cyan
 
     # 刷新 PATH 环境变量以确保能识别刚通过 Scoop 安装的 nodejs/npm
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "User") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "Machine")
     if (-not (Get-Command "npm" -ErrorAction SilentlyContinue)) {
-        Write-LogWarn "未检测到 npm 命令，跳过全局 npm 软件包安装阶段。"
+        Write-LogWarn (Get-I18n 'install.npmMissing')
         return
     }
 
     $npmPackages = Get-ManifestArray -Os "windows" -Key "npmGlobals"
     if ($npmPackages.Count -eq 0) {
-        Write-LogInfo "manifest.json 中未定义 windows.npm_globals，跳过本阶段。"
+        Write-LogInfo (Get-I18n 'install.npmManifestMissing')
         return
     }
 
     foreach ($pkg in $npmPackages) {
-        Invoke-Step -Name "全局 npm 软件包 [$pkg]" -ScriptBlock {
+        Invoke-Step -Name (Get-I18n 'install.npmPackage' @($pkg)) -ScriptBlock {
             npm install -g --ignore-scripts $pkg
         }
     }
@@ -429,7 +438,7 @@ function Install-Npm-Globals {
 
 function Run-Install {
     Write-Host "==========================================================" -ForegroundColor Cyan
-    Write-Host "       执行 Windows 依赖软件包全量安装 (manifest.json)       " -ForegroundColor Cyan
+    Write-Host (Get-I18n 'install.title') -ForegroundColor Cyan
     Write-Host "==========================================================" -ForegroundColor Cyan
 
     Set-Pwsh-ExecutionPolicy
@@ -440,24 +449,24 @@ function Run-Install {
     Install-Npm-Globals
 
     Write-Host ""
-    Write-LogSuccess "Windows 软件包安装流水线全部完成！(未更改任何配置文件)"
+    Write-LogSuccess (Get-I18n 'install.done')
 }
 
 function Configure-User-Environment {
-    Invoke-Step -Name "配置 Windows 用户级 SHELL 环境变量 (pwsh.exe)" -ScriptBlock {
+    Invoke-Step -Name (Get-I18n 'config.shell') -ScriptBlock {
         # 设置当前用户环境变量 SHELL 为 pwsh.exe (确保 Zellij 等多端复用器自动派生 PowerShell 7)
         [Environment]::SetEnvironmentVariable("SHELL", "pwsh.exe", "User")
         $env:SHELL = "pwsh.exe"
         $env:ZELLIJ_SHELL = "pwsh.exe"
-        Write-LogSuccess "SHELL 环境变量已成功指向 pwsh.exe。"
+        Write-LogSuccess (Get-I18n 'config.shellDone')
     }
 
-    Invoke-Step -Name "配置 Git 跨平台换行符规范 (core.autocrlf = input)" -ScriptBlock {
+    Invoke-Step -Name (Get-I18n 'config.git') -ScriptBlock {
         if (Get-Command "git" -ErrorAction SilentlyContinue) {
             & git config --global core.autocrlf input
-            Write-LogSuccess "Git 全局换行符策略已规范为 input (提交转 LF，检出不转 CRLF)。"
+            Write-LogSuccess (Get-I18n 'config.gitDone')
         } else {
-            Write-LogWarn "未检测到 git 命令，跳过 Git 换行符配置。"
+            Write-LogWarn (Get-I18n 'config.gitMissing')
         }
     }
 }
@@ -477,7 +486,7 @@ function Invoke-ConfigEntry {
     $method = [string]$Entry.method
 
     if ([string]::IsNullOrWhiteSpace($name) -or [string]::IsNullOrWhiteSpace($method)) {
-        Write-LogWarn "跳过无效 config 条目（缺少 name/method）"
+        Write-LogWarn (Get-I18n 'config.invalidEntry')
         return
     }
 
@@ -485,7 +494,7 @@ function Invoke-ConfigEntry {
     if ($Entry.when) {
         $whenPath = Expand-PathToken ([string]$Entry.when)
         if (-not (Test-Path -LiteralPath $whenPath)) {
-            Write-LogInfo "[$name] 条件未满足，跳过 ($($Entry.when))"
+            Write-LogInfo (Get-I18n 'config.condition' @($name, $Entry.when))
             return
         }
     }
@@ -494,24 +503,24 @@ function Invoke-ConfigEntry {
     if ($method -eq "custom") {
         $customScript = Get-CustomScriptPath $name
         if (-not (Test-Path -LiteralPath $customScript)) {
-            Write-LogError "[$name] 找不到自定义部署脚本: $customScript"
+            Write-LogError (Get-I18n 'config.customMissing' @($name, $customScript))
             return
         }
-        Invoke-Step -Name "[$name] 自定义部署" -ScriptBlock {
+        Invoke-Step -Name (Get-I18n 'config.custom' @($name)) -ScriptBlock {
             & $customScript -DotfilesDir $Global:DF_DotfilesDir -BackupDir $BackupDir -ManifestOs $ManifestOs -Force:([bool]$Global:DF_Force)
         }
         return
     }
 
     if ($method -notin @("link", "copy")) {
-        Write-LogWarn "[$name] 未知 method: $method（应为 link | copy | custom）"
+        Write-LogWarn (Get-I18n 'config.methodUnknown' @($name, $method))
         return
     }
 
     # ---- link / copy: 读 source + targets ----
     $source = Get-ConfigSourcePath ([string]$Entry.source)
     if (-not (Test-Path -LiteralPath $source)) {
-        Write-LogWarn "[$name] 仓库内源不存在，跳过: $($Entry.source)"
+        Write-LogWarn (Get-I18n 'config.sourceMissing' @($name, $Entry.source))
         return
     }
 
@@ -519,7 +528,7 @@ function Invoke-ConfigEntry {
     if ($Entry.targets) { $targets = @($Entry.targets) }
     elseif ($Entry.target) { $targets = @($Entry.target) }
     if ($targets.Count -eq 0) {
-        Write-LogWarn "[$name] 未声明 target/targets，跳过"
+        Write-LogWarn (Get-I18n 'config.targetMissing' @($name))
         return
     }
 
@@ -530,15 +539,15 @@ function Invoke-ConfigEntry {
     foreach ($t in $targets) {
         $dest = Expand-PathToken ([string]$t)
         if ($method -eq "link") {
-            Invoke-Step -Name "[$name] 链接 -> $t" -ScriptBlock {
+            Invoke-Step -Name (Get-I18n 'config.link' @($name, $t)) -ScriptBlock {
                 Deploy-LinkItem -Source $source -Target $dest -Name $name -BackupDir $BackupDir -Exclude $exclude | Out-Null
             }
         } elseif ([string]$Entry.source -like "*.example") {
-            Invoke-Step -Name "[$name] 复制示例配置 -> $t" -ScriptBlock {
+            Invoke-Step -Name (Get-I18n 'config.copyExample' @($name, $t)) -ScriptBlock {
                 Deploy-CopyExampleItem -Source $source -Target $dest -Name $name -BackupDir $BackupDir -IfMissing:$ifMissing | Out-Null
             }
         } else {
-            Invoke-Step -Name "[$name] 复制 -> $t" -ScriptBlock {
+            Invoke-Step -Name (Get-I18n 'config.copy' @($name, $t)) -ScriptBlock {
                 Deploy-CopyItem -Source $source -Target $dest -Name $name -BackupDir $BackupDir -Exclude $exclude -IfMissing:$ifMissing | Out-Null
             }
         }
@@ -551,7 +560,7 @@ function Run-Config {
     )
 
     Write-Host "==========================================================" -ForegroundColor Cyan
-    Write-Host "          正在部署 Dotfiles 配置 (manifest.json)            " -ForegroundColor Cyan
+    Write-Host (Get-I18n 'config.title') -ForegroundColor Cyan
     Write-Host "==========================================================" -ForegroundColor Cyan
 
     $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
@@ -561,12 +570,12 @@ function Run-Config {
     $Global:DF_BackupDir   = $backupDir
     $Global:DF_Force       = [bool]$ForceDeploy
 
-    Write-LogInfo "声明清单: $ManifestFile"
-    if ($ForceDeploy) { Write-LogInfo "已开启强制覆盖模式 (-f / -Force)。" }
+    Write-LogInfo (Get-I18n 'config.manifest' @($ManifestFile))
+    if ($ForceDeploy) { Write-LogInfo (Get-I18n 'config.force') }
 
     $configs = @(Get-ManifestArray -Os $ManifestOs -Key "configs")
     if ($configs.Count -eq 0) {
-        Write-LogWarn "manifest.json 中未定义 windows.configs 部署项。"
+        Write-LogWarn (Get-I18n 'config.none')
         return
     }
 
@@ -579,8 +588,8 @@ function Run-Config {
     }
 
     Write-Host ""
-    Write-LogSuccess "所有在 manifest.json 中声明的配置项均已完成部署！"
-    Write-Host " 💡 提示: 在仓库中修改文件即可直接对 Windows 系统产生实时作用。"
+    Write-LogSuccess (Get-I18n 'config.done')
+    Write-Host (Get-I18n 'config.tip')
 }
 
 # -------------------------------------------------------------------------
@@ -588,34 +597,18 @@ function Run-Config {
 # -------------------------------------------------------------------------
 
 function Show-Help {
-    Write-Host @"
-SrP-Dotfiles Windows 声明式一键配置总控脚本 (start.ps1)
-配置来源: manifest.json [windows]
-
-用法:
-  .\start.ps1 [子命令] [选项]
-
-子命令:
-  all         全量执行：系统依赖安装 + 配置覆盖部署 (默认推荐流水线)
-  install     仅安装系统软件与依赖 (基于 manifest.json, 不触碰任何配置文件)
-  config      仅部署并同步配置文件 (基于 manifest.json, 不安装任何软件)
-  launch      启动交互式彩色菜单 (无参数时的默认行为)
-  help        显示本帮助信息
-
-选项:
-  -f, -Force  强制覆盖部署现有配置文件，跳过询问
-
-异常处理机制:
-  当安装或部署遇到错误时，脚本会自动拦截并提供 [s] 跳过 / [r] 重试 / [a] 终止，
-  并在执行结束时生成完整的《安装与部署审计报告》。
-
-示例:
-  .\start.ps1             # 打开控制台交互式菜单
-  .\start.ps1 all         # 一键全自动完成所有配置
-  .\start.ps1 install     # 仅安装软件包
-  .\start.ps1 config      # 仅同步配置文件
-  .\start.ps1 config -f   # 强制覆盖同步配置文件
-"@
+    Write-Host (Get-I18n 'help.title')
+    Write-Host (Get-I18n 'help.source')
+    Write-Host ""
+    Write-Host (Get-I18n 'help.usage')
+    Write-Host ""
+    Write-Host (Get-I18n 'help.commands')
+    Write-Host ""
+    Write-Host (Get-I18n 'help.options')
+    Write-Host ""
+    Write-Host (Get-I18n 'help.errors')
+    Write-Host ""
+    Write-Host (Get-I18n 'help.examples')
 }
 
 # -------------------------------------------------------------------------
@@ -638,21 +631,21 @@ if ($Action -ne '' -and $Action -ne 'launch') {
 # -------------------------------------------------------------------------
 Clear-Host
 Write-Host "====================================================" -ForegroundColor Cyan
-Write-Host "       欢迎使用 SrP-Dotfiles Windows 一键管理引擎     " -ForegroundColor Cyan
+Write-Host (Get-I18n 'menu.title') -ForegroundColor Cyan
 Write-Host "====================================================" -ForegroundColor Cyan
-Write-Host " 🖥️ 操作系统环境: Windows $([Environment]::OSVersion.Version.Major) ($([Environment]::OSVersion.VersionString))" -ForegroundColor Green
-Write-Host " 👤 当前用户目录: $UserHome" -ForegroundColor Yellow
-Write-Host " 💻 PowerShell:   PS $($PSVersionTable.PSVersion.ToString())" -ForegroundColor Cyan
-Write-Host " 📄 规则清单文件: $ManifestFile" -ForegroundColor Magenta
+Write-Host (Get-I18n 'menu.os' @("$([Environment]::OSVersion.Version.Major) ($([Environment]::OSVersion.VersionString))")) -ForegroundColor Green
+Write-Host (Get-I18n 'menu.home' @($UserHome)) -ForegroundColor Yellow
+Write-Host " PowerShell: PS $($PSVersionTable.PSVersion.ToString())" -ForegroundColor Cyan
+Write-Host (Get-I18n 'menu.manifest' @($ManifestFile)) -ForegroundColor Magenta
 Write-Host "----------------------------------------------------" -ForegroundColor Cyan
-Write-Host " 请选择要执行的操作："
-Write-Host "   1) 全部执行 (安装全套环境依赖 + 部署配置) " -NoNewline; Write-Host "[推荐/默认]" -ForegroundColor Green
-Write-Host "   2) 仅安装系统依赖与软件包 (Install Packages - 纯软件安装)"
-Write-Host "   3) 仅部署与同步配置文件 (Deploy Configs - 纯覆盖复制)"
-Write-Host "   0) 退出"
+Write-Host (Get-I18n 'menu.choose')
+Write-Host (Get-I18n 'menu.all') -ForegroundColor Green
+Write-Host (Get-I18n 'menu.install')
+Write-Host (Get-I18n 'menu.config')
+Write-Host (Get-I18n 'menu.exit')
 Write-Host "----------------------------------------------------" -ForegroundColor Cyan
 
-$choice = Read-Host " 请输入选项 [1/2/3/0, 默认 1]"
+$choice = Read-Host (Get-I18n 'menu.choice')
 if ([string]::IsNullOrWhiteSpace($choice)) { $choice = "1" }
 
 switch ($choice) {
@@ -671,15 +664,15 @@ switch ($choice) {
         Show-Summary-Report
     }
     "0" {
-        Write-LogInfo "已安全退出。"
+        Write-LogInfo (Get-I18n 'menu.safeExit')
         exit 0
     }
     default {
-        Write-LogError "无效的选择: $choice"
+        Write-LogError (Get-I18n 'menu.invalid' @($choice))
         exit 1
     }
 }
 
 Write-Host "`n====================================================" -ForegroundColor Cyan
-Write-LogSuccess "所有操作已成功执行完毕！"
+Write-LogSuccess (Get-I18n 'menu.done')
 Write-Host "====================================================" -ForegroundColor Cyan

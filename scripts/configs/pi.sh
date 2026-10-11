@@ -34,7 +34,7 @@ MANIFEST_JS="$DOTFILES_DIR/scripts/lib/manifest.js"
 INJECT_JS="$DOTFILES_DIR/scripts/lib/pi-inject-packages.js"
 
 if [ ! -d "$PI_SRC" ]; then
-    log_warn "仓库中不存在 pi 目录: $PI_SRC"
+    log_warn "$(i18n pi.no_source "$PI_SRC")"
     exit 1
 fi
 
@@ -54,7 +54,7 @@ report_orphans() {
     done
 
     if [ ${#orphans[@]} -gt 0 ]; then
-        log_warn "[$sub] 目标里存在仓库中已不存在的项（不会自动删除）: ${orphans[*]}"
+        log_warn "$(i18n pi.orphans "$sub" "${orphans[*]}")"
     fi
 }
 
@@ -99,7 +99,7 @@ prune_extensions() {
         case "|$allowed|" in
             *"|$name|"*) ;;
             *)
-                log_warn "[extensions] 不在白名单，已清理: $name"
+                log_warn "$(i18n pi.extension_pruned "$name")"
                 rm -rf "$item"
                 ;;
         esac
@@ -114,9 +114,9 @@ if [ -f "$PI_SRC/settings.json.example" ]; then
     settings_target="$PI_DEST/settings.json"
     settings_deploy_target="$(example_target_path "$settings_target")"
     if [ "$settings_deploy_target" = "$settings_target" ]; then
-        log_info "settings.json 不存在，使用模板创建"
+        log_info "$(i18n pi.settings_new)"
     else
-        log_info "检测到已有 settings.json，保留原文件；模板将保存为 settings.json.example"
+        log_info "$(i18n pi.settings_existing)"
     fi
     copy_item "$PI_SRC/settings.json.example" "$settings_deploy_target"
 
@@ -130,13 +130,13 @@ if [ -f "$PI_SRC/settings.json.example" ]; then
             if [ ${#pkgs[@]} -gt 0 ]; then
                 node "$INJECT_JS" "$settings_target" "${pkgs[@]}"
             else
-                log_info "manifest 的 piPackages 为空，settings.json 的 packages 保持模板值"
+                log_info "$(i18n pi.packages_empty)"
             fi
         else
-            log_warn "缺少 node 或脚本，跳过 packages 注入"
+            log_warn "$(i18n pi.missing_node)"
         fi
     else
-        log_info "已有 settings.json 保持不动，跳过 packages 注入"
+        log_info "$(i18n pi.settings_keep)"
     fi
 fi
 
@@ -182,4 +182,4 @@ while IFS= read -r cli_link; do
     link_item "$PI_DEST/$cli_rel" "$PI_DEST/bin/$cli_name" || true
 done < <(node "$MANIFEST_JS" get "$PI_MANIFEST_OS" piCliLinks 2>/dev/null || true)
 
-log_success "Pi 配置部署完成 (copy 覆盖): $PI_DEST"
+log_success "$(i18n pi.done "$PI_DEST")"

@@ -15,11 +15,19 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const MANIFEST = join(dirname(dirname(dirname(fileURLToPath(import.meta.url)))), "manifest.json");
+const LANG = process.env.DF_LANG === "zh" || process.env.DF_LANG === "cn" ? "zh" : "en";
+
+function text(en, zh) {
+  return LANG === "zh" ? zh : en;
+}
 
 const [action, osName, key] = process.argv.slice(2);
 
 if (!action || !osName) {
-  console.error("用法: node manifest.js get <os> <key> | plan <os>");
+  console.error(text(
+    "Usage: node manifest.js get <os> <key> | plan <os>",
+    "用法: node manifest.js get <os> <key> | plan <os>",
+  ));
   process.exit(1);
 }
 
@@ -27,13 +35,19 @@ let manifest;
 try {
   manifest = JSON.parse(readFileSync(MANIFEST, "utf8"));
 } catch (error) {
-  console.error(`无法读取 ${MANIFEST}: ${error instanceof Error ? error.message : String(error)}`);
+  console.error(text(
+    `Cannot read ${MANIFEST}: ${error instanceof Error ? error.message : String(error)}`,
+    `无法读取 ${MANIFEST}: ${error instanceof Error ? error.message : String(error)}`,
+  ));
   process.exit(2);
 }
 
 const section = manifest[osName];
 if (!section || typeof section !== "object" || Array.isArray(section)) {
-  console.error(`manifest.json 中不存在 OS 段: ${osName}`);
+  console.error(text(
+    `OS section not found in manifest.json: ${osName}`,
+    `manifest.json 中不存在 OS 段: ${osName}`,
+  ));
   process.exit(2);
 }
 
@@ -52,11 +66,17 @@ function inline(value) {
 
 if (action === "get") {
   if (!key) {
-    console.error("用法: node manifest.js get <os> <key>");
+    console.error(text(
+      "Usage: node manifest.js get <os> <key>",
+      "用法: node manifest.js get <os> <key>",
+    ));
     process.exit(1);
   }
   if (!(key in section)) {
-    console.error(`[${osName}] 中不存在键: ${key}`);
+    console.error(text(
+      `Key not found in [${osName}]: ${key}`,
+      `[${osName}] 中不存在键: ${key}`,
+    ));
     process.exit(3);
   }
 
@@ -90,5 +110,5 @@ if (action === "plan") {
   process.exit(0);
 }
 
-console.error(`未知动作: ${action}`);
+console.error(text(`Unknown action: ${action}`, `未知动作: ${action}`));
 process.exit(1);

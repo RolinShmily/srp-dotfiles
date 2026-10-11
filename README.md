@@ -130,6 +130,10 @@ Or run non-interactively with CLI arguments:
 # Force overwrite mode (skip conflict prompts)
 ./launch.sh config -f
 
+# Interface language: English by default; use zh for Chinese
+./launch.sh --lang zh
+./launch.sh all debian-vps --lang en
+
 # Explicitly specify target distribution/profile
 ./launch.sh install arch
 ./launch.sh all debian-homeserver  # Full HomeServer profile with Pi Web
@@ -165,6 +169,10 @@ Or run directly with subcommands:
 
 # Force overwrite mode
 .\start.ps1 config -Force
+
+# Interface language: English by default; use zh for Chinese
+.\start.ps1 help -Lang en
+.\start.ps1 all -Lang zh
 ```
 
 ---

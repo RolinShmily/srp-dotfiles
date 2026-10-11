@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+if [ -z "${BASH_VERSION:-}" ]; then
+    printf '%s\n' 'This script requires Bash / 此脚本需要 Bash。请运行 ./launch.sh 或 bash launch.sh。' >&2
+    exit 2
+fi
+
 # ==============================================================================
 # launch.sh - SrP-Dotfiles Unix 统一环境一键管理总控引擎
 # 集成: 交互式启动菜单 (Launch) + 依赖安装 (Install) + 符号链接部署与备份 (Config)
@@ -18,6 +23,19 @@ DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
 MANIFEST_FILE="$DOTFILES_DIR/manifest.json"
 MANIFEST_JS="$DOTFILES_DIR/scripts/lib/manifest.js"
 BACKUP_DIR="$HOME/.dotfiles_backup/$(date +%Y%m%d_%H%M%S)"
+
+# Default to English; allow --lang before help is rendered and DF_LANG for automation.
+DF_LANG="${DF_LANG:-en}"
+_preview_args=("$@")
+for ((i = 0; i < ${#_preview_args[@]}; i++)); do
+    if [ "${_preview_args[$i]}" = "--lang" ] && [ $((i + 1)) -lt ${#_preview_args[@]} ]; then
+        DF_LANG="${_preview_args[$((i + 1))]}"
+    elif [[ "${_preview_args[$i]}" == --lang=* ]]; then
+        DF_LANG="${_preview_args[$i]#--lang=}"
+    fi
+done
+source "$DOTFILES_DIR/scripts/lib/i18n.sh"
+set_i18n_language "$DF_LANG"
 
 GREEN="\033[0;32m"
 BLUE="\033[0;34m"
@@ -52,16 +70,16 @@ handle_sigint() {
     local diff=$(( now - LAST_CTRL_C_TIME ))
 
     if [ "$diff" -le 1200 ] && [ "$LAST_CTRL_C_TIME" -gt 0 ]; then
-        echo -e "\n${RED}[ABORT] 连续检测到 Ctrl+C，已彻底终止安装部署流程！${RESET}"
+        echo -e "${RED}$(i18n abort.double_ctrl_c)${RESET}"
         if [ -n "$CURRENT_STEP_NAME" ]; then
-            REPORT_FAILED+=("$CURRENT_STEP_NAME (用户连续 Ctrl+C 终止)")
+            REPORT_FAILED+=("$CURRENT_STEP_NAME (double Ctrl+C)")
         fi
         print_summary_report
         exit 130
     else
         LAST_CTRL_C_TIME=$now
         STEP_INTERRUPTED=1
-        echo -e "\n${YELLOW}[SKIP] 已手动中断当前步骤: ${BOLD}${CURRENT_STEP_NAME}${RESET}${YELLOW} (1秒内再次按下 Ctrl+C 将彻底退出脚本)${RESET}"
+        echo -e "${YELLOW}$(i18n interrupt.skip "$CURRENT_STEP_NAME")${RESET}"
     fi
 }
 trap handle_sigint INT TERM
@@ -73,7 +91,7 @@ run_step() {
     STEP_INTERRUPTED=0
 
     while true; do
-        log_info "正在执行: ${BOLD}$step_name${RESET} ..."
+        log_info "${BOLD}$(i18n step.running "$step_name")${RESET}"
         set +e
         "$@"
         local status=$?
@@ -82,7 +100,7 @@ run_step() {
         # 如果被单次 Ctrl+C 打断
         if [ "$STEP_INTERRUPTED" -eq 1 ] || [ $status -eq 130 ]; then
             STEP_INTERRUPTED=0
-            REPORT_SKIPPED+=("$step_name (手动中断跳过)")
+            REPORT_SKIPPED+=("$step_name (interrupted)")
             CURRENT_STEP_NAME=""
             return 0
         fi
@@ -93,46 +111,46 @@ run_step() {
             return 0
         fi
 
-        log_error "步骤 [${BOLD}$step_name${RESET}] 执行失败 (退出码: $status)！"
+        log_error "${BOLD}$(i18n step.failed "$step_name" "$status")${RESET}"
 
         # 非交互式终端环境下自动记录并跳过
         if [ ! -t 0 ]; then
-            log_warn "检测到非交互终端，已自动跳过此步骤。"
-            REPORT_SKIPPED+=("$step_name (自动跳过: 退出码 $status)")
+            log_warn "$(i18n step.noninteractive)"
+            REPORT_SKIPPED+=("$step_name (non-interactive: exit $status)")
             CURRENT_STEP_NAME=""
             return 0
         fi
 
         echo -e "${YELLOW}----------------------------------------------------${RESET}"
-        echo -e " 遇到执行异常，请选择后续处理方式："
-        echo -e "   ${BOLD}[s]${RESET} 跳过此步并继续 (Skip) ${GREEN}[推荐/默认]${RESET}"
-        echo -e "   ${BOLD}[r]${RESET} 重试此步骤 (Retry)"
-        echo -e "   ${BOLD}[a]${RESET} 终止并退出 (Abort)"
+        echo -e "$(i18n prompt.failure)"
+        echo -e "$(i18n prompt.skip)"
+        echo -e "$(i18n prompt.retry)"
+        echo -e "$(i18n prompt.abort)"
         echo -e "${YELLOW}----------------------------------------------------${RESET}"
-        read -rp " 请选择 [s/r/a, 默认 s]: " user_choice
+        read -rp "$(i18n prompt.choice) " user_choice
         user_choice="${user_choice:-s}"
 
         case "$user_choice" in
             [sS]*)
-                log_warn "已手动跳过步骤: $step_name"
-                REPORT_SKIPPED+=("$step_name (手动跳过: 退出码 $status)")
+                log_warn "$(i18n step.manual_skip "$step_name")"
+                REPORT_SKIPPED+=("$step_name (manual skip: exit $status)")
                 CURRENT_STEP_NAME=""
                 return 0
                 ;;
             [rR]*)
-                log_info "正在重试步骤: $step_name ..."
+                log_info "$(i18n step.retrying "$step_name")"
                 STEP_INTERRUPTED=0
                 continue
                 ;;
             [aA]*)
-                log_error "用户主动终止安装部署流程。"
-                REPORT_FAILED+=("$step_name (用户中止: 退出码 $status)")
+                log_error "$(i18n step.user_abort)"
+                REPORT_FAILED+=("$step_name (user abort: exit $status)")
                 print_summary_report
                 exit 1
                 ;;
             *)
-                log_warn "输入无法识别，默认跳过此步骤。"
-                REPORT_SKIPPED+=("$step_name (手动跳过: 退出码 $status)")
+                log_warn "$(i18n step.invalid_default_skip)"
+                REPORT_SKIPPED+=("$step_name (default skip: exit $status)")
                 CURRENT_STEP_NAME=""
                 return 0
                 ;;
@@ -142,34 +160,34 @@ run_step() {
 
 print_summary_report() {
     echo -e "\n${CYAN}================================================================${RESET}"
-    echo -e "${BOLD}              📊 SrP-Dotfiles 安装与部署审计报告               ${RESET}"
+    echo -e "${BOLD}$(i18n report.title)${RESET}"
     echo -e "${CYAN}================================================================${RESET}"
 
     local total_success=${#REPORT_SUCCESS[@]}
     local total_skipped=${#REPORT_SKIPPED[@]}
     local total_failed=${#REPORT_FAILED[@]}
 
-    echo -e " 🎯 目标操作系统: ${GREEN}${BOLD}${TARGET_OS}${RESET} | 硬件架构: ${YELLOW}${ARCH}${RESET}"
+    echo -e "${GREEN}${BOLD}$(i18n report.os "$TARGET_OS" "$ARCH")${RESET}"
     if [ "$IS_WSL" = "yes" ]; then
-        echo -e " 💻 WSL 宿主环境: ${GREEN}是 (WSL)${RESET}"
+        echo -e "${GREEN}$(i18n report.wsl_yes)${RESET}"
     fi
-    echo -e " ⏱️ 报告生成时间: $(date '+%Y-%m-%d %H:%M:%S')"
+    echo -e "$(i18n report.time "$(date '+%Y-%m-%d %H:%M:%S')")"
     echo -e "${CYAN}----------------------------------------------------------------${RESET}"
 
     # 1. 成功列表
     if [ $total_success -gt 0 ]; then
-        echo -e "${GREEN}${BOLD}✔ 成功完成 ($total_success 项):${RESET}"
+        echo -e "${GREEN}${BOLD}$(i18n report.success "$total_success")${RESET}"
         for item in "${REPORT_SUCCESS[@]}"; do
             echo -e "  ${GREEN}✓${RESET} $item"
         done
     else
-        echo -e "${YELLOW}ℹ 没有成功完成的项目。${RESET}"
+        echo -e "${YELLOW}$(i18n report.no_success)${RESET}"
     fi
 
     # 2. 跳过列表
     if [ $total_skipped -gt 0 ]; then
         echo ""
-        echo -e "${YELLOW}${BOLD}⚠ 跳过/忽略项目 ($total_skipped 项):${RESET}"
+        echo -e "${YELLOW}${BOLD}$(i18n report.skipped "$total_skipped")${RESET}"
         for item in "${REPORT_SKIPPED[@]}"; do
             echo -e "  ${YELLOW}-${RESET} $item"
         done
@@ -178,7 +196,7 @@ print_summary_report() {
     # 3. 失败列表
     if [ $total_failed -gt 0 ]; then
         echo ""
-        echo -e "${RED}${BOLD}✖ 失败/中止项目 ($total_failed 项):${RESET}"
+        echo -e "${RED}${BOLD}$(i18n report.failed "$total_failed")${RESET}"
         for item in "${REPORT_FAILED[@]}"; do
             echo -e "  ${RED}✗${RESET} $item"
         done
@@ -186,11 +204,11 @@ print_summary_report() {
 
     echo -e "${CYAN}----------------------------------------------------------------${RESET}"
     if [ $total_skipped -gt 0 ] || [ $total_failed -gt 0 ]; then
-        echo -e " 💡 ${BOLD}提示:${RESET} 针对跳过或未完成的项目，您可以在排查网络/依赖后单独重试："
-        echo -e "    - 重新安装依赖: ${CYAN}./launch.sh install${RESET}"
-        echo -e "    - 重新部署配置: ${CYAN}./launch.sh config${RESET}"
+        echo -e "${BOLD}$(i18n report.hint)${RESET}"
+        echo -e "$(i18n report.install "./launch.sh install")"
+        echo -e "$(i18n report.config "./launch.sh config")"
     else
-        echo -e " 🎉 ${GREEN}${BOLD}恭喜！所有安装与部署项目均完美就绪！${RESET}"
+        echo -e "${GREEN}${BOLD}$(i18n report.complete)${RESET}"
     fi
     echo -e "${CYAN}================================================================${RESET}"
 }
@@ -200,14 +218,40 @@ print_summary_report() {
 # ------------------------------------------------------------------
 _need_node() {
     command -v node >/dev/null 2>&1 && return 0
-    log_error "读取 manifest.json 需要 node，但当前系统没有 node。"
+
+    log_warn "$(i18n manifest.node_missing)" >&2
+    case "$TARGET_OS" in
+        debian|debian-homeserver|debian-vps)
+            log_info "$(i18n manifest.bootstrap "$TARGET_OS")" >&2
+            if sudo apt-get update -y && sudo apt-get install -y nodejs && command -v node >/dev/null 2>&1; then
+                log_success "$(i18n manifest.bootstrap_done)" >&2
+                return 0
+            fi
+            ;;
+        arch)
+            log_info "$(i18n manifest.bootstrap "$TARGET_OS")" >&2
+            if sudo pacman -Syu --needed --noconfirm nodejs npm && command -v node >/dev/null 2>&1; then
+                log_success "$(i18n manifest.bootstrap_done)" >&2
+                return 0
+            fi
+            ;;
+        termux)
+            log_info "$(i18n manifest.bootstrap "$TARGET_OS")" >&2
+            if pkg update -y && pkg install -y nodejs && command -v node >/dev/null 2>&1; then
+                log_success "$(i18n manifest.bootstrap_done)" >&2
+                return 0
+            fi
+            ;;
+    esac
+
+    log_error "$(i18n manifest.bootstrap_failed)" >&2
+    echo -e "" >&2
+    echo -e "$(i18n manifest.install_hint)"
+    echo -e "${BOLD}$(i18n manifest.arch_hint)${RESET}"
+    echo -e "${BOLD}$(i18n manifest.debian_hint)${RESET}"
+    echo -e "${BOLD}$(i18n manifest.termux_hint)${RESET}"
     echo -e ""
-    echo -e "  请先手动安装 node，然后重试："
-    echo -e "    ${BOLD}Arch / WSL${RESET}        sudo pacman -S --needed nodejs npm"
-    echo -e "    ${BOLD}Debian / Ubuntu${RESET}   sudo apt-get install -y nodejs npm"
-    echo -e "    ${BOLD}Termux${RESET}            pkg install -y nodejs"
-    echo -e ""
-    echo -e "  ${YELLOW}注：install 与 config 均需先读清单，所以 node 是任何子命令的前置。${RESET}"
+    echo -e "${YELLOW}$(i18n manifest.note)${RESET}"
     exit 1
 }
 
@@ -260,19 +304,19 @@ resolve_debian_profile() {
             ;;
         debian)
             if [ ! -t 0 ]; then
-                log_error "检测到 Debian/Ubuntu，但未指定部署 profile。请使用 --os debian-vps 或 --os debian-homeserver。"
+                log_error "$(i18n profile.noninteractive)"
                 exit 2
             fi
 
-            echo -e "${YELLOW}检测到 Debian/Ubuntu，请选择部署 profile：${RESET}"
-            echo "  1) debian-homeserver  (完整基础服务与 Pi Web 智能体)"
-            echo "  2) debian-vps          (精简 Shell 与基础运维工具)"
-            read -rp "请选择 [1/2]: " debian_profile
+            echo -e "${YELLOW}$(i18n profile.detected)${RESET}"
+            echo "$(i18n profile.homeserver)"
+            echo "$(i18n profile.vps)"
+            read -rp "$(i18n profile.choice) " debian_profile
             case "$debian_profile" in
                 1) TARGET_OS="debian-homeserver" ;;
                 2) TARGET_OS="debian-vps" ;;
                 *)
-                    log_error "无效的 Debian profile: $debian_profile"
+                    log_error "$(i18n profile.invalid "$debian_profile")"
                     exit 1
                     ;;
             esac
@@ -305,7 +349,7 @@ do_install_sys_packages() {
             pkg update -y && pkg install -y "${pkgs[@]}"
             ;;
         *)
-            log_warn "未知的操作系统类型: $TARGET_OS，跳过系统包安装。"
+            log_warn "$(i18n pkg.unknown_os "$TARGET_OS")"
             ;;
     esac
 }
@@ -341,7 +385,7 @@ do_install_omz() {
 do_install_single_npm() {
     local pkg_name="$1"
     if ! command -v npm &>/dev/null; then
-        log_warn "未检测到 npm，跳过: $pkg_name"
+        log_warn "$(i18n npm.missing "$pkg_name")"
         return 1
     fi
     if [ "$TARGET_OS" = "termux" ]; then
@@ -365,18 +409,18 @@ do_install_single_skill() {
     elif command -v npx &>/dev/null; then
         npx --yes skills add $skill_item $agent_param -g -y
     else
-        log_warn "未检测到 skills 或 npx 命令，跳过技能安装: $skill_item"
+        log_warn "$(i18n skill.missing "$skill_item")"
         return 1
     fi
 }
 
 run_install() {
     echo -e "${BLUE}====================================================${RESET}"
-    echo -e "${BOLD}       📦 执行 Unix 系统依赖安装 ($TARGET_OS)       ${RESET}"
+    echo -e "${BOLD}$(i18n install.title "$TARGET_OS")${RESET}"
     echo -e "${BLUE}====================================================${RESET}"
 
     if [ ! -f "$MANIFEST_FILE" ]; then
-        log_error "未找到清单文件: $MANIFEST_FILE"
+        log_error "$(i18n manifest.missing "$MANIFEST_FILE")"
         exit 1
     fi
 
@@ -388,20 +432,20 @@ run_install() {
 
     # 1. 系统核心包
     if [ ${#pkgs[@]} -gt 0 ]; then
-        run_step "安装系统基础依赖 ($package_manager - ${#pkgs[@]} 个包)" do_install_sys_packages "$package_manager" "${pkgs[@]}"
+        run_step "$(i18n step.system_packages "$package_manager" "${#pkgs[@]}")" do_install_sys_packages "$package_manager" "${pkgs[@]}"
     fi
 
     # 2. 默认 Shell
-    run_step "配置默认 Shell 为 zsh" set_default_shell
+    run_step "$(i18n step.default_shell)" set_default_shell
 
     # 3. Oh My Zsh
-    run_step "安装 Oh My Zsh 基础框架" do_install_omz
+    run_step "$(i18n step.ohmyzsh)" do_install_omz
 
     # 4. 全局 npm 包 (逐个执行，失败可独立跳过)
     if [ ${#npm_globals[@]} -gt 0 ]; then
         for npm_pkg in "${npm_globals[@]}"; do
             [ -z "$npm_pkg" ] && continue
-            run_step "全局 npm 依赖 [$npm_pkg]" do_install_single_npm "$npm_pkg"
+            run_step "$(i18n step.npm "$npm_pkg")" do_install_single_npm "$npm_pkg"
         done
     fi
 
@@ -410,7 +454,7 @@ run_install() {
         for skill_item in "${skills_add[@]}"; do
             skill_item="$(echo "$skill_item" | xargs)"
             [ -z "$skill_item" ] && continue
-            run_step "Agent 技能 [$skill_item]" do_install_single_skill "$skill_item"
+            run_step "$(i18n step.skills "$skill_item")" do_install_single_skill "$skill_item"
         done
     fi
 }
@@ -451,23 +495,23 @@ do_deploy_termux_font() {
 
 run_config() {
     echo -e "${BLUE}====================================================${RESET}"
-    echo -e "${BOLD}       ⚙️ 执行 Unix 配置文件部署 ($TARGET_OS)       ${RESET}"
+    echo -e "${BOLD}$(i18n config.title "$TARGET_OS")${RESET}"
     echo -e "${BLUE}====================================================${RESET}"
 
     if [ ! -f "$MANIFEST_FILE" ]; then
-        log_error "未找到声明清单: $MANIFEST_FILE"
+        log_error "$(i18n manifest.missing "$MANIFEST_FILE")"
         exit 1
     fi
 
-    log_info "声明清单: ${CYAN}$MANIFEST_FILE${RESET}"
-    log_info "目标配置环境: ${GREEN}${TARGET_OS}${RESET}"
-    [ "$FORCE" -eq 1 ] && log_info "已开启强制覆盖模式 (-f / --force)。"
+    log_info "${CYAN}$(i18n manifest.declaration "$MANIFEST_FILE")${RESET}"
+    log_info "${GREEN}$(i18n config.target "$TARGET_OS")${RESET}"
+    [ "$FORCE" -eq 1 ] && log_info "$(i18n config.force)"
 
     # 子脚本 (scripts/configs/*.sh) 需要的上下文
     export DOTFILES_DIR BACKUP_DIR FORCE PI_MANIFEST_OS="$TARGET_OS"
 
     # 1. Oh My Zsh 插件与 Spaceship 主题
-    run_step "部署 Oh My Zsh 插件与 Spaceship 主题" setup_omz_plugins
+    run_step "$(i18n step.ohmyzsh_deploy)" setup_omz_plugins
 
     # 2. 按 manifest.json 的 configs 秩序逐条派发
     local name method source targets exclude ifmissing when
@@ -478,7 +522,7 @@ run_config() {
 
     # 3. Termux 专属字体与外观适配
     if [ "$TARGET_OS" = "termux" ]; then
-        run_step "部署 Termux Nerd Font (MesloLGS NF) 字体" do_deploy_termux_font
+        run_step "$(i18n step.termux_font)" do_deploy_termux_font
     fi
 }
 
@@ -491,7 +535,7 @@ _dispatch_config() {
         local when_path
         when_path="$(expand_path "$when")"
         if [ ! -e "$when_path" ]; then
-            log_info "[$name] 条件未满足，跳过 ($when)"
+            log_info "$(i18n dispatch.condition "$name" "$when")"
             return 0
         fi
     fi
@@ -501,22 +545,22 @@ _dispatch_config() {
             local script
             script="$(custom_script_path "$name")"
             if [ ! -f "$script" ]; then
-                log_error "[$name] 找不到自定义部署脚本: $script"
+                log_error "$(i18n dispatch.custom_missing "$name" "$script")"
                 return 1
             fi
-            run_step "[$name] 自定义部署" bash "$script"
+            run_step "$(i18n dispatch.custom "$name")" bash "$script"
             ;;
 
         link|copy)
             if [ ! -e "$(config_source_path "$source")" ]; then
-                log_warn "[$name] 仓库内源不存在，跳过: $source"
+                log_warn "$(i18n dispatch.source_missing "$name" "$source")"
                 return 1
             fi
 
             local target_list
             target_list="$(printf '%s' "$targets" | tr '|' '\n')"
             if [ -z "$target_list" ]; then
-                log_warn "[$name] 未声明 target/targets，跳过"
+                log_warn "$(i18n dispatch.target_missing "$name")"
                 return 1
             fi
 
@@ -525,17 +569,17 @@ _dispatch_config() {
                 [ -z "$t" ] && continue
                 dest="$(expand_path "$t")"
                 if [ "$method" = "link" ]; then
-                    run_step "[$name] 链接 -> $t" link_item "$(config_source_path "$source")" "$dest" "$exclude"
+                    run_step "$(i18n dispatch.link "$name" "$t")" link_item "$(config_source_path "$source")" "$dest" "$exclude"
                 elif [[ "$source" == *.example ]]; then
-                    run_step "[$name] 复制示例配置 -> $t" copy_example_item "$(config_source_path "$source")" "$dest" "$ifmissing"
+                    run_step "$(i18n dispatch.copy_example "$name" "$t")" copy_example_item "$(config_source_path "$source")" "$dest" "$ifmissing"
                 else
-                    run_step "[$name] 复制 -> $t" copy_item "$(config_source_path "$source")" "$dest" "$ifmissing"
+                    run_step "$(i18n dispatch.copy "$name" "$t")" copy_item "$(config_source_path "$source")" "$dest" "$ifmissing"
                 fi
             done <<< "$target_list"
             ;;
 
         *)
-            log_warn "[$name] 未知 method: $method（应为 link | copy | custom）"
+            log_warn "$(i18n dispatch.method_unknown "$name" "$method")"
             return 1
             ;;
     esac
@@ -545,37 +589,16 @@ _dispatch_config() {
 # 5. CLI 帮助信息
 # ------------------------------------------------------------------
 show_help() {
-    echo -e "${BOLD}SrP-Dotfiles Unix 统一管理引擎 (launch.sh)${RESET}
+    echo -e "${BOLD}$(i18n help.title)${RESET}
 
-${BOLD}用法:${RESET}
-  $0 [子命令] [操作系统] [选项]
+${BOLD}$(i18n help.usage "$0")${RESET}
 
-${BOLD}子命令:${RESET}
-  all                  安装依赖并部署配置 (默认推荐流水线)
-  install              仅通过系统包管理器安装环境依赖 (Pacman / Apt / Pkg)
-  config               仅部署并同步 Dotfiles 软链接配置
-  launch               启动交互式彩色菜单 (无参数时的默认行为)
-  help, -h, --help     显示本帮助信息
+$(i18n help.commands)
+$(i18n help.os)
+$(i18n help.options)
+$(i18n help.errors)
 
-${BOLD}支持的操作系统参数:${RESET}
-  arch                 Arch Linux / Manjaro / WSL Arch (默认检测)
-  debian-homeserver    Debian / Ubuntu HomeServer（含 Pi Web 智能体）
-  debian-vps           Debian / Ubuntu VPS（精简基础工具）
-  termux               Android Termux 环境
-
-${BOLD}选项:${RESET}
-  -f, --force          部署配置时强制覆盖现有文件
-  --os <type>          显式指定操作系统/profile (arch | debian-homeserver | debian-vps | termux)
-
-${BOLD}异常处理机制:${RESET}
-  当安装或部署遇到错误时，脚本会自动拦截并提供 [s] 跳过 / [r] 重试 / [a] 终止，
-  并在执行结束时生成完整的《安装与部署审计报告》。
-
-${BOLD}示例:${RESET}
-  $0                   # 启动交互式控制台菜单
-  $0 all               # 自动探测系统并全自动完成安装与配置
-  $0 install arch      # 为 Arch 系统安装依赖
-  $0 config -f         # 强制覆盖部署配置文件"
+$(i18n help.examples "$0" "$0" "$0" "$0" "$0")"
 }
 
 # ------------------------------------------------------------------
@@ -591,6 +614,16 @@ while [ $# -gt 0 ]; do
             TARGET_OS="$1"
             shift
             ;;
+        --lang)
+            DF_LANG="$2"
+            set_i18n_language "$DF_LANG"
+            shift 2
+            ;;
+        --lang=*)
+            DF_LANG="${1#--lang=}"
+            set_i18n_language "$DF_LANG"
+            shift
+            ;;
         --os)
             TARGET_OS="$2"
             shift 2
@@ -604,7 +637,7 @@ while [ $# -gt 0 ]; do
             exit 0
             ;;
         *)
-            log_error "未知参数: $1"
+            log_error "$(i18n cli.unknown "$1")"
             show_help
             exit 1
             ;;
@@ -639,23 +672,23 @@ fi
 # 7. 交互式启动菜单 (无参数直接运行时)
 # ------------------------------------------------------------------
 echo -e "${CYAN}====================================================${RESET}"
-echo -e "${BOLD}       🚀 欢迎使用 SrP-Dotfiles 一键配置管理器      ${RESET}"
+echo -e "${BOLD}$(i18n menu.title)${RESET}"
 echo -e "${CYAN}====================================================${RESET}"
-echo -e " 🖥️ 检测到操作系统: ${GREEN}${BOLD}${TARGET_OS}${RESET}"
-echo -e " ⚙️ 硬件架构:       ${YELLOW}${ARCH}${RESET}"
+echo -e "$(i18n menu.detected_os "${GREEN}${BOLD}${TARGET_OS}${RESET}")"
+echo -e "$(i18n menu.arch "${YELLOW}${ARCH}${RESET}")"
 if [ "$IS_WSL" = "yes" ]; then
-    echo -e " 💻 WSL 环境:       ${GREEN}是 (WSL)${RESET}"
+    echo -e "$(i18n menu.wsl)"
 fi
-echo -e " 📄 规则清单文件:   ${CYAN}${MANIFEST_FILE}${RESET}"
+echo -e "$(i18n menu.manifest "${CYAN}${MANIFEST_FILE}${RESET}")"
 echo -e "${CYAN}----------------------------------------------------${RESET}"
-echo -e " 请选择要执行的操作："
-echo -e "   ${BOLD}1)${RESET} 全部执行 (安装系统依赖 + 部署配置文件) ${GREEN}[推荐/默认]${RESET}"
-echo -e "   ${BOLD}2)${RESET} 仅安装系统依赖 (Install Packages)"
-echo -e "   ${BOLD}3)${RESET} 仅部署配置文件 (Deploy Configs)"
-echo -e "   ${BOLD}4)${RESET} 切换/指定操作系统 (当前: ${TARGET_OS})"
-echo -e "   ${BOLD}0)${RESET} 退出"
+echo -e "$(i18n menu.choose)"
+echo -e "$(i18n menu.all)"
+echo -e "$(i18n menu.install)"
+echo -e "$(i18n menu.config)"
+echo -e "$(i18n menu.switch "$TARGET_OS")"
+echo -e "$(i18n menu.exit)"
 echo -e "${CYAN}----------------------------------------------------${RESET}"
-read -rp " 请输入选项 [1/2/3/4/0, 默认 1]: " choice
+read -rp "$(i18n menu.choice) " choice
 choice="${choice:-1}"
 
 case "$choice" in
@@ -670,7 +703,7 @@ case "$choice" in
         print_summary_report
         ;;
     3)
-        read -rp " 是否开启强制覆盖模式 (-f)? [y/N]: " force_choice
+        read -rp "$(i18n menu.force) " force_choice
         if [[ "$force_choice" =~ ^[Yy]$ ]]; then
             FORCE=1
         fi
@@ -679,31 +712,31 @@ case "$choice" in
         ;;
     4)
         echo ""
-        echo "可选操作系统/profile 列表:"
-        echo "  1) arch               (Arch Linux / WSL)"
-        echo "  2) debian-homeserver  (Debian / Ubuntu HomeServer)"
-        echo "  3) debian-vps         (Debian / Ubuntu VPS)"
-        echo "  4) termux             (Android Termux)"
-        read -rp "请选择编号 [1-4]: " os_choice
+        echo "$(i18n menu.profiles)"
+        echo "$(i18n menu.profile_arch)"
+        echo "$(i18n menu.profile_homeserver)"
+        echo "$(i18n menu.profile_vps)"
+        echo "$(i18n menu.profile_termux)"
+        read -rp "$(i18n menu.profile_choice) " os_choice
         case "$os_choice" in
             1) TARGET_OS="arch" ;;
             2) TARGET_OS="debian-homeserver" ;;
             3) TARGET_OS="debian-vps" ;;
             4) TARGET_OS="termux" ;;
-            *) log_error "无效的选择: $os_choice"; exit 1 ;;
+            *) log_error "$(i18n menu.invalid_choice "$os_choice")"; exit 1 ;;
         esac
-        echo -e "已切换操作系统为: ${GREEN}${TARGET_OS}${RESET}"
+        echo -e "$(i18n menu.switched "${GREEN}${TARGET_OS}${RESET}")"
         run_install
         echo ""
         run_config
         print_summary_report
         ;;
     0)
-        log_info "已安全退出。"
+        log_info "$(i18n menu.safe_exit)"
         exit 0
         ;;
     *)
-        log_error "无效的选项: $choice"
+        log_error "$(i18n menu.invalid_choice "$choice")"
         exit 1
         ;;
 esac

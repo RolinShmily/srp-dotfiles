@@ -3,6 +3,11 @@
 # 唯一事实源: 仓库根目录的 manifest.json。
 # 提供四个只读函数，不做任何部署动作。
 
+if (-not (Get-Command Get-I18n -ErrorAction SilentlyContinue)) {
+    . (Join-Path $PSScriptRoot "i18n.ps1")
+    Set-I18nLanguage -Language (if ($env:DF_LANG) { $env:DF_LANG } else { 'en' })
+}
+
 if (-not $Global:MANIFEST_PATH) {
     $root = if ($Global:DF_DotfilesDir) { $Global:DF_DotfilesDir }
             else { Split-Path -Parent (Split-Path -Parent $PSScriptRoot) }
@@ -12,7 +17,7 @@ if (-not $Global:MANIFEST_PATH) {
 function Get-Manifest {
     if (-not $Global:MANIFEST_CACHE) {
         if (-not (Test-Path -LiteralPath $Global:MANIFEST_PATH)) {
-            throw "未找到声明清单: $($Global:MANIFEST_PATH)"
+            throw (Get-I18n 'manifest.notFound' @($Global:MANIFEST_PATH))
         }
         $Global:MANIFEST_CACHE = Get-Content -LiteralPath $Global:MANIFEST_PATH -Raw -Encoding UTF8 | ConvertFrom-Json
     }
@@ -24,7 +29,7 @@ function Get-ManifestSection {
 
     $m = Get-Manifest
     if (-not $m.PSObject.Properties[$Os]) {
-        throw "manifest.json 中不存在 OS 段: $Os"
+        throw (Get-I18n 'manifest.sectionMissing' @($Os))
     }
     return $m.$Os
 }

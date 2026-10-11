@@ -49,7 +49,7 @@ $piDest = Join-Path $env:USERPROFILE ".pi\agent"
 $injectJs = Join-Path $Global:DF_DotfilesDir "scripts\lib\pi-inject-packages.js"
 
 if (-not (Test-Path -LiteralPath $piSrc)) {
-    Write-LogWarn "仓库中不存在 pi 目录: $piSrc"
+    Write-LogWarn (Get-I18n 'pi.noSource' @($piSrc))
     exit 1
 }
 
@@ -70,7 +70,7 @@ function Show-PiOrphans {
     } | ForEach-Object { $_.Name })
 
     if ($orphans.Count -gt 0) {
-        Write-LogWarn "[$SubDir] 目标里存在仓库中已不存在的项（不会自动删除）: $($orphans -join ', ')"
+        Write-LogWarn (Get-I18n 'pi.orphans' @($SubDir, ($orphans -join ', ')))
     }
 }
 
@@ -108,7 +108,7 @@ function Remove-PiNonAllowlisted {
 
     Get-ChildItem -LiteralPath $destDir -Force | ForEach-Object {
         if ($AllowedNames -notcontains $_.Name) {
-            Write-LogWarn "[extensions] 不在白名单，已清理: $($_.Name)"
+            Write-LogWarn (Get-I18n 'pi.extensionPruned' @($_.Name))
             Remove-TargetEntry -Target $_.FullName
         }
     }
@@ -135,13 +135,13 @@ if (Test-Path -LiteralPath $settingsExample) {
             if (Get-Command node -ErrorAction SilentlyContinue) {
                 & node $injectJs $settingsTarget @piPackages
             } else {
-                Write-LogWarn "未检测到 node，跳过 packages 注入"
+                Write-LogWarn (Get-I18n 'pi.missingNode')
             }
         } else {
-            Write-LogInfo "manifest 的 piPackages 为空，settings.json 的 packages 保持模板值"
+            Write-LogInfo (Get-I18n 'pi.packagesEmpty')
         }
     } else {
-        Write-LogInfo "已有 settings.json 保持不动，跳过 packages 注入"
+        Write-LogInfo (Get-I18n 'pi.settingsKeep')
     }
 }
 
@@ -175,4 +175,4 @@ Copy-PiEachItem -SubDir "prompts"; Show-PiOrphans -SubDir "prompts"
 # 部署时由 pi-inject-packages.js 展开成仓库绝对路径，Pi 直接从仓库加载（local 源不复制）。
 # ~\.pi\agent\packages\ 是历史自造约定，已废弃 —— 若存在旧副本请手动删除。
 
-Write-LogSuccess "Pi 配置部署完成 (copy 覆盖): $piDest"
+Write-LogSuccess (Get-I18n 'pi.done' @($piDest))

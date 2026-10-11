@@ -10,6 +10,11 @@
 #   FORCE         1 = 强制覆盖, 0 = 备份后覆盖
 #   log_info / log_warn / log_success / log_error
 
+if ! command -v i18n >/dev/null 2>&1; then
+    source "$(dirname "${BASH_SOURCE[0]}")/i18n.sh"
+    set_i18n_language "${DF_LANG:-en}"
+fi
+
 # 展开 ~ 占位符
 expand_path() {
     local p="$1"
@@ -35,7 +40,7 @@ _backup_target() {
     local dest="$1"
 
     if [ "$FORCE" = "1" ]; then
-        log_warn "[强制模式] 删除现有目标: $dest"
+        log_warn "$(i18n deploy.force_delete "$dest")"
         rm -rf "$dest"
         return 0
     fi
@@ -43,7 +48,7 @@ _backup_target() {
     local rel="${dest#"$HOME"/}"
     rel="${rel#/}"
     mkdir -p "$BACKUP_DIR/$(dirname "$rel")"
-    log_warn "备份现有目标: $dest -> $BACKUP_DIR/$rel"
+    log_warn "$(i18n deploy.backup "$dest" "$BACKUP_DIR/$rel")"
     mv "$dest" "$BACKUP_DIR/$rel"
 }
 
@@ -55,7 +60,7 @@ _clear_destination() {
         if [ "$(readlink "$dest" 2>/dev/null)" = "$src" ]; then
             return 1   # 已是正确链接，无需动作
         fi
-        log_warn "更新已有软链接: $dest"
+        log_warn "$(i18n deploy.update_link "$dest")"
         rm -f "$dest"
     elif [ -e "$dest" ]; then
         _backup_target "$dest"
@@ -69,7 +74,7 @@ link_item() {
     local src="$1" dest="$2" exclude="${3:-}"
 
     if [ ! -e "$src" ]; then
-        log_warn "源不存在，跳过: $src"
+        log_warn "$(i18n deploy.source_missing "$src")"
         return 1
     fi
 
@@ -83,7 +88,7 @@ link_item() {
             [ -e "$item" ] || continue
             bn="${item##*/}"
             case "|$exclude|" in
-                *"|$bn|"*) log_info "按 exclude 跳过: $bn"; continue ;;
+                *"|$bn|"*) log_info "$(i18n deploy.exclude "$bn")"; continue ;;
             esac
             link_item "$item" "$dest/$bn" || true
         done
@@ -91,12 +96,12 @@ link_item() {
     fi
 
     if ! _clear_destination "$src" "$dest"; then
-        log_info "软链接已正确指向: $dest"
+        log_info "$(i18n deploy.link_correct "$dest")"
         return 0
     fi
 
     ln -s "$src" "$dest"
-    log_success "已链接: $dest -> $src"
+    log_success "$(i18n deploy.linked "$dest" "$src")"
 }
 
 # copy <源> <目标> [if_missing]
@@ -106,12 +111,12 @@ copy_item() {
     local src="$1" dest="$2" if_missing="${3:-}"
 
     if [ ! -e "$src" ]; then
-        log_warn "源不存在，跳过: $src"
+        log_warn "$(i18n deploy.source_missing "$src")"
         return 1
     fi
 
     if [ -n "$if_missing" ] && [ -e "$dest" ] && [ "$FORCE" != "1" ]; then
-        log_info "目标已存在，按 ifMissing 保留不动: $dest"
+        log_info "$(i18n deploy.ifmissing "$dest")"
         return 0
     fi
 
@@ -126,7 +131,7 @@ copy_item() {
     # (Scoop persist 等场景用硬链接实现，删后重建会打断链接导致应用读到旧文件)
     if [ -f "$src" ] && [ -f "$dest" ]; then
         cat "$src" > "$dest"
-        log_success "已原地覆盖: $dest"
+        log_success "$(i18n deploy.overwrite_file "$dest")"
         return 0
     fi
 
@@ -140,7 +145,7 @@ copy_item() {
     else
         cp "$src" "$dest"
     fi
-    log_success "已覆盖复制: $dest"
+    log_success "$(i18n deploy.overwrite "$dest")"
 }
 
 # .example 模板部署: 正式目标已存在时保留原文件，模板落到 <目标>.example；
@@ -158,9 +163,9 @@ copy_example_item() {
     local src="$1" dest="$2" if_missing="${3:-}" example_dest
     example_dest="$(example_target_path "$dest")"
     if [ "$example_dest" != "$dest" ]; then
-        log_info "目标已存在，保留原文件并将模板复制为: $example_dest"
+        log_info "$(i18n deploy.example_existing "$example_dest")"
     else
-        log_info "目标不存在，使用模板创建: $dest"
+        log_info "$(i18n deploy.example_missing "$dest")"
     fi
     copy_item "$src" "$example_dest" "$if_missing"
 }
