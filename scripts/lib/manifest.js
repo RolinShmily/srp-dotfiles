@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// scripts/lib/manifest.js — Unix 侧读取 manifest.json 的唯一入口。
+// scripts/lib/manifest.js — Unix 侧读取 manifest/<os>.json 的唯一入口。
 //
 // 用法:
 //   node manifest.js get <os> <key>   打印单个键（数组逐行，对象逐行 JSON）
@@ -14,7 +14,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const MANIFEST = join(dirname(dirname(dirname(fileURLToPath(import.meta.url)))), "manifest.json");
+const MANIFEST_DIR = join(dirname(dirname(dirname(fileURLToPath(import.meta.url)))), "manifest");
 const LANG = process.env.DF_LANG === "zh" || process.env.DF_LANG === "cn" ? "zh" : "en";
 
 function text(en, zh) {
@@ -31,22 +31,22 @@ if (!action || !osName) {
   process.exit(1);
 }
 
-let manifest;
+const manifestPath = join(MANIFEST_DIR, `${osName}.json`);
+let section;
 try {
-  manifest = JSON.parse(readFileSync(MANIFEST, "utf8"));
+  section = JSON.parse(readFileSync(manifestPath, "utf8"));
 } catch (error) {
   console.error(text(
-    `Cannot read ${MANIFEST}: ${error instanceof Error ? error.message : String(error)}`,
-    `无法读取 ${MANIFEST}: ${error instanceof Error ? error.message : String(error)}`,
+    `Cannot read manifest (${manifestPath}): ${error instanceof Error ? error.message : String(error)}`,
+    `无法读取清单文件 (${manifestPath}): ${error instanceof Error ? error.message : String(error)}`,
   ));
   process.exit(2);
 }
 
-const section = manifest[osName];
 if (!section || typeof section !== "object" || Array.isArray(section)) {
   console.error(text(
-    `OS section not found in manifest.json: ${osName}`,
-    `manifest.json 中不存在 OS 段: ${osName}`,
+    `Invalid manifest format in ${manifestPath}`,
+    `清单格式无效: ${manifestPath}`,
   ));
   process.exit(2);
 }

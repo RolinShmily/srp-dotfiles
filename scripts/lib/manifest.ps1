@@ -1,37 +1,35 @@
-# scripts/lib/manifest.ps1 — 声明清单 (manifest.json) 读取库（Windows）。
+# scripts/lib/manifest.ps1 — 声明清单 (manifest/<os>.json) 读取库（Windows）。
 #
-# 唯一事实源: 仓库根目录的 manifest.json。
-# 提供四个只读函数，不做任何部署动作。
+# 唯一事实源: 仓库根目录的 manifest/<os>.json。
+# 提供三个只读函数，不做任何部署动作。
 
 if (-not (Get-Command Get-I18n -ErrorAction SilentlyContinue)) {
     . (Join-Path $PSScriptRoot "i18n.ps1")
-    Set-I18nLanguage -Language (if ($env:DF_LANG) { $env:DF_LANG } else { 'en' })
+    $bootstrapLang = if ($env:DF_LANG) { $env:DF_LANG } else { 'en' }
+    Set-I18nLanguage -Language $bootstrapLang
 }
 
-if (-not $Global:MANIFEST_PATH) {
+if (-not $Global:MANIFEST_DIR) {
     $root = if ($Global:DF_DotfilesDir) { $Global:DF_DotfilesDir }
             else { Split-Path -Parent (Split-Path -Parent $PSScriptRoot) }
-    $Global:MANIFEST_PATH = Join-Path $root "manifest.json"
+    $Global:MANIFEST_DIR = Join-Path $root "manifest"
 }
 
-function Get-Manifest {
-    if (-not $Global:MANIFEST_CACHE) {
-        if (-not (Test-Path -LiteralPath $Global:MANIFEST_PATH)) {
-            throw (Get-I18n 'manifest.notFound' @($Global:MANIFEST_PATH))
-        }
-        $Global:MANIFEST_CACHE = Get-Content -LiteralPath $Global:MANIFEST_PATH -Raw -Encoding UTF8 | ConvertFrom-Json
-    }
-    return $Global:MANIFEST_CACHE
+if (-not $Global:MANIFEST_SECTIONS) {
+    $Global:MANIFEST_SECTIONS = @{}
 }
 
 function Get-ManifestSection {
     param([Parameter(Mandatory)][string]$Os)
 
-    $m = Get-Manifest
-    if (-not $m.PSObject.Properties[$Os]) {
-        throw (Get-I18n 'manifest.sectionMissing' @($Os))
+    if (-not $Global:MANIFEST_SECTIONS.ContainsKey($Os)) {
+        $manifestPath = Join-Path $Global:MANIFEST_DIR "$Os.json"
+        if (-not (Test-Path -LiteralPath $manifestPath)) {
+            throw (Get-I18n 'manifest.notFound' @($manifestPath))
+        }
+        $Global:MANIFEST_SECTIONS[$Os] = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
     }
-    return $m.$Os
+    return $Global:MANIFEST_SECTIONS[$Os]
 }
 
 function Get-ManifestArray {

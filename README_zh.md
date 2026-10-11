@@ -9,18 +9,18 @@
 
 ---
 
-SrP-Dotfiles 采用 **单分支（`main`）+ 声明式清单（`manifest.json`）+ 极薄派发入口（`launch.sh` / `start.ps1`）+ 声明式部署层（`scripts/`）** 架构，原生深度适配 **类 Unix 系统（Arch Linux / WSL 2 / Debian / Ubuntu HomeServer/VPS / Android Termux）** 与 **Windows 宿主环境（Windows 10/11）**。
+SrP-Dotfiles 采用 **单分支（`main`）+ 解耦清单（`manifest/<os>.json`）+ 极薄派发入口（`launch.sh` / `start.ps1`）+ 声明式部署层（`scripts/`）** 架构，原生深度适配 **类 Unix 系统（Arch Linux / WSL 2 / Debian / Ubuntu HomeServer/VPS / Android Termux）** 与 **Windows 宿主环境（Windows 10/11）**。
 
 > **设计原则：入口只做派发，清单只放声明，特例才写脚本。**
-> 新增一个软件配置 = 在 `manifest.json` 的 `configs` 里加一条；只有需要多路分发等特殊逻辑时，才额外写一个部署脚本。
+> 新增一个软件配置 = 在对应系统的 `manifest/<os>.json` 的 `configs` 里加一条；只有需要多路分发等特殊逻辑时，才额外写一个部署脚本。
 
 ---
 
 ## ✨ 核心特性
 
-- 🎯 **单一真实数据源 (`manifest.json`)**：软件包、国内镜像加速源、npm 全局工具与**部署指示**集中声明。新增软件零改动脚本；新增配置项只需一条声明。
+- 🎯 **分系统独立清单 (`manifest/<os>.json`)**：每个操作系统拥有独立的 JSON 清单，软件包、国内镜像加速源、npm 全局工具与**部署指示**各司其职，无需在大清单中混杂。新增软件零改动脚本；新增配置项只需一条声明。
 - 🧩 **三个部署动词**：所有配置项收敛为 `link`（软链，改仓库即时生效）、`copy`（覆盖式复制，不备份）与 `custom`（特例脚本）三种方式，入口永不膨胀。
-- 📖 **完全可控**：想知道“有什么配置、装到哪里、怎么改”，只需读 `manifest.json` 一个文件。
+- 📖 **完全可控**：想知道“有什么配置、装到哪里、怎么改”，只需读对应系统的 `manifest/<os>.json` 单个文件。
 - 🛡️ **韧性流水线与执行审计报告**：
   - **遇错智能拦截 (Fail-and-Ask)**：网络波动或安装异常时，支持一键 `[s] 跳过`、`[r] 重试` 或 `[a] 终止`，杜绝单点报错导致流程崩溃；
   - **智能两级 `Ctrl + C` 中断**：单次按下 `Ctrl + C` 仅跳过当前卡住的子步骤并平滑继续下一步；1.2 秒内连按两次 `Ctrl + C` 彻底安全终止并立即打印全量审计报表；
@@ -43,7 +43,7 @@ SrP-Dotfiles 采用 **单分支（`main`）+ 声明式清单（`manifest.json`�
 
 ```text
 srp-dotfiles/
-├── manifest.json          # 🧠 核心大脑：全平台依赖、镜像源、部署指示的唯一声明清单
+├── manifest/              # 🧠 分系统声明清单 (arch.json, debian-vps.json, windows.json ...)
 │
 ├── 🚀 极薄派发入口 (解析清单 → 逐条派发 → 审计账本)
 │   ├── launch.sh          # Unix 入口 (~650 行)
@@ -56,7 +56,7 @@ srp-dotfiles/
 │       │   ├── deploy.ps1            # Windows 部署动词: link / copy
 │       │   ├── manifest.js           # Unix 清单读取 (node)
 │       │   ├── manifest.ps1          # Windows 清单读取 (ConvertFrom-Json)
-│       │   └── pi-inject-packages.js # 展开 @repo 令牌并写入 settings 的 packages
+│       │   └── pi-inject-resources.js # 展开 @repo 令牌并写入 Pi settings 资源
 │       └── configs/                  # 特例配置项（「谁」，每个 method:custom 一条）
 │           ├── pi.sh                 # 对应 manifest 里 { "name": "pi", "method": "custom" }
 │           └── pi.ps1
@@ -161,7 +161,7 @@ cd ~/.dotfiles
 # 全量自动化流水线：环境依赖安装 + 配置覆盖部署
 .\start.ps1 all
 
-# 仅安装系统依赖与工具 (基于 manifest.json 的 windows 段)
+# 仅安装系统依赖与工具 (基于 manifest/windows.json)
 .\start.ps1 install
 
 # 仅部署并同步配置文件 (WezTerm + PowerShell Profile 等)
@@ -215,14 +215,17 @@ cd ~/.dotfiles
 
 ## 🛠️ 进阶定制与扩展
 
-### 1. 加一个软件依赖 (`manifest.json` → 各 OS 段的 `packages` / `scoopPackages` …)
+### 1. 加一个软件依赖 (`manifest/<os>.json` → `packages` / `scoopPackages` …)
 
 ```json
-"arch":    { "packages": ["zsh", "eza", "ripgrep"] }
-"windows": { "wingetPackages": ["wez.wezterm"], "scoopPackages": ["sox", "fzf"] }
+// manifest/arch.json
+{ "packages": ["zsh", "eza", "ripgrep"] }
+
+// manifest/windows.json
+{ "wingetPackages": ["wez.wezterm"], "scoopPackages": ["sox", "fzf"] }
 ```
 
-### 2. 加一个配置项 (`manifest.json` → 各 OS 段的 `configs`)
+### 2. 加一个配置项 (`manifest/<os>.json` → `configs`)
 
 在对应 OS 的 `configs` 数组里追加一条即可，**不需要动任何脚本**：
 
@@ -269,54 +272,39 @@ bash scripts/configs/pi.sh
 | 配置项 | 动词 | 落地形态 |
 | :--- | :--- | :--- |
 | `zshrc` / `vimrc` / `btop` / `fastfetch` / `yazi` / `zellij` / `tmux` | `link` | `~/.config/<name>` 一条指向仓库的软链，改仓库即时生效 |
-| `pi` | `custom` | `~/.pi/agent/` 下为真实副本；`.example` 模板先检查正式目标是否存在，存在则保留并旁存模板 |
+| `pi` | `custom` | 初始化 Pi 模板，并注入当前 OS 的 `packages` / `extensions` / `skills` / `prompts` 路径 |
 | `windows-terminal-settings` | `custom` | 局部覆盖 Windows Terminal 设置，保留机器生成的 `defaultProfile` / `profiles.list` |
 
 Windows Terminal 不使用普通的整文件 `copy`：模板不声明机器相关的 `defaultProfile` 和 `profiles.list`；目标已有 `settings.json` 时，只递归覆盖模板中声明的字段，并保留目标中其他未声明字段。目标不存在时才直接用模板创建。
 
-Pi 的配置模板按正式 JSON 是否已存在来部署：
-
-- 正式 JSON **不存在**：去掉 `.example` 后缀，创建 `settings.json`、`mcp.json` 或 `keybindings.json`。
-- 正式 JSON **已存在**：保留用户文件不动，把模板复制为同目录的 `*.json.example`。
-- 只有新生成的 `settings.json` 才会注入 manifest 的 `piPackages`；已有配置旁的示例文件保持模板原样。
-
-同一规则也适用于 `code/settings.json.example`（目标为 Windows 的 `%APPDATA%/Code/User/settings.json`）。如果旁边已有 `*.json.example`，部署会用仓库模板更新该示例文件，不会覆盖正式 JSON。
-
-即：对于 Pi，新建时 `settings.json` 的 `packages` 由 manifest 决定；已有配置不会被合并或改写。Windows Terminal 是例外：它使用上文所述的局部覆盖策略。
-仓库里删掉一个 skill/extension 后，目标目录里的旧副本**不会自动删除**，部署时会打印一行 `目标里存在仓库中已不存在的项` 提醒你手动清理。
-
-#### 本地 Pi 包不复制
-
-| 包类型 | Pi 如何存放 | 我们的做法 |
-| :--- | :--- | :--- |
-| `npm:` | Pi 自己装到 `~/.pi/agent/npm/node_modules/` | manifest 里写源即名称 |
-| `https://` / `git:` | Pi 自己 clone 到 `~/.pi/agent/git/<host>/<repo>` | manifest 里写 URL |
-| **本地路径** | **原地加载，不复制** | manifest 里写 `@repo/pi/packages/pi-learn` |
-
-`@repo/` 是部署时展开的令牌（由 `pi-inject-packages.js` 处理），展开成仓库绝对路径，
-所以 clone 到哪里都不会失效。改仓库里的包代码，重启 Pi 即时生效（无需重新部署）。
-
-> Pi **不会**扫描 `~/.pi/agent/packages/` 这类目录 —— 包只能通过 `settings.json` 的 `packages` 字段声明。
-> 早期版本曾把本地包复制到该目录，现已废弃。
-
-##### 想用仓库里自带的本地包？
-
-`pi/packages/pi-learn` 体积较大且包含内置 subagents 子模块，所以**有意不写进** `manifest.json` 的 `piPackages`，
-全新部署不会加载它。需要时把它加回你部署的那个 OS 段：
+Pi 部署时会生成初始的 `settings.json`，并注入所选 OS 对应的 `piResources`：
 
 ```jsonc
-// manifest.json
-"piPackages": [
-  // 加上你要用的那个包：
-  "@repo/pi/packages/pi-learn",
-  "npm:context-mode",
-  "npm:pi-antigravity"
-]
+"piResources": {
+  "packages": ["npm:pi-antigravity", "@repo/pi/packages/pi-learn"],
+  "extensions": ["@repo/pi/extensions/subagent"],
+  "skills": ["@repo/pi/skills"],
+  "prompts": ["@repo/pi/prompts"]
+}
 ```
 
-`@repo/` 在部署时展开成 clone 实际所在的路径，所以这行不绑机器。它只会写进**新生成**的
-`settings.json`；已存在的会被原样保留，所以要么手动把展开后的绝对路径加进它的 `packages`
-数组，要么删掉该文件重新部署，然后重启 pi。
+`@repo/` 由 `pi-inject-resources.js` 在部署时展开为仓库绝对路径。因此仓库内本地资源直接从本地仓库加载，无需复制，也无需在 `~/.pi/agent/` 下建软链。
+外部 Agent Skills（`skillsAdd`）依然通过 `skills` CLI 单独安装到 `~/.pi/agent/skills`。
+
+| 资源类型 | Pi setting 字段 | 部署行为 |
+| :--- | :--- | :--- |
+| 外部 / 本地 Pi 包 | `packages` | 由 Pi 自行管理 npm、Git 及本地包源 |
+| 仓库内置扩展 | `extensions` | Pi 直接按绝对路径从仓库加载 |
+| 仓库内置技能 | `skills` | Pi 直接按绝对路径从仓库加载 |
+| 仓库内置 Prompt | `prompts` | Pi 直接按绝对路径从仓库加载 |
+| 外部 Agent Skills | `skillsAdd` | 由 `skills` CLI 独立安装 |
+
+在全新的单次部署流程中，脚本基于模板生成 `settings.json` 并一次性写入上述四个字段。历史环境不在此次自动化迁移范围内，可按需自行清理旧副本。
+
+#### 本地 Pi 包与资源直接加载
+
+`@repo/` 是部署时展开的令牌，因此同一份 manifest 在任意目录克隆后都能正常工作。
+Pi 接收解析后的绝对路径并原地加载本地包或资源，无需 `~/.pi/agent/packages/` 副本，也无需建软链接。
 
 #### MCP 配置走 pi 内置实现
 
@@ -324,7 +312,7 @@ pi 已内置 MCP，读取 `~/.pi/agent/mcp.json`（项目级为 `.pi/mcp.json`�
 `pi/mcp.json.example` 在目标 `mcp.json` 不存在时生成该文件；若已存在，则模板另存为同目录的 `mcp.json.example`。
 
 > ⚠️ 安装 `pi-mcp-adapter` 扩展会**顶掉内置支持** —— pi 就不再读 `mcp.json`，`/mcp` 也归该扩展。
-> 所以 `piPackages` 里不再包含它。旧的 `~/.config/mcp/mcp.json` 是**适配器的路径，内置实现不读**，已废弃。
+> 所以 `piResources.packages` 里不再包含它。旧的 `~/.config/mcp/mcp.json` 是**适配器的路径，内置实现不读**，已废弃。
 
 密钥不要写进仓库：`env` 支持 `${VAR}` 引用，例如 `"MINERU_API_TOKEN": "${MINERU_API_TOKEN}"`，
 真实值放 `~/.zshrc.local`。变量未设置时 pi 会在 `pi mcp list` 里明确报错，不会静默使用占位符。

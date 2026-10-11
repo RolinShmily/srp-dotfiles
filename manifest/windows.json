@@ -1,0 +1,169 @@
+{
+  "packageManagers": [
+    "winget",
+    "scoop"
+  ],
+  "wingetPackages": [
+    "Microsoft.PowerShell",
+    "Git.Git",
+    "JanDeDobbeleer.OhMyPosh",
+    "GitHub.cli",
+    "Fastfetch-cli.Fastfetch",
+    "sxyazi.yazi",
+    "Gyan.FFmpeg",
+    "7zip.7zip",
+    "jqlang.jq",
+    "oschwartz10612.Poppler",
+    "sharkdp.fd",
+    "BurntSushi.ripgrep.MSVC",
+    "junegunn.fzf",
+    "ajeetdsouza.zoxide",
+    "ImageMagick.ImageMagick",
+    "sharkdp.bat",
+    "tldr-pages.tlrc"
+  ],
+  "scoopBuckets": [
+    "main = https://mirror.nju.edu.cn/git/scoop-main.git",
+    "extras = https://mirror.nju.edu.cn/git/scoop-extras.git",
+    "versions = https://mirror.nju.edu.cn/git/scoop-versions.git",
+    "nerd-fonts = https://mirror.nju.edu.cn/git/scoop-nerd-fonts.git/",
+    "dorado = https://github.com/chawyehsu/dorado"
+  ],
+  "scoopPackages": [
+    "aria2",
+    "vim",
+    "nodejs-lts",
+    "sox",
+    "curl",
+    "Maple-Mono-NF-CN",
+    "btop",
+    "zellij",
+    "notepad3",
+    "vscode",
+    "eza",
+    "uv",
+    "lazygit"
+  ],
+  "npmGlobals": [
+    "@earendil-works/pi-coding-agent",
+    "@antfu/ni",
+    "live-server"
+  ],
+  "pythonManager": "uv",
+  "skillsAdd": [
+    "QingYunA/answer-me-with-html"
+  ],
+  "configs": [
+    {
+      "name": "vimrc",
+      "method": "copy",
+      "source": "vim/vimrc",
+      "target": "~/_vimrc"
+    },
+    {
+      "name": "wezterm-bg",
+      "method": "copy",
+      "source": "wezterm/background.png",
+      "target": "~/.config/wezterm/background.png"
+    },
+    {
+      "name": "wezterm-conf",
+      "method": "copy",
+      "source": "wezterm/wezterm.lua",
+      "target": "~/.config/wezterm/wezterm.lua"
+    },
+    {
+      "name": "powershell",
+      "method": "copy",
+      "source": "powershell/profile.ps1",
+      "target": "$PROFILE"
+    },
+    {
+      "name": "zellij",
+      "method": "copy",
+      "source": "zellij",
+      "target": "%APPDATA%/Zellij/config"
+    },
+    {
+      "name": "yazi",
+      "method": "copy",
+      "source": "yazi",
+      "target": "%APPDATA%/yazi/config"
+    },
+    {
+      "name": "fastfetch",
+      "method": "copy",
+      "source": "fastfetch",
+      "target": "~/.config/fastfetch"
+    },
+    {
+      "name": "btop-persist-conf",
+      "method": "copy",
+      "source": "btop/btop-win.conf",
+      "target": "$SCOOP/persist/btop/btop.conf",
+      "when": "$SCOOP/persist/btop"
+    },
+    {
+      "name": "btop-persist-themes",
+      "method": "copy",
+      "source": "btop/themes",
+      "target": "$SCOOP/persist/btop/themes",
+      "when": "$SCOOP/persist/btop"
+    },
+    {
+      "name": "code-resources",
+      "method": "copy",
+      "source": "code",
+      "exclude": [
+        "settings.json.example"
+      ],
+      "target": "~/.config/code"
+    },
+    {
+      "name": "code-settings",
+      "method": "copy",
+      "source": "code/settings.json.example",
+      "target": "%APPDATA%/Code/User/settings.json"
+    },
+    {
+      "name": "windows-terminal-settings",
+      "method": "custom",
+      "when": "%LOCALAPPDATA%/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState"
+    },
+    {
+      "name": "pi",
+      "method": "custom"
+    }
+  ],
+  "piResources": {
+    "packages": [
+      "npm:@upstash/context7-pi",
+      "npm:@narumitw/pi-btw",
+      "npm:pi-antigravity",
+      "npm:pi-wakatime",
+      "@repo/pi/packages/pi-learn",
+      "https://github.com/cathrynlavery/diagram-design"
+    ],
+    "extensions": [
+      "@repo/pi/extensions/ask-u-questions.ts",
+      "@repo/pi/extensions/continue-signal.ts",
+      "@repo/pi/extensions/prompt-snipaste.ts",
+      "@repo/pi/extensions/srp-theme.ts",
+      "@repo/pi/extensions/tui-asr.ts",
+      "@repo/pi/extensions/web-reach.ts",
+      "@repo/pi/extensions/model-vision.ts",
+      "@repo/pi/extensions/screenshot.ts",
+      "@repo/pi/extensions/custom-providers",
+      "@repo/pi/extensions/image-generate.ts",
+      "@repo/pi/extensions/memory-log",
+      "@repo/pi/extensions/oai-subquota.ts",
+      "@repo/pi/extensions/windows-wheel-fix.ts"
+    ],
+    "skills": [
+      "@repo/pi/skills"
+    ],
+    "prompts": [
+      "@repo/pi/prompts"
+    ]
+  }
+}

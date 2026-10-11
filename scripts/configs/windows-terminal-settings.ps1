@@ -16,7 +16,8 @@ $ErrorActionPreference = "Stop"
 
 if (-not (Get-Command Get-I18n -ErrorAction SilentlyContinue)) {
     . (Join-Path $PSScriptRoot "..\lib\i18n.ps1")
-    Set-I18nLanguage -Language (if ($env:DF_LANG) { $env:DF_LANG } else { 'en' })
+    $bootstrapLang = if ($env:DF_LANG) { $env:DF_LANG } else { 'en' }
+    Set-I18nLanguage -Language $bootstrapLang
 }
 
 if (-not (Get-Command Write-LogInfo -ErrorAction SilentlyContinue)) {

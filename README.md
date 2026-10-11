@@ -9,18 +9,18 @@
 
 ---
 
-SrP-Dotfiles utilizes a **Single Branch (`main`) + Declarative Manifest (`manifest.json`) + Thin Dispatch Entrypoints (`launch.sh` / `start.ps1`) + Declarative Deploy Layer (`scripts/`)** architecture. It provides first-class native support for both **Unix-like environments (Arch Linux, WSL 2, Debian/Ubuntu HomeServer/VPS, Android Termux)** and **Windows host systems (Windows 10/11)**.
+SrP-Dotfiles utilizes a **Single Branch (`main`) + Declarative Manifests (`manifest/<os>.json`) + Thin Dispatch Entrypoints (`launch.sh` / `start.ps1`) + Declarative Deploy Layer (`scripts/`)** architecture. It provides first-class native support for both **Unix-like environments (Arch Linux, WSL 2, Debian/Ubuntu HomeServer/VPS, Android Termux)** and **Windows host systems (Windows 10/11)**.
 
 > **Design principle: entrypoints only dispatch, the manifest only declares, and only special cases get a script.**
-> Adding a new app config = adding one entry to `configs` in `manifest.json`; a dedicated deploy script is needed only for multi-target routing or other special logic.
+> Adding a new app config = adding one entry to `configs` in `manifest/<os>.json`; a dedicated deploy script is needed only for multi-target routing or other special logic.
 
 ---
 
 ## ✨ Key Features
 
-- 🎯 **Single Source of Truth (`manifest.json`)**: Packages, domestic mirrors, global npm tools and **deployment instructions** declared in one place. New packages need zero script changes; new config entries need exactly one line.
+- 🎯 **Decoupled Declarative Manifests (`manifest/<os>.json`)**: Packages, domestic mirrors, global npm tools and **deployment instructions** declared per OS profile. New packages need zero script changes; new config entries need exactly one line.
 - 🧩 **Three Deploy Verbs**: Every config entry collapses into `link` (symlink, edits apply live), `copy` (overwrite copy, no backup), or `custom` (special-case script). The entrypoints never grow.
-- 📖 **Fully Controllable**: To answer “what exists, where does it go, how do I change it”, you only read `manifest.json`.
+- 📖 **Fully Controllable**: To answer “what exists, where does it go, how do I change it”, you only read `manifest/<os>.json`.
 - 🛡️ **Resilient Pipeline & Execution Audit**:
   - **Fail-and-Ask Error Handling**: When network timeouts or command errors occur, choose `[s] Skip`, `[r] Retry`, or `[a] Abort` on the fly to prevent pipeline crashes.
   - **Two-Stage `Ctrl + C` Interrupt**: Single press `Ctrl + C` skips the current hanging step and continues the pipeline; press `Ctrl + C` twice within 1.2s to cleanly abort and immediately print the full audit summary.
@@ -43,7 +43,7 @@ SrP-Dotfiles utilizes a **Single Branch (`main`) + Declarative Manifest (`manife
 
 ```text
 srp-dotfiles/
-├── manifest.json          # 🧠 Central brain: packages, buckets & deploy instructions
+├── manifest/              # 🧠 OS profile manifests (arch.json, debian-vps.json, windows.json ...)
 │
 ├── 🚀 Thin Dispatch Entrypoints (parse manifest → dispatch → audit ledger)
 │   ├── launch.sh          # Unix entrypoint (~650 lines)
@@ -56,7 +56,7 @@ srp-dotfiles/
 │       │   ├── deploy.ps1            # Windows deploy verbs: link / copy
 │       │   ├── manifest.js           # Unix manifest reader (node)
 │       │   ├── manifest.ps1          # Windows manifest reader (ConvertFrom-Json)
-│       │   └── pi-inject-packages.js # Expands @repo tokens into settings.packages
+│       │   └── pi-inject-resources.js # Expands @repo tokens into Pi settings resources
 │       └── configs/                  # Special-case configs ("who"; one per method:custom)
 │           ├── pi.sh                 # Matches { "name": "pi", "method": "custom" }
 │           └── pi.ps1
@@ -161,7 +161,7 @@ Or run directly with subcommands:
 # Full pipeline: install tools & deploy configs (overwrite copy)
 .\start.ps1 all
 
-# Install tools only (based on the windows section of manifest.json)
+# Install tools only (based on manifest/windows.json)
 .\start.ps1 install
 
 # Deploy configs only (WezTerm, PowerShell Profile, etc.)
@@ -215,14 +215,17 @@ Or run directly with subcommands:
 
 ## 🛠️ Advanced Customization
 
-### 1. Add a Package (`manifest.json` → per-OS `packages` / `scoopPackages` …)
+### 1. Add a Package (`manifest/<os>.json` → `packages` / `scoopPackages` …)
 
 ```json
-"arch":    { "packages": ["zsh", "eza", "ripgrep"] }
-"windows": { "wingetPackages": ["wez.wezterm"], "scoopPackages": ["sox", "fzf"] }
+// manifest/arch.json
+{ "packages": ["zsh", "eza", "ripgrep"] }
+
+// manifest/windows.json
+{ "wingetPackages": ["wez.wezterm"], "scoopPackages": ["sox", "fzf"] }
 ```
 
-### 2. Add an App Config (`manifest.json` → per-OS `configs`)
+### 2. Add an App Config (`manifest/<os>.json` → `configs`)
 
 Append one entry to that OS's `configs` array — **no script changes required**:
 
@@ -269,57 +272,43 @@ bash scripts/configs/pi.sh
 | Config entry | Verb | Resulting form |
 | :--- | :--- | :--- |
 | `zshrc` / `vimrc` / `btop` / `fastfetch` / `yazi` / `zellij` / `tmux` | `link` | One symlink under `~/.config/<name>` pointing at the repo; edits apply live |
-| `pi` | `custom` | Real copies under `~/.pi/agent/`; `.example` templates check for the destination JSON and preserve it when present |
+| `pi` | `custom` | Initializes Pi JSON templates and injects OS-specific `packages` / `extensions` / `skills` / `prompts` paths |
 | `windows-terminal-settings` | `custom` | Partially overwrites Windows Terminal settings while preserving machine-generated `defaultProfile` / `profiles.list` |
-| `piCliLinks` (inside `pi`) | `link` | `~/.pi/agent/bin/<name>` symlinks pointing at the **deployed** extension copy, so a CLI and the extension pi loads never drift apart |
 
 Windows Terminal does not use a normal whole-file `copy`: the template omits machine-specific `defaultProfile` and `profiles.list`. When the target `settings.json` exists, only fields declared by the template are recursively overwritten; all other target fields are preserved. A missing target is created directly from the template.
 
-Pi's configuration templates check whether the destination JSON already exists:
-
-- If the JSON is **missing**, the template is copied without `.example` to create `settings.json`, `mcp.json`, or `keybindings.json`.
-- If the JSON **exists**, it is preserved and the template is copied beside it as `*.json.example`.
-- `piPackages` is injected only into a newly generated `settings.json`; the sidecar example remains an untouched copy of the template.
-
-The same rule applies to `code/settings.json.example` (Windows target: `%APPDATA%/Code/User/settings.json`). If a `*.json.example` sidecar already exists, it is refreshed from the repository template; the actual JSON remains untouched.
-
-So for Pi: **new `settings.json` files get `packages` from the manifest; existing configuration is never merged or rewritten.** Windows Terminal is the exception described above and uses partial overwrite semantics.
-After deleting a skill/extension from the repo, the stale copy in the target is **not deleted automatically** — the deploy prints a `目标里存在仓库中已不存在的项` line so you can clean it up deliberately.
-
-#### Local Pi packages are not copied
-
-| Package type | Where Pi stores it | What we declare |
-| :--- | :--- | :--- |
-| `npm:` | Pi installs into `~/.pi/agent/npm/node_modules/` | the npm source name |
-| `https://` / `git:` | Pi clones into `~/.pi/agent/git/<host>/<repo>` | the URL |
-| **Local path** | **loaded in place, never copied** | `@repo/pi/packages/pi-learn` |
-
-`@repo/` is a deploy-time token expanded by `pi-inject-packages.js` into the absolute repo path,
-so it survives cloning anywhere. Edit the package in the repo and restart Pi — no redeploy needed.
-
-> Pi does **not** scan something like `~/.pi/agent/packages/` — packages can only be declared through the
-> `packages` field in `settings.json`. Earlier versions copied local packages into that directory; that is now gone.
-
-##### Enabling a bundled local package
-
-The `pi-learn` package under `pi/packages/` (which bundles its own `subagents` runtime) is large, so it is deliberately **not** listed in
-`manifest.json`'s `piPackages` and a fresh deploy will not load it. To use it, add it back to the
-OS section you deploy:
+Pi deployment initializes a fresh `settings.json` and injects the selected OS profile's `piResources`:
 
 ```jsonc
-// manifest.json
-"piPackages": [
-  // add the package:
-  "@repo/pi/packages/pi-learn",
-  "npm:context-mode",
-  "npm:pi-antigravity"
-]
+"piResources": {
+  "packages": ["npm:pi-antigravity", "@repo/pi/packages/pi-learn"],
+  "extensions": ["@repo/pi/extensions/subagent"],
+  "skills": ["@repo/pi/skills"],
+  "prompts": ["@repo/pi/prompts"]
+}
 ```
 
-`@repo/` is expanded to the real clone path at deploy time, so the line stays machine-independent.
-It only reaches a **newly created** `settings.json`; an existing one is preserved as-is, so either add
-the resolved absolute path to its `packages` array by hand or delete the file and redeploy, then
-restart pi.
+`@repo/` is expanded by `pi-inject-resources.js` into an absolute repository path. Local resources are
+therefore loaded directly from the checkout; they are not copied or linked into `~/.pi/agent/`.
+External `skillsAdd` entries are still installed by the `skills` CLI into `~/.pi/agent/skills`.
+
+| Resource type | Pi setting | Deployment behavior |
+| :--- | :--- | :--- |
+| External/local Pi packages | `packages` | Pi manages npm, Git and local package sources |
+| Repository extensions | `extensions` | Pi loads paths directly from the checkout |
+| Repository skills | `skills` | Pi loads paths directly from the checkout |
+| Repository prompts | `prompts` | Pi loads paths directly from the checkout |
+| External Agent Skills | `skillsAdd` | Installed separately by the `skills` CLI |
+
+For the one-shot deployment flow, the generated `settings.json` is written from the repository template
+and the four resource fields are injected for the selected OS. Existing installations are intentionally
+outside this migration path and can be cleaned up manually.
+
+#### Local Pi packages and resources
+
+`@repo/` is a deploy-time token, so the same manifest works after cloning the repository elsewhere.
+Pi receives the resolved absolute path and loads the local package or resource in place; no
+`~/.pi/agent/packages/` copy and no resource symlink are needed.
 
 #### MCP Config Uses pi's Built-in Implementation
 
@@ -327,7 +316,7 @@ pi ships with built-in MCP and reads `~/.pi/agent/mcp.json` (project-level: `.pi
 This repo's `pi/mcp.json.example` creates `mcp.json` when it is missing; if it already exists, the template is saved as `mcp.json.example` beside it.
 
 > ⚠️ Installing the `pi-mcp-adapter` extension **replaces the built-in support** — pi then stops
-> reading `mcp.json` and `/mcp` belongs to the extension. That is why `piPackages` no longer includes it.
+> reading `mcp.json` and `/mcp` belongs to the extension. That is why `piResources.packages` no longer includes it.
 > The old `~/.config/mcp/mcp.json` is the **adapter's** path, which the built-in never reads; it is deprecated.
 
 Never commit secrets: `env` supports `${VAR}` references, e.g. `"MINERU_API_TOKEN": "${MINERU_API_TOKEN}"`,
@@ -336,23 +325,6 @@ instead of silently sending a placeholder.
 
 `~/.pi/agent/mcp.json` is also written by pi itself (`/mcp` UI, `pi mcp add/remove`). If it exists,
 deployment preserves it and saves the repository template as `mcp.json.example` beside it.
-
-#### Extension CLIs are exposed on `PATH` (`piCliLinks`)
-
-Some extensions ship a command-line entry point next to their Pi tool. `subagent`, for example,
-ships `subagent.ts` (`spawn` / `status` / `send` / `wait` / `stop` / `list`) which its bundled skill
-invokes through bash. Such commands are declared per OS:
-
-```json
-"piCliLinks": ["subagent=extensions/subagent/subagent.ts"]
-```
-
-Each entry becomes a symlink under `~/.pi/agent/bin/` — a directory pi already prepends to the bash
-tool's `PATH`. The link points at the **deployed** copy rather than the repository source: the CLI
-writes the run metadata that the loaded extension reads, so both sides must always be the same build.
-
-Unix only for now. Windows would need a `.cmd` shim instead of a symlink, so `piCliLinks` is omitted
-from the `windows` section.
 
 ### 5. Intelligent Two-Stage `Ctrl + C` Interrupt
 Both `./launch.sh` and `.\start.ps1` feature a built-in signal state machine:

@@ -1,15 +1,9 @@
-# scripts/configs/pi.ps1 — Pi Coding Agent 配置部署（Windows）。
+# scripts/configs/pi.ps1 — Pi 配置初始化（Windows）。
 #
-# 部署策略: 全部 copy 覆盖，不做备份、不做比对。
-#   pi\ 目录扇出到 ~\.pi\agent\ 下的四个位置，
-#   pi\extensions 按 manifest.json 的 piExtensions 白名单过滤，
-#   .example 配置先检查正式目标：不存在时生成 JSON，存在时保留并旁存 .json.example；
-#   仅新生成的 settings.json 会注入 manifest 的 piPackages。
+# Pi 的本地 resources 直接指向仓库绝对路径，不复制、不软链接：
+#   manifest.<os>.piResources -> pi-inject-resources.js -> settings.json
+# 外部 skills 仍由安装阶段的 skillsAdd 负责安装到 ~/.pi/agent/skills。
 #
-# 注意: pi\packages\ 下的本地包**不部署**。manifest 的 piPackages 里写
-#   @repo/pi/packages/<name>，由 pi-inject-packages.js 展开成仓库绝对路径，Pi 直接从仓库加载。
-#
-# 独立运行: .\scripts\configs\pi.ps1
 # 入口调用: & <本脚本> -DotfilesDir <仓库根> -BackupDir <备份目录> -ManifestOs windows -Force:<bool>
 
 [CmdletBinding()]
@@ -44,9 +38,9 @@ if (-not (Get-Command Write-LogInfo -ErrorAction SilentlyContinue)) {
     function Write-LogError   { param([string]$Msg) Write-Host "[FAIL] $Msg" }
 }
 
-$piSrc  = Join-Path $Global:DF_DotfilesDir "pi"
+$piSrc = Join-Path $Global:DF_DotfilesDir "pi"
 $piDest = Join-Path $env:USERPROFILE ".pi\agent"
-$injectJs = Join-Path $Global:DF_DotfilesDir "scripts\lib\pi-inject-packages.js"
+$injectJs = Join-Path $Global:DF_DotfilesDir "scripts\lib\pi-inject-resources.js"
 
 if (-not (Test-Path -LiteralPath $piSrc)) {
     Write-LogWarn (Get-I18n 'pi.noSource' @($piSrc))
@@ -57,63 +51,6 @@ if (-not (Test-Path -LiteralPath $piDest)) {
     New-Item -ItemType Directory -Path $piDest -Force | Out-Null
 }
 
-# 目标里存在、仓库里没有的项：只提示不删除
-function Show-PiOrphans {
-    param([Parameter(Mandatory)][string]$SubDir)
-
-    $srcDir  = Join-Path $piSrc $SubDir
-    $destDir = Join-Path $piDest $SubDir
-    if (-not (Test-Path -LiteralPath $destDir)) { return }
-
-    $orphans = @(Get-ChildItem -LiteralPath $destDir -Force | Where-Object {
-        -not (Test-Path -LiteralPath (Join-Path $srcDir $_.Name))
-    } | ForEach-Object { $_.Name })
-
-    if ($orphans.Count -gt 0) {
-        Write-LogWarn (Get-I18n 'pi.orphans' @($SubDir, ($orphans -join ', ')))
-    }
-}
-
-# 把 $piSrc\<子目录> 的每个子项覆盖复制到 $piDest\<子目录>\
-function Copy-PiEachItem {
-    param(
-        [Parameter(Mandatory)][string]$SubDir,
-        [string[]]$AllowedNames = @()
-    )
-
-    $srcDir  = Join-Path $piSrc $SubDir
-    $destDir = Join-Path $piDest $SubDir
-    if (-not (Test-Path -LiteralPath $srcDir)) { return }
-
-    if (-not (Test-Path -LiteralPath $destDir)) {
-        New-Item -ItemType Directory -Path $destDir -Force | Out-Null
-    }
-
-    Get-ChildItem -LiteralPath $srcDir | ForEach-Object {
-        if ($AllowedNames.Count -gt 0 -and ($AllowedNames -notcontains $_.Name)) { return }
-        Deploy-CopyItem -Source $_.FullName -Target (Join-Path $destDir $_.Name) `
-                        -Name "Pi $SubDir [$($_.Name)]" -BackupDir $Global:DF_BackupDir | Out-Null
-    }
-}
-
-# 白名单语义: extensions 目录里不在白名单的项一律清理。
-# skills / prompts / agents 无白名单，所以只警告孤儿，不删。
-function Remove-PiNonAllowlisted {
-    param([string[]]$AllowedNames = @())
-
-    if ($AllowedNames.Count -eq 0) { return }
-
-    $destDir = Join-Path $piDest "extensions"
-    if (-not (Test-Path -LiteralPath $destDir)) { return }
-
-    Get-ChildItem -LiteralPath $destDir -Force | ForEach-Object {
-        if ($AllowedNames -notcontains $_.Name) {
-            Write-LogWarn (Get-I18n 'pi.extensionPruned' @($_.Name))
-            Remove-TargetEntry -Target $_.FullName
-        }
-    }
-}
-
 # ---------- 1. 全局规范 ----------
 $agentsMd = Join-Path $piSrc "AGENTS.md"
 if (Test-Path -LiteralPath $agentsMd) {
@@ -121,58 +58,31 @@ if (Test-Path -LiteralPath $agentsMd) {
                     -Name "Pi AGENTS.md" -BackupDir $Global:DF_BackupDir | Out-Null
 }
 
-# ---------- 2. settings.json: 目标不存在时生成；已存在时保留并部署 example ----------
+# ---------- 2. settings.json：一次性创建并注入完整资源集合 ----------
 $settingsExample = Join-Path $piSrc "settings.json.example"
+$settingsTarget = Join-Path $piDest "settings.json"
 if (Test-Path -LiteralPath $settingsExample) {
-    $settingsTarget = Join-Path $piDest "settings.json"
-    $settingsDeployTarget = Get-ExampleTarget -Target $settingsTarget
-    Deploy-CopyItem -Source $settingsExample -Target $settingsDeployTarget `
+    Deploy-CopyItem -Source $settingsExample -Target $settingsTarget `
                     -Name "Pi settings.json" -BackupDir $Global:DF_BackupDir | Out-Null
 
-    if ($settingsDeployTarget -eq $settingsTarget) {
-        $piPackages = @(Get-ManifestArray -Os $ManifestOs -Key "piPackages")
-        if ($piPackages.Count -gt 0 -and (Test-Path -LiteralPath $injectJs)) {
-            if (Get-Command node -ErrorAction SilentlyContinue) {
-                & node $injectJs $settingsTarget @piPackages
-            } else {
-                Write-LogWarn (Get-I18n 'pi.missingNode')
-            }
-        } else {
-            Write-LogInfo (Get-I18n 'pi.packagesEmpty')
-        }
-    } else {
-        Write-LogInfo (Get-I18n 'pi.settingsKeep')
+    if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
+        throw "Node.js is required to inject Pi resources: $injectJs"
     }
+    & node $injectJs $settingsTarget $ManifestOs
 }
 
-# ---------- 2b. mcp.json: 目标不存在时生成；已存在时部署 example ----------
-# pi 也会写入 mcp.json（/mcp 界面、pi mcp add/remove）；已有配置会保留，模板另存为 example。
+# ---------- 3. Pi 自己维护的 JSON 配置 ----------
+# mcp.json / keybindings.json 已存在时保留，模板旁存为 .example。
 $mcpExample = Join-Path $piSrc "mcp.json.example"
 if (Test-Path -LiteralPath $mcpExample) {
     Deploy-CopyExampleItem -Source $mcpExample -Target (Join-Path $piDest "mcp.json") `
                            -Name "Pi mcp.json" -BackupDir $Global:DF_BackupDir | Out-Null
 }
 
-# ---------- 2c. keybindings.json: 目标不存在时生成；已存在时部署 example ----------
 $keybindingsExample = Join-Path $piSrc "keybindings.json.example"
 if (Test-Path -LiteralPath $keybindingsExample) {
     Deploy-CopyExampleItem -Source $keybindingsExample -Target (Join-Path $piDest "keybindings.json") `
                            -Name "Pi keybindings.json" -BackupDir $Global:DF_BackupDir | Out-Null
 }
-
-# ---------- 3. extensions（按 manifest 白名单过滤） ----------
-$allowedExt = @(Get-ManifestArray -Os $ManifestOs -Key "piExtensions")
-Copy-PiEachItem -SubDir "extensions" -AllowedNames $allowedExt
-Remove-PiNonAllowlisted -AllowedNames $allowedExt
-
-# ---------- 4. skills / prompts ----------
-# agents 由 pi-learn 包自带并在每次会话通过 syncAgents() 自动同步到目标目录
-Copy-PiEachItem -SubDir "skills";  Show-PiOrphans -SubDir "skills"
-Copy-PiEachItem -SubDir "prompts"; Show-PiOrphans -SubDir "prompts"
-
-# ---------- 5. packages ----------
-# 本地 Pi 包**不做复制**。manifest 的 piPackages 里写 @repo/pi/packages/<name>，
-# 部署时由 pi-inject-packages.js 展开成仓库绝对路径，Pi 直接从仓库加载（local 源不复制）。
-# ~\.pi\agent\packages\ 是历史自造约定，已废弃 —— 若存在旧副本请手动删除。
 
 Write-LogSuccess (Get-I18n 'pi.done' @($piDest))

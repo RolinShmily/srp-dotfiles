@@ -9,7 +9,7 @@ fi
 # launch.sh - SrP-Dotfiles Unix 统一环境一键管理总控引擎
 # 集成: 交互式启动菜单 (Launch) + 依赖安装 (Install) + 符号链接部署与备份 (Config)
 # 特性: 遇错拦截询问 (重试/跳过/终止) + 执行审计账本 + 部署汇总报告
-# 配置清单来源: manifest.json [arch / debian-homeserver / debian-vps / termux]
+# 配置清单来源: manifest/<os>.json [arch / debian-homeserver / debian-vps / termux]
 #
 # 章节索引 (与 start.ps1 逐节对齐，便于两边对照阅读)
 #   0. 全局执行账本与受控步骤执行器    1. 声明清单读取    2. 操作系统与环境探测
@@ -20,7 +20,7 @@ fi
 set -e
 
 DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
-MANIFEST_FILE="$DOTFILES_DIR/manifest.json"
+MANIFEST_DIR="$DOTFILES_DIR/manifest"
 MANIFEST_JS="$DOTFILES_DIR/scripts/lib/manifest.js"
 BACKUP_DIR="$HOME/.dotfiles_backup/$(date +%Y%m%d_%H%M%S)"
 
@@ -214,7 +214,7 @@ print_summary_report() {
 }
 
 # ------------------------------------------------------------------
-# 1. 声明清单读取 (唯一事实源: manifest.json)
+# 1. 声明清单读取 (唯一事实源: manifest/<os>.json)
 # ------------------------------------------------------------------
 _need_node() {
     command -v node >/dev/null 2>&1 && return 0
@@ -419,8 +419,9 @@ run_install() {
     echo -e "${BOLD}$(i18n install.title "$TARGET_OS")${RESET}"
     echo -e "${BLUE}====================================================${RESET}"
 
-    if [ ! -f "$MANIFEST_FILE" ]; then
-        log_error "$(i18n manifest.missing "$MANIFEST_FILE")"
+    local manifest_file="$MANIFEST_DIR/$TARGET_OS.json"
+    if [ ! -f "$manifest_file" ]; then
+        log_error "$(i18n manifest.missing "$manifest_file")"
         exit 1
     fi
 
@@ -498,12 +499,13 @@ run_config() {
     echo -e "${BOLD}$(i18n config.title "$TARGET_OS")${RESET}"
     echo -e "${BLUE}====================================================${RESET}"
 
-    if [ ! -f "$MANIFEST_FILE" ]; then
-        log_error "$(i18n manifest.missing "$MANIFEST_FILE")"
+    local manifest_file="$MANIFEST_DIR/$TARGET_OS.json"
+    if [ ! -f "$manifest_file" ]; then
+        log_error "$(i18n manifest.missing "$manifest_file")"
         exit 1
     fi
 
-    log_info "${CYAN}$(i18n manifest.declaration "$MANIFEST_FILE")${RESET}"
+    log_info "${CYAN}$(i18n manifest.declaration "$manifest_file")${RESET}"
     log_info "${GREEN}$(i18n config.target "$TARGET_OS")${RESET}"
     [ "$FORCE" -eq 1 ] && log_info "$(i18n config.force)"
 
@@ -513,7 +515,7 @@ run_config() {
     # 1. Oh My Zsh 插件与 Spaceship 主题
     run_step "$(i18n step.ohmyzsh_deploy)" setup_omz_plugins
 
-    # 2. 按 manifest.json 的 configs 秩序逐条派发
+    # 2. 按 manifest/<os>.json 的 configs 秩序逐条派发
     local name method source targets exclude ifmissing when
     while IFS=$'\t' read -r name method source targets exclude ifmissing when; do
         [ -z "$name" ] && continue
@@ -680,7 +682,7 @@ echo -e "$(i18n menu.arch "${YELLOW}${ARCH}${RESET}")"
 if [ "$IS_WSL" = "yes" ]; then
     echo -e "$(i18n menu.wsl)"
 fi
-echo -e "$(i18n menu.manifest "${CYAN}${MANIFEST_FILE}${RESET}")"
+echo -e "$(i18n menu.manifest "${CYAN}$MANIFEST_DIR/$TARGET_OS.json${RESET}")"
 echo -e "${CYAN}----------------------------------------------------${RESET}"
 echo -e "$(i18n menu.choose)"
 echo -e "$(i18n menu.all)"

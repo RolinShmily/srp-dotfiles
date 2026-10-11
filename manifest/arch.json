@@ -1,0 +1,136 @@
+{
+  "packageManager": "pacman",
+  "packages": [
+    "zsh",
+    "zsh-autosuggestions",
+    "zsh-syntax-highlighting",
+    "eza",
+    "curl",
+    "zoxide",
+    "fzf",
+    "bat",
+    "fd",
+    "ripgrep",
+    "diff-so-fancy",
+    "github-cli",
+    "lazygit",
+    "jq",
+    "tldr",
+    "nodejs",
+    "npm",
+    "python",
+    "uv",
+    "yazi",
+    "file",
+    "chafa",
+    "imagemagick",
+    "poppler",
+    "ffmpeg",
+    "sox",
+    "7zip",
+    "unarchiver",
+    "perl-image-exiftool",
+    "mediainfo",
+    "zathura",
+    "zathura-pdf-poppler",
+    "miller",
+    "resvg",
+    "xdg-utils",
+    "xclip",
+    "wl-clipboard",
+    "vim",
+    "git",
+    "base-devel",
+    "gcc",
+    "unzip",
+    "tmux",
+    "fastfetch",
+    "btop"
+  ],
+  "npmGlobals": [
+    "@earendil-works/pi-coding-agent",
+    "@antfu/ni",
+    "live-server"
+  ],
+  "skillsAdd": [
+    "QingYunA/answer-me-with-html"
+  ],
+  "configs": [
+    {
+      "name": "zshrc",
+      "method": "link",
+      "source": "zsh/zshrc",
+      "target": "~/.zshrc"
+    },
+    {
+      "name": "vimrc",
+      "method": "link",
+      "source": "vim/vimrc",
+      "target": "~/.vimrc"
+    },
+    {
+      "name": "btop-conf",
+      "method": "copy",
+      "source": "btop/btop-linux.conf",
+      "target": "~/.config/btop/btop.conf"
+    },
+    {
+      "name": "btop-themes",
+      "method": "link",
+      "source": "btop/themes",
+      "target": "~/.config/btop/themes"
+    },
+    {
+      "name": "fastfetch",
+      "method": "link",
+      "source": "fastfetch",
+      "target": "~/.config/fastfetch"
+    },
+    {
+      "name": "yazi",
+      "method": "link",
+      "source": "yazi",
+      "target": "~/.config/yazi"
+    },
+    {
+      "name": "tmux",
+      "method": "link",
+      "source": "tmux",
+      "target": "~/.config/tmux"
+    },
+    {
+      "name": "pi",
+      "method": "custom"
+    }
+  ],
+  "piResources": {
+    "packages": [
+      "npm:@upstash/context7-pi",
+      "npm:@narumitw/pi-btw",
+      "npm:pi-antigravity",
+      "npm:pi-wakatime",
+      "https://github.com/cathrynlavery/diagram-design"
+    ],
+    "extensions": [
+      "@repo/pi/extensions/ask-u-questions.ts",
+      "@repo/pi/extensions/continue-signal.ts",
+      "@repo/pi/extensions/prompt-snipaste.ts",
+      "@repo/pi/extensions/srp-theme.ts",
+      "@repo/pi/extensions/tui-asr.ts",
+      "@repo/pi/extensions/web-reach.ts",
+      "@repo/pi/extensions/model-vision.ts",
+      "@repo/pi/extensions/screenshot.ts",
+      "@repo/pi/extensions/custom-providers",
+      "@repo/pi/extensions/subagent",
+      "@repo/pi/extensions/image-generate.ts",
+      "@repo/pi/extensions/memory-log",
+      "@repo/pi/extensions/oai-subquota.ts"
+    ],
+    "skills": [
+      "@repo/pi/skills"
+    ],
+    "prompts": [
+      "@repo/pi/prompts"
+    ]
+  }
+}

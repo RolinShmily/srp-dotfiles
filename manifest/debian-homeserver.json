@@ -1,0 +1,112 @@
+{
+  "packageManager": "apt",
+  "packages": [
+    "zsh",
+    "zsh-autosuggestions",
+    "zsh-syntax-highlighting",
+    "curl",
+    "eza",
+    "zoxide",
+    "fzf",
+    "bat",
+    "fd-find",
+    "ripgrep",
+    "gh",
+    "lazygit",
+    "jq",
+    "tealdeer",
+    "nodejs",
+    "python3-full",
+    "pipx",
+    "vim",
+    "git",
+    "ffmpeg",
+    "imagemagick",
+    "7zip",
+    "build-essential",
+    "gcc",
+    "unzip",
+    "tmux",
+    "fastfetch",
+    "btop"
+  ],
+  "npmGlobals": [
+    "@earendil-works/pi-coding-agent",
+    "@agegr/pi-web@latest",
+    "skills"
+  ],
+  "skillsAdd": [
+    "mvanhorn/last30days-skill",
+    "https://github.com/WEIFENG2333/VideoCaptioner/",
+    "https://github.com/Leonxlnx/taste-skill",
+    "tt-a1i/archify",
+    "https://github.com/Panniantong/agent-reach"
+  ],
+  "configs": [
+    {
+      "name": "zshrc",
+      "method": "link",
+      "source": "zsh/zshrc",
+      "target": "~/.zshrc"
+    },
+    {
+      "name": "vimrc",
+      "method": "link",
+      "source": "vim/vimrc",
+      "target": "~/.vimrc"
+    },
+    {
+      "name": "btop-conf",
+      "method": "copy",
+      "source": "btop/btop-linux.conf",
+      "target": "~/.config/btop/btop.conf"
+    },
+    {
+      "name": "btop-themes",
+      "method": "link",
+      "source": "btop/themes",
+      "target": "~/.config/btop/themes"
+    },
+    {
+      "name": "fastfetch",
+      "method": "link",
+      "source": "fastfetch",
+      "target": "~/.config/fastfetch"
+    },
+    {
+      "name": "tmux",
+      "method": "link",
+      "source": "tmux",
+      "target": "~/.config/tmux"
+    },
+    {
+      "name": "pi",
+      "method": "custom"
+    }
+  ],
+  "piResources": {
+    "packages": [
+      "npm:pi-web-access",
+      "npm:pi-subagents",
+      "npm:pi-background-tasks",
+      "npm:@xjuai/pi-feishu-lark",
+      "npm:pi-memory",
+      "npm:pi-antigravity",
+      "npm:context-mode",
+      "npm:pi-wakatime",
+      "https://github.com/cathrynlavery/diagram-design"
+    ],
+    "extensions": [
+      "@repo/pi/extensions/ask-u-questions.ts",
+      "@repo/pi/extensions/continue-signal.ts",
+      "@repo/pi/extensions/prompt-snipaste.ts",
+      "@repo/pi/extensions/srp-theme.ts"
+    ],
+    "skills": [
+      "@repo/pi/skills"
+    ],
+    "prompts": [
+      "@repo/pi/prompts"
+    ]
+  }
+}

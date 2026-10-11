@@ -1,0 +1,110 @@
+{
+  "packageManager": "pkg",
+  "packages": [
+    "zsh",
+    "eza",
+    "zoxide",
+    "curl",
+    "fzf",
+    "bat",
+    "fd",
+    "ripgrep",
+    "diff-so-fancy",
+    "gh",
+    "lazygit",
+    "jq",
+    "tealdeer",
+    "nodejs",
+    "python",
+    "yazi",
+    "file",
+    "chafa",
+    "imagemagick",
+    "poppler",
+    "ffmpeg",
+    "imagemagick",
+    "7zip",
+    "unar",
+    "exiftool",
+    "mediainfo",
+    "miller",
+    "git",
+    "clang",
+    "make",
+    "unzip",
+    "tree-sitter",
+    "tmux",
+    "fastfetch",
+    "htop",
+    "termux-api"
+  ],
+  "npmGlobals": [
+    "@earendil-works/pi-coding-agent",
+    "@antfu/ni",
+    "live-server"
+  ],
+  "skillsAdd": [],
+  "configs": [
+    {
+      "name": "zshrc",
+      "method": "link",
+      "source": "zsh/zshrc",
+      "target": "~/.zshrc"
+    },
+    {
+      "name": "vimrc",
+      "method": "link",
+      "source": "vim/vimrc",
+      "target": "~/.vimrc"
+    },
+    {
+      "name": "fastfetch",
+      "method": "link",
+      "source": "fastfetch",
+      "target": "~/.config/fastfetch"
+    },
+    {
+      "name": "yazi",
+      "method": "link",
+      "source": "yazi",
+      "target": "~/.config/yazi"
+    },
+    {
+      "name": "tmux",
+      "method": "link",
+      "source": "tmux",
+      "target": "~/.config/tmux"
+    },
+    {
+      "name": "pi",
+      "method": "custom"
+    }
+  ],
+  "piResources": {
+    "packages": [
+      "npm:@upstash/context7-pi",
+      "npm:@narumitw/pi-btw",
+      "npm:pi-antigravity",
+      "npm:pi-wakatime",
+      "https://github.com/cathrynlavery/diagram-design"
+    ],
+    "extensions": [
+      "@repo/pi/extensions/ask-u-questions.ts",
+      "@repo/pi/extensions/continue-signal.ts",
+      "@repo/pi/extensions/prompt-snipaste.ts",
+      "@repo/pi/extensions/srp-theme.ts",
+      "@repo/pi/extensions/web-reach.ts",
+      "@repo/pi/extensions/model-vision.ts",
+      "@repo/pi/extensions/custom-providers",
+      "@repo/pi/extensions/subagent",
+      "@repo/pi/extensions/image-generate.ts",
+      "@repo/pi/extensions/memory-log"
+    ],
+    "skills": [
+      "@repo/pi/skills"
+    ],
+    "prompts": [
+      "@repo/pi/prompts"
+    ]
+  }
+}

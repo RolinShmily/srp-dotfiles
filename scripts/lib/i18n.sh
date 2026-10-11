@@ -48,7 +48,7 @@ i18n() {
             report.install) printf '   - Reinstall dependencies: %s\n' "$@" ;;
             report.config) printf '   - Redeploy configuration: %s\n' "$@" ;;
             report.complete) printf '🎉 All installation and deployment steps completed successfully!\n' ;;
-            manifest.node_missing) printf 'Reading manifest.json requires Node.js, but node is not installed.\n' ;;
+            manifest.node_missing) printf 'Reading manifest requires Node.js, but node is not installed.\n' ;;
             manifest.bootstrap) printf 'Node.js is required to read the manifest; attempting to install it automatically for %s.\n' "$@" ;;
             manifest.bootstrap_failed) printf 'Automatic Node.js bootstrap failed. Install nodejs manually and retry.\n' ;;
             manifest.bootstrap_done) printf 'Node.js bootstrap completed.\n' ;;
@@ -175,7 +175,7 @@ i18n() {
             report.install) printf '   - 重新安装依赖: %s\n' "$@" ;;
             report.config) printf '   - 重新部署配置: %s\n' "$@" ;;
             report.complete) printf '🎉 恭喜！所有安装与部署项目均完美就绪！\n' ;;
-            manifest.node_missing) printf '读取 manifest.json 需要 node，但当前系统没有 node。\n' ;;
+            manifest.node_missing) printf '读取清单需要 node，但当前系统没有 node。\n' ;;
             manifest.bootstrap) printf '读取 manifest 前需要 Node.js，正在尝试为 %s 自动安装。\n' "$@" ;;
             manifest.bootstrap_failed) printf 'Node.js 自动安装失败，请手动安装 nodejs 后重试。\n' ;;
             manifest.bootstrap_done) printf 'Node.js 自动安装完成。\n' ;;

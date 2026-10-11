@@ -1,6 +1,6 @@
 ﻿<#
 .SYNOPSIS
-    SrP-Dotfiles - Windows 统一环境一键管理总控引擎 (基于 manifest.json 声明式驱动)
+    SrP-Dotfiles - Windows 统一环境一键管理总控引擎 (基于 manifest/windows.json 声明式驱动)
 
 .DESCRIPTION
     高度对标 Unix 体系 (launch.sh) 的 Windows 自动化管理脚本。
@@ -9,14 +9,14 @@
     1. 交互式启动菜单 (launch 入口)
     2. 软件与环境安装模块 (install):
        - PowerShell 远程签名策略 (前置环境准入)
-       - Winget 系统核心套件安装 (从 manifest.json 的 windows.wingetPackages 读取)
-       - Scoop 环境安装与镜像源配置 (从 manifest.json 的 windows.scoopBuckets 读取)
+       - Winget 系统核心套件安装 (从 manifest/windows.json 的 wingetPackages 读取)
+       - Scoop 环境安装与镜像源配置 (从 manifest/windows.json 的 scoopBuckets 读取)
        - Aria2 多线程下载加速配置 (包管理器性能优化)
-       - Scoop 扩展软件与字体安装 (从 manifest.json 的 windows.scoopPackages 读取)
-       - 现代 Python 运行时安装 (从 manifest.json 的 windows.pythonManager 读取)
+       - Scoop 扩展软件与字体安装 (从 manifest/windows.json 的 scoopPackages 读取)
+       - 现代 Python 运行时安装 (从 manifest/windows.json 的 pythonManager 读取)
     3. 配置部署模块 (config - 只做派发):
        - Windows 用户级环境变量配置 (SHELL -> pwsh.exe，保障 Zellij 等多端识别)
-       - 自动根据 manifest.json 的 windows.configs 部署配置：
+       - 自动根据 manifest/windows.json 的 configs 部署配置：
          * 普通配置使用覆盖式复制（不使用软链）
          * Windows Terminal 使用局部覆盖，保留机器生成的 defaultProfile / profiles.list
          * Vim 原生配置与 Windows 兼容配置 (%USERPROFILE%\.vimrc & %USERPROFILE%\_vimrc)
@@ -55,7 +55,7 @@ $OutputEncoding = [System.Text.Encoding]::UTF8
 # start.ps1 - SrP-Dotfiles Windows 统一环境一键管理总控引擎
 # 集成: 交互式启动菜单 (Launch) + 依赖安装 (Install) + 配置部署与备份 (Config)
 # 特性: 遇错拦截询问 (重试/跳过/终止) + 执行审计账本 + 部署汇总报告
-# 配置清单来源: manifest.json [windows]
+# 配置清单来源: manifest/windows.json
 #
 # 章节索引 (与 launch.sh 逐节对齐，便于两边对照阅读)
 #   0. 全局执行账本与受控步骤执行器    1. 声明清单读取    2. 运行环境探测
@@ -65,7 +65,10 @@ $OutputEncoding = [System.Text.Encoding]::UTF8
 
 # 基础目录与常量定义 (无编号前导，与 launch.sh 一致)
 $DotfilesDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
-$ManifestFile = Join-Path $DotfilesDir "manifest.json"
+$ManifestOs = "windows"
+$Global:MANIFEST_OS = $ManifestOs
+$ManifestDir = Join-Path $DotfilesDir "manifest"
+$ManifestFile = Join-Path $ManifestDir "$ManifestOs.json"
 $UserHome = $env:USERPROFILE
 
 . (Join-Path $DotfilesDir "scripts\lib\i18n.ps1")
@@ -270,7 +273,7 @@ function Show-Summary-Report {
 }
 
 # -------------------------------------------------------------------------
-# 1. 声明清单读取 (唯一事实源: manifest.json)
+# 1. 声明清单读取 (唯一事实源: manifest/<os>.json)
 # -------------------------------------------------------------------------
 # 清单由 scripts/lib/manifest.ps1 读取 (PowerShell 原生 ConvertFrom-Json)，
 # 不依赖 node，因此 install 阶段也能直接读。部署动词来自 scripts/lib/deploy.ps1。
@@ -282,11 +285,8 @@ $Global:DF_DotfilesDir = $DotfilesDir
 # -------------------------------------------------------------------------
 # 2. 运行环境探测
 # -------------------------------------------------------------------------
-# Windows 无 OS 探测分支: 固定使用 manifest.json 的 windows 段。
-# 对应 launch.sh 的 $TARGET_OS (arch | debian | termux)。
-
-$ManifestOs = "windows"
-$Global:MANIFEST_OS = $ManifestOs
+# Windows 无 OS 探测分支: 固定使用 manifest/windows.json。
+# 对应 launch.sh 的 $TARGET_OS (arch | debian-homeserver | debian-vps | termux)。
 
 # -------------------------------------------------------------------------
 # 3. 模块一：环境与软件包检测安装 (Install)
@@ -335,7 +335,7 @@ function Install-And-Configure-Scoop {
         }
     }
 
-    # 2. 从 manifest.json 读取并配置 Buckets
+    # 2. 从 manifest/windows.json 读取并配置 Buckets
     $bucketEntries = Get-ManifestArray -Os "windows" -Key "scoopBuckets"
     $installedBuckets = scoop bucket list 2>$null
 
@@ -582,7 +582,7 @@ function Run-Config {
     # 1. 终端环境变量适配（一次性前置，非配置项）
     Configure-User-Environment
 
-    # 2. 按 manifest.json 的 configs 顺序逐条派发
+    # 2. 按 manifest/windows.json 的 configs 顺序逐条派发
     foreach ($entry in $configs) {
         Invoke-ConfigEntry -Entry $entry -BackupDir $backupDir
     }
@@ -630,7 +630,7 @@ if ($Action -ne '' -and $Action -ne 'launch') {
 # 7. 交互式启动菜单 (无参数直接运行时)
 # -------------------------------------------------------------------------
 while ($true) {
-    Clear-Host
+    try { Clear-Host } catch { }
     Write-Host "====================================================" -ForegroundColor Cyan
     Write-Host (Get-I18n 'menu.title') -ForegroundColor Cyan
     Write-Host "====================================================" -ForegroundColor Cyan

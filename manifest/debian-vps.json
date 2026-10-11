@@ -1,0 +1,67 @@
+{
+  "packageManager": "apt",
+  "packages": [
+    "zsh",
+    "zsh-autosuggestions",
+    "zsh-syntax-highlighting",
+    "curl",
+    "eza",
+    "zoxide",
+    "fzf",
+    "bat",
+    "fd-find",
+    "ripgrep",
+    "gh",
+    "jq",
+    "tealdeer",
+    "nodejs",
+    "python3",
+    "unzip",
+    "vim",
+    "git",
+    "lazygit",
+    "tmux",
+    "fastfetch",
+    "btop"
+  ],
+  "npmGlobals": [],
+  "skillsAdd": [],
+  "configs": [
+    {
+      "name": "zshrc",
+      "method": "link",
+      "source": "zsh/zshrc",
+      "target": "~/.zshrc"
+    },
+    {
+      "name": "vimrc",
+      "method": "link",
+      "source": "vim/vimrc",
+      "target": "~/.vimrc"
+    },
+    {
+      "name": "btop-conf",
+      "method": "copy",
+      "source": "btop/btop-linux.conf",
+      "target": "~/.config/btop/btop.conf"
+    },
+    {
+      "name": "fastfetch",
+      "method": "link",
+      "source": "fastfetch",
+      "target": "~/.config/fastfetch"
+    },
+    {
+      "name": "tmux",
+      "method": "link",
+      "source": "tmux",
+      "target": "~/.config/tmux"
+    }
+  ],
+  "piResources": {
+    "packages": [],
+    "extensions": [],
+    "skills": [],
+    "prompts": []
+  }
+}
