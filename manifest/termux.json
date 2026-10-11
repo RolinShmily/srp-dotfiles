@@ -96,7 +96,6 @@
       "@repo/pi/extensions/prompt-snipaste.ts",
       "@repo/pi/extensions/srp-theme.ts",
       "@repo/pi/extensions/web-reach.ts",
-      "@repo/pi/extensions/model-vision.ts",
       "@repo/pi/extensions/custom-providers",
       "@repo/pi/extensions/subagent",
       "@repo/pi/extensions/image-generate.ts",

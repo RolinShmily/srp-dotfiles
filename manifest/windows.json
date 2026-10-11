@@ -151,7 +151,6 @@
       "@repo/pi/extensions/srp-theme.ts",
       "@repo/pi/extensions/tui-asr.ts",
       "@repo/pi/extensions/web-reach.ts",
-      "@repo/pi/extensions/model-vision.ts",
       "@repo/pi/extensions/screenshot.ts",
       "@repo/pi/extensions/custom-providers",
       "@repo/pi/extensions/image-generate.ts",
