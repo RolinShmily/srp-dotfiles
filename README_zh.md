@@ -9,7 +9,7 @@
 
 ---
 
-SrP-Dotfiles 采用 **单分支（`main`）+ 声明式清单（`manifest.json`）+ 极薄派发入口（`launch.sh` / `start.ps1`）+ 声明式部署层（`scripts/`）** 架构，原生深度适配 **类 Unix 系统（Arch Linux / WSL 2 / Debian / Ubuntu / Android Termux）** 与 **Windows 宿主环境（Windows 10/11）**。
+SrP-Dotfiles 采用 **单分支（`main`）+ 声明式清单（`manifest.json`）+ 极薄派发入口（`launch.sh` / `start.ps1`）+ 声明式部署层（`scripts/`）** 架构，原生深度适配 **类 Unix 系统（Arch Linux / WSL 2 / Debian / Ubuntu HomeServer/VPS / Android Termux）** 与 **Windows 宿主环境（Windows 10/11）**。
 
 > **设计原则：入口只做派发，清单只放声明，特例才写脚本。**
 > 新增一个软件配置 = 在 `manifest.json` 的 `configs` 里加一条；只有需要多路分发等特殊逻辑时，才额外写一个部署脚本。
@@ -71,7 +71,7 @@ srp-dotfiles/
 │   │   ├── git.zsh        # Git 别名、快捷函数与 GPG/SSH 签名
 │   │   ├── aliases.zsh    # 现代 CLI 工具别名 (eza, bat, fd) 与目录导航
 │   │   ├── tools.zsh      # Zellij, Yazi, Zoxide, FZF 深度集成
-│   │   └── os/            # 操作系统特供片段 (Arch/WSL、Debian、Termux 剪贴板与环境)
+│   │   └── os/            # 操作系统特供片段 (Arch/WSL、Debian/Ubuntu、Termux 剪贴板与环境)
 │   ├── btop/              # Btop 性能监控 (Catppuccin Mocha 主题)
 │   ├── fastfetch/         # Fastfetch 系统信息美化展示
 │   ├── yazi/              # Yazi 现代终端文件管理器配置与插件
@@ -130,9 +130,13 @@ cd ~/.dotfiles
 # 强制覆盖模式 (跳过旧配置冲突询问)
 ./launch.sh config -f
 
-# 显式指定操作系统安装 (可选: arch | debian | termux)
+# 显式指定操作系统/profile
 ./launch.sh install arch
+./launch.sh all debian-homeserver  # 完整 HomeServer 配置，含 Pi Web
+./launch.sh all debian-vps          # 精简 VPS 配置
 ```
+
+> 自动检测到 Debian/Ubuntu 且未指定 profile 时，脚本会询问选择 HomeServer 或 VPS；在非交互环境中请显式传入 `--os debian-vps` 或 `--os debian-homeserver`。
 
 > **配置生效**：部署完成后，重启终端或在终端执行 `source ~/.zshrc` 即可即时生效。
 

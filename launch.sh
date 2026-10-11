@@ -4,7 +4,7 @@
 # launch.sh - SrP-Dotfiles Unix 统一环境一键管理总控引擎
 # 集成: 交互式启动菜单 (Launch) + 依赖安装 (Install) + 符号链接部署与备份 (Config)
 # 特性: 遇错拦截询问 (重试/跳过/终止) + 执行审计账本 + 部署汇总报告
-# 配置清单来源: manifest.json [arch / debian / termux]
+# 配置清单来源: manifest.json [arch / debian-homeserver / debian-vps / termux]
 #
 # 章节索引 (与 start.ps1 逐节对齐，便于两边对照阅读)
 #   0. 全局执行账本与受控步骤执行器    1. 声明清单读取    2. 操作系统与环境探测
@@ -251,6 +251,35 @@ detect_wsl() {
     fi
 }
 
+# Debian/Ubuntu 无法仅凭系统信息可靠区分 VPS 与 HomeServer，避免误装服务，
+# 未显式指定 profile 时在交互终端中询问；非交互场景要求调用方明确指定。
+resolve_debian_profile() {
+    case "$TARGET_OS" in
+        debian-homeserver|debian-vps)
+            return 0
+            ;;
+        debian)
+            if [ ! -t 0 ]; then
+                log_error "检测到 Debian/Ubuntu，但未指定部署 profile。请使用 --os debian-vps 或 --os debian-homeserver。"
+                exit 2
+            fi
+
+            echo -e "${YELLOW}检测到 Debian/Ubuntu，请选择部署 profile：${RESET}"
+            echo "  1) debian-homeserver  (完整基础服务与 Pi Web 智能体)"
+            echo "  2) debian-vps          (精简 Shell 与基础运维工具)"
+            read -rp "请选择 [1/2]: " debian_profile
+            case "$debian_profile" in
+                1) TARGET_OS="debian-homeserver" ;;
+                2) TARGET_OS="debian-vps" ;;
+                *)
+                    log_error "无效的 Debian profile: $debian_profile"
+                    exit 1
+                    ;;
+            esac
+            ;;
+    esac
+}
+
 TARGET_OS="$(detect_os)"
 IS_WSL="$(detect_wsl)"
 ARCH="$(uname -m)"
@@ -269,7 +298,7 @@ do_install_sys_packages() {
         arch)
             sudo pacman -Syu --needed --noconfirm "${pkgs[@]}"
             ;;
-        debian)
+        debian-homeserver|debian-vps)
             sudo apt-get update -y && sudo apt-get install -y "${pkgs[@]}"
             ;;
         termux)
@@ -530,12 +559,13 @@ ${BOLD}子命令:${RESET}
 
 ${BOLD}支持的操作系统参数:${RESET}
   arch                 Arch Linux / Manjaro / WSL Arch (默认检测)
-  debian               Debian / Ubuntu / 服务器环境
+  debian-homeserver    Debian / Ubuntu HomeServer（含 Pi Web 智能体）
+  debian-vps           Debian / Ubuntu VPS（精简基础工具）
   termux               Android Termux 环境
 
 ${BOLD}选项:${RESET}
   -f, --force          部署配置时强制覆盖现有文件
-  --os <type>          显式指定操作系统 (arch | debian | termux)
+  --os <type>          显式指定操作系统/profile (arch | debian-homeserver | debian-vps | termux)
 
 ${BOLD}异常处理机制:${RESET}
   当安装或部署遇到错误时，脚本会自动拦截并提供 [s] 跳过 / [r] 重试 / [a] 终止，
@@ -557,7 +587,7 @@ while [ $# -gt 0 ]; do
             ACTION="$1"
             shift
             ;;
-        arch|debian|termux)
+        arch|debian|debian-homeserver|debian-vps|termux)
             TARGET_OS="$1"
             shift
             ;;
@@ -580,6 +610,9 @@ while [ $# -gt 0 ]; do
             ;;
     esac
 done
+
+# 将自动检测得到的 Debian 泛化标识解析为明确的部署 profile。
+resolve_debian_profile
 
 # 如果指定了明确的命令行动作且不是 launch，则直接非交互式执行
 if [ -n "$ACTION" ] && [ "$ACTION" != "launch" ]; then
@@ -646,15 +679,17 @@ case "$choice" in
         ;;
     4)
         echo ""
-        echo "可选操作系统列表:"
-        echo "  1) arch   (Arch Linux / WSL)"
-        echo "  2) debian (Debian 13 / Ubuntu / 服务器)"
-        echo "  3) termux (Android Termux)"
-        read -rp "请选择编号 [1-3]: " os_choice
+        echo "可选操作系统/profile 列表:"
+        echo "  1) arch               (Arch Linux / WSL)"
+        echo "  2) debian-homeserver  (Debian / Ubuntu HomeServer)"
+        echo "  3) debian-vps         (Debian / Ubuntu VPS)"
+        echo "  4) termux             (Android Termux)"
+        read -rp "请选择编号 [1-4]: " os_choice
         case "$os_choice" in
             1) TARGET_OS="arch" ;;
-            2) TARGET_OS="debian" ;;
-            3) TARGET_OS="termux" ;;
+            2) TARGET_OS="debian-homeserver" ;;
+            3) TARGET_OS="debian-vps" ;;
+            4) TARGET_OS="termux" ;;
             *) log_error "无效的选择: $os_choice"; exit 1 ;;
         esac
         echo -e "已切换操作系统为: ${GREEN}${TARGET_OS}${RESET}"

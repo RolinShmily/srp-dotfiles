@@ -9,7 +9,7 @@
 
 ---
 
-SrP-Dotfiles utilizes a **Single Branch (`main`) + Declarative Manifest (`manifest.json`) + Thin Dispatch Entrypoints (`launch.sh` / `start.ps1`) + Declarative Deploy Layer (`scripts/`)** architecture. It provides first-class native support for both **Unix-like environments (Arch Linux, WSL 2, Debian/Ubuntu, Android Termux)** and **Windows host systems (Windows 10/11)**.
+SrP-Dotfiles utilizes a **Single Branch (`main`) + Declarative Manifest (`manifest.json`) + Thin Dispatch Entrypoints (`launch.sh` / `start.ps1`) + Declarative Deploy Layer (`scripts/`)** architecture. It provides first-class native support for both **Unix-like environments (Arch Linux, WSL 2, Debian/Ubuntu HomeServer/VPS, Android Termux)** and **Windows host systems (Windows 10/11)**.
 
 > **Design principle: entrypoints only dispatch, the manifest only declares, and only special cases get a script.**
 > Adding a new app config = adding one entry to `configs` in `manifest.json`; a dedicated deploy script is needed only for multi-target routing or other special logic.
@@ -71,7 +71,7 @@ srp-dotfiles/
 │   │   ├── git.zsh        # Git aliases, shortcuts & GPG/SSH commit signing
 │   │   ├── aliases.zsh    # Modern CLI aliases (eza, bat, fd) & directory navigation
 │   │   ├── tools.zsh      # Zellij, Yazi, Zoxide & FZF integrations
-│   │   └── os/            # OS-specific adaptations (Arch/WSL, Debian, Termux)
+│   │   └── os/            # OS-specific adaptations (Arch/WSL, Debian/Ubuntu, Termux)
 │   ├── btop/              # Btop monitor (Catppuccin Mocha theme)
 │   ├── fastfetch/         # Fastfetch system info configuration
 │   ├── yazi/              # Yazi terminal file manager configuration & plugins
@@ -130,9 +130,13 @@ Or run non-interactively with CLI arguments:
 # Force overwrite mode (skip conflict prompts)
 ./launch.sh config -f
 
-# Explicitly specify target distribution
+# Explicitly specify target distribution/profile
 ./launch.sh install arch
+./launch.sh all debian-homeserver  # Full HomeServer profile with Pi Web
+./launch.sh all debian-vps          # Minimal VPS profile
 ```
+
+> When Debian/Ubuntu is auto-detected without a profile, the script asks whether this is a HomeServer or VPS. In non-interactive environments, pass `--os debian-vps` or `--os debian-homeserver` explicitly.
 
 > **Apply changes**: Restart your terminal or run `source ~/.zshrc`.
 

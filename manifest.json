@@ -6,6 +6,7 @@
       "zsh-autosuggestions",
       "zsh-syntax-highlighting",
       "eza",
+      "curl",
       "zoxide",
       "fzf",
       "bat",
@@ -43,7 +44,6 @@
       "base-devel",
       "gcc",
       "unzip",
-      "zellij",
       "tmux",
       "fastfetch",
       "btop"
@@ -114,12 +114,6 @@
         "target": "~/.config/yazi"
       },
       {
-        "name": "zellij",
-        "method": "link",
-        "source": "zellij",
-        "target": "~/.config/zellij"
-      },
-      {
         "name": "tmux",
         "method": "link",
         "source": "tmux",
@@ -129,17 +123,15 @@
         "name": "pi",
         "method": "custom"
       }
-    ],
-    "piCliLinks": [
-      "subagent=extensions/subagent/subagent.ts"
     ]
   },
-  "debian": {
+  "debian-homeserver": {
     "packageManager": "apt",
     "packages": [
       "zsh",
       "zsh-autosuggestions",
       "zsh-syntax-highlighting",
+      "curl",
       "eza",
       "zoxide",
       "fzf",
@@ -151,10 +143,15 @@
       "jq",
       "tealdeer",
       "nodejs",
+      "npm",
       "python3-full",
       "pipx",
+      "uv",
       "vim",
       "git",
+      "ffmpeg",
+      "imagemagick",
+      "7zip",
       "build-essential",
       "gcc",
       "unzip",
@@ -234,12 +231,76 @@
       }
     ]
   },
+  "debian-vps": {
+    "packageManager": "apt",
+    "packages": [
+      "zsh",
+      "zsh-autosuggestions",
+      "zsh-syntax-highlighting",
+      "curl",
+      "eza",
+      "zoxide",
+      "fzf",
+      "bat",
+      "fd-find",
+      "ripgrep",
+      "gh",
+      "jq",
+      "tealdeer",
+      "nodejs",
+      "python3",
+      "unzip",
+      "vim",
+      "git",
+      "lazygit",
+      "tmux",
+      "fastfetch",
+      "btop"
+    ],
+    "npmGlobals": [],
+    "skillsAdd": [],
+    "piExtensions": [],
+    "piPackages": [],
+    "configs": [
+      {
+        "name": "zshrc",
+        "method": "link",
+        "source": "zsh/zshrc",
+        "target": "~/.zshrc"
+      },
+      {
+        "name": "vimrc",
+        "method": "link",
+        "source": "vim/vimrc",
+        "target": "~/.vimrc"
+      },
+      {
+        "name": "btop-conf",
+        "method": "copy",
+        "source": "btop/btop-linux.conf",
+        "target": "~/.config/btop/btop.conf"
+      },
+      {
+        "name": "fastfetch",
+        "method": "link",
+        "source": "fastfetch",
+        "target": "~/.config/fastfetch"
+      },
+      {
+        "name": "tmux",
+        "method": "link",
+        "source": "tmux",
+        "target": "~/.config/tmux"
+      }
+    ]
+  },
   "termux": {
     "packageManager": "pkg",
     "packages": [
       "zsh",
       "eza",
       "zoxide",
+      "curl",
       "fzf",
       "bat",
       "fd",
@@ -258,6 +319,7 @@
       "imagemagick",
       "poppler",
       "ffmpeg",
+      "imagemagick",
       "7zip",
       "unar",
       "exiftool",
@@ -268,7 +330,6 @@
       "make",
       "unzip",
       "tree-sitter",
-      "zellij",
       "tmux",
       "fastfetch",
       "htop",
@@ -325,12 +386,6 @@
         "target": "~/.config/yazi"
       },
       {
-        "name": "zellij",
-        "method": "link",
-        "source": "zellij",
-        "target": "~/.config/zellij"
-      },
-      {
         "name": "tmux",
         "method": "link",
         "source": "tmux",
@@ -340,9 +395,6 @@
         "name": "pi",
         "method": "custom"
       }
-    ],
-    "piCliLinks": [
-      "subagent=extensions/subagent/subagent.ts"
     ]
   },
   "windows": {
@@ -381,6 +433,7 @@
       "vim",
       "nodejs-lts",
       "sox",
+      "curl",
       "Maple-Mono-NF-CN",
       "btop",
       "zellij",
