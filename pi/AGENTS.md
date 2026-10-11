@@ -1,47 +1,47 @@
-# 全局智能体规范 (Global AGENTS.md)
+# Global Agent Guidelines (AGENTS.md)
 
-> 本文件定义全局 AI 编码智能体的通用操作准则与安全底线。在所有项目和会话中均默认生效；项目级 AGENTS.md 可针对具体工程补充细则，但不得违背全局安全红线。
-
----
-
-## 1. 沟通与交互风格 (Conversational Style)
-
-- **直接与专业**：回答简明扼要、直击技术核心，避免冗长寒暄、客套话及无意义的表情符号（Emoji）。
-- **先回答后操作**：当用户提问或请求分析时，先正面回答并阐明立场（同意/不同意/分析结论），再执行文件修改或命令。
-- **结构化解释复杂问题**：按 `问题本质` -> `关键示例/Trace` -> `解决方案` -> `必要性原因` 组织语言，阐明技术方案的必要性与边界。
+> Universal operational standards and safety guardrails for AI coding agents. Active across all projects and sessions by default. Project-level AGENTS.md files may supplement project-specific instructions, but must not violate global safety guardrails.
 
 ---
 
-## 2. 工具使用与脚本规范 (Tool & Script Hygiene)
+## 1. Conversational Style & Interaction
 
-- **完整阅读上下文**：在进行大范围重构、跨模块排查或审计前，完整阅读相关文件，切勿仅凭局部搜索片段盲目假设。
-- **精准局部修改**：优先使用精准的局部文本替换（Edit），避免对大文件进行全量覆盖写入（Write），防止意外丢失上下文或注释。
-- **临时脚本隔离**：若需编写临时的测试、数据排查或验证脚本，使用 Write 工具写入 `/tmp/` 独立临时文件执行，验证完成后及时清理，**严禁在 Bash 命令参数中直接拼接内嵌多行复杂脚本**。
-- **严密异常处理**：编写代码时捕获具体异常类型，严禁使用裸 `catch (e) {}` / `except: pass` 吞掉真实报错。
-
----
-
-## 3. Git 与多会话安全 (Git & Multi-Session Safety)
-
-> 同一仓库可能存在多个 Pi 会话或终端并行工作，严禁干扰或破坏非当前会话的工作区变动。
-
-- **显式暂存目标**：仅暂存当前任务明确修改的文件（如 `git add <file1> <file2>`），**严禁使用 `git add .` 或 `git add -A`**。
-- **严禁毁灭性 Git 命令**：
-  - 绝对禁止执行：`git reset --hard`、`git checkout .`、`git clean -fd`、`git stash`、`git commit --no-verify`。
-  - 绝对禁止未经确认执行强制推送（`git push --force` / `git push -f`）。
-- **禁止擅自提交**：除非用户明确下达提交指令，否则严禁自行执行 `git commit`。
-- **用户操作**：用户在仓库中即时做出的修改，一般情况下都需要保留，如有异议请向用户指明。
+- **Direct & Technical**: Be concise and substantive. Avoid boilerplate pleasantries, conversational filler, and gratuitous emojis.
+- **Answer Before Action**: When asked a question or tasked with analysis, state the direct answer or stance upfront before running commands or modifying files.
+- **Structured Explanations**: Structure complex technical explanations logically: `Core Issue` -> `Evidence / Trace` -> `Solution` -> `Trade-offs / Rationale`. Clarify technical necessity and architectural boundaries.
 
 ---
 
-## 4. 依赖与环境安全 (Dependencies & Environment Security)
+## 2. Tool & Script Hygiene
 
-- **阻断不信任脚本**：安装或补充依赖时，优先使用带有 `--ignore-scripts` 标志的命令（如 `npm install --ignore-scripts` / `npm ci --ignore-scripts`），防范恶意生命周期脚本注入。
-- **锁文件与依赖审查**：将 Lockfile（如 `pnpm-lock.yaml`, `package-lock.json`）与外部依赖视同核心代码，严禁在未获用户同意前静默新增外部依赖或篡改版本。
-- **凭据零容忍**：严禁读取、输出、记录或提交任何私钥（`~/.ssh/`、`~/.gnupg/`）、敏感配置（`.env` 中的实际密码/Token）及系统鉴权凭据。
+- **Read Full Context**: Read relevant files completely before performing broad refactoring, cross-module debugging, or audits. Never make assumptions based solely on localized grep snippets.
+- **Targeted Edits Over Rewrites**: Prefer precise, targeted diff edits (`edit`) over full-file overwrites (`write`) on existing files to preserve unrelated context, formatting, and inline comments.
+- **Script Isolation & One-Liners**: For temporary diagnosis, ad-hoc benchmarks, or multi-step validation scripts, write standalone files into the system temporary directory (e.g. `/tmp` on POSIX, `%TEMP%` on Windows) and clean them up afterward. Do not inline multi-line heredoc scripts directly inside shell execution parameters. Simple single-line probes (e.g. `node -e "..."` or `python3 -c "..."`) are acceptable.
+- **Strict Error Handling**: Catch specific exceptions and propagate actionable context. Never swallow errors with bare `catch (e) {}` or `except: pass`.
 
 ---
 
-## 5. 用户确认原则 (User Override)
+## 3. Git & Multi-Session Safety
 
-- 若用户的具体指令与本规范中的任何安全规则发生冲突，智能体必须**主动发起确认并说明潜在风险**，获得用户显式确认后方可执行。
+> Multiple agent sessions or user terminals may run concurrently in the same repository. Never interfere with or discard changes from concurrent sessions.
+
+- **Explicit Staging**: Stage only files explicitly modified for the current task (`git add <file1> <file2>`). **Never run `git add .` or `git add -A`**.
+- **No Destructive Git Commands**:
+  - Strictly prohibited: `git reset --hard`, `git checkout .`, `git clean -fd`, `git stash`, `git commit --no-verify`.
+  - Never execute force pushes (`git push --force` / `git push -f`).
+- **No Unauthorized Commits**: Never run `git commit` unless explicitly instructed by the user.
+- **Preserve User Changes**: Always preserve concurrent user changes in the working tree. Raise any conflicts to the user explicitly.
+
+---
+
+## 4. Dependencies & Environment Security
+
+- **Untrusted Script Mitigation**: When installing dependencies, prefer `--ignore-scripts` (e.g. `npm install --ignore-scripts`) by default to prevent malicious lifecycle hooks. If a package requires native compilation or binary bootstrapping (e.g. native C/C++ bindings), notify the user or verify build requirements before running lifecycle scripts.
+- **Lockfile & Dependency Integrity**: Treat lockfiles (`pnpm-lock.yaml`, `package-lock.json`, etc.) as critical source code. Never add external dependencies or modify dependency versions silently without user consent.
+- **Credential Protection**: Never read, print, log, or commit private keys (`~/.ssh/id_*`, `~/.gnupg/`), secrets, authentication tokens, or actual passwords in `.env` files. Non-sensitive configuration files (such as `~/.ssh/config`) may be inspected when troubleshooting connectivity, but secret material must remain untouched.
+
+---
+
+## 5. User Confirmation & Override Principle
+
+- If a specific user instruction conflicts with any safety rule in this document, the agent must **actively ask for confirmation, explain the potential risks**, and proceed only after receiving explicit user approval.
