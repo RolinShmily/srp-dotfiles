@@ -28,7 +28,9 @@ const POWERLINE_SEP_ANSI = "\x1b[38;5;244m";
 const ANSI_RESET = "\x1b[0m";
 
 /** Compact a multiline prompt into a single line, matching powerline's last-prompt behavior. */
-export function compactPrompt(prompt: string): string {
+export function compactPrompt(prompt: string | null | undefined): string {
+  // Custom-message runs (extension `sendMessage`, auto-continue, retries) have no user prompt.
+  if (typeof prompt !== "string") return "";
   return prompt.replace(/\s+/g, " ").trim();
 }
 
@@ -36,7 +38,7 @@ export function compactPrompt(prompt: string): string {
  * Render last prompt line using powerline's sep color (ANSI 244), displaying '↳ prompt'.
  */
 export function renderLastPromptLine(
-  lastUserPrompt: string,
+  lastUserPrompt: string | null | undefined,
   width: number,
 ): string[] {
   const compact = compactPrompt(lastUserPrompt);
@@ -700,9 +702,12 @@ export default function (pi: ExtensionAPI) {
     }
   });
 
-  // event.prompt is expanded user input
+  // event.prompt is expanded user input. It is absent for custom-message runs
+  // (messageType === "custom"), e.g. extension-triggered auto-continue; keep the previous prompt then.
   pi.on("before_agent_start", (event) => {
-    lastUserPrompt = event.prompt;
+    if (event.messageType === "user" && typeof event.prompt === "string") {
+      lastUserPrompt = event.prompt;
+    }
     currentLoopStartMs = Date.now();
   });
 
