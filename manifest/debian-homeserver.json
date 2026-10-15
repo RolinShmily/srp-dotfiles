@@ -93,8 +93,7 @@
       "npm:pi-memory",
       "npm:pi-antigravity",
       "npm:context-mode",
-      "npm:pi-wakatime",
-      "https://github.com/cathrynlavery/diagram-design"
+      "npm:pi-wakatime"
     ],
     "extensions": [
       "@repo/pi/extensions/ask-u-questions.ts",

@@ -141,8 +141,7 @@
       "npm:@narumitw/pi-btw",
       "npm:pi-antigravity",
       "npm:pi-wakatime",
-      "@repo/pi/packages/pi-learn",
-      "https://github.com/cathrynlavery/diagram-design"
+      "@repo/pi/packages/pi-learn"
     ],
     "extensions": [
       "@repo/pi/extensions/ask-u-questions.ts",

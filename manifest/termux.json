@@ -87,8 +87,7 @@
       "npm:@upstash/context7-pi",
       "npm:@narumitw/pi-btw",
       "npm:pi-antigravity",
-      "npm:pi-wakatime",
-      "https://github.com/cathrynlavery/diagram-design"
+      "npm:pi-wakatime"
     ],
     "extensions": [
       "@repo/pi/extensions/ask-u-questions.ts",
