@@ -123,8 +123,7 @@
       "@repo/pi/extensions/custom-providers",
       "@repo/pi/extensions/subagent",
       "@repo/pi/extensions/image-generate.ts",
-      "@repo/pi/extensions/memory-log",
-      "@repo/pi/extensions/oai-subquota.ts"
+      "@repo/pi/extensions/memory-log"
     ],
     "skills": [
       "@repo/pi/skills"
