@@ -86,20 +86,23 @@
   ],
   "piResources": {
     "packages": [
+      "npm:@upstash/context7-pi",
+      "npm:@narumitw/pi-btw",
+      "npm:@narumitw/pi-usage",
+      "npm:pi-antigravity",
+      "npm:pi-wakatime",
       "npm:pi-web-access",
       "npm:pi-subagents",
-      "npm:pi-background-tasks",
-      "npm:@xjuai/pi-feishu-lark",
-      "npm:pi-memory",
-      "npm:pi-antigravity",
-      "npm:context-mode",
-      "npm:pi-wakatime"
+      "npm:@xjuai/pi-feishu-lark"
     ],
     "extensions": [
       "@repo/pi/extensions/ask-u-questions.ts",
       "@repo/pi/extensions/continue-signal.ts",
       "@repo/pi/extensions/prompt-snipaste.ts",
-      "@repo/pi/extensions/srp-theme.ts"
+      "@repo/pi/extensions/srp-theme.ts",
+      "@repo/pi/extensions/custom-providers",
+      "@repo/pi/extensions/image-generate.ts",
+      "@repo/pi/extensions/memory-log"
     ],
     "skills": [
       "@repo/pi/skills"

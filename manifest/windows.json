@@ -150,12 +150,11 @@
       "@repo/pi/extensions/continue-signal.ts",
       "@repo/pi/extensions/prompt-snipaste.ts",
       "@repo/pi/extensions/srp-theme.ts",
-      "@repo/pi/extensions/tui-asr.ts",
-      "@repo/pi/extensions/web-reach.ts",
-      "@repo/pi/extensions/screenshot.ts",
       "@repo/pi/extensions/custom-providers",
       "@repo/pi/extensions/image-generate.ts",
       "@repo/pi/extensions/memory-log",
+      "@repo/pi/extensions/tui-asr.ts",
+      "@repo/pi/extensions/web-reach.ts",
       "@repo/pi/extensions/windows-wheel-fix.ts"
     ],
     "skills": [

@@ -96,11 +96,11 @@
       "@repo/pi/extensions/continue-signal.ts",
       "@repo/pi/extensions/prompt-snipaste.ts",
       "@repo/pi/extensions/srp-theme.ts",
-      "@repo/pi/extensions/web-reach.ts",
       "@repo/pi/extensions/custom-providers",
-      "@repo/pi/extensions/subagent",
       "@repo/pi/extensions/image-generate.ts",
-      "@repo/pi/extensions/memory-log"
+      "@repo/pi/extensions/memory-log",
+      "@repo/pi/extensions/web-reach.ts",
+      "@repo/pi/extensions/subagent"
     ],
     "skills": [
       "@repo/pi/skills"
