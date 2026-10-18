@@ -60,8 +60,8 @@ export function renderLastPromptLine(
 
 // ============================ Incremental Time / Finished Widget ============================
 
-const WEEK_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-type ClockVariant = "full" | "month_day" | "time_only";
+// const WEEK_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+// type ClockVariant = "full" | "month_day" | "time_only";
 type FinishedVariant = "full" | "compact" | "duration_only";
 
 function formatDuration(ms: number): string {
@@ -79,6 +79,8 @@ function formatDuration(ms: number): string {
   return `${hours}h${mins < 10 ? "0" : ""}${mins}m`;
 }
 
+/*
+// 时间胶囊格式化已注释停用
 function formatFooterClockVariant(date: Date, variant: ClockVariant): string {
   const pad = (value: number) => value.toString().padStart(2, "0");
   const hours = pad(date.getHours());
@@ -92,6 +94,7 @@ function formatFooterClockVariant(date: Date, variant: ClockVariant): string {
 
   return `[${date.getFullYear()}-${month}-${dayOfMonth} ${WEEK_DAYS[date.getDay()]} ${hours}:${minutes}]`;
 }
+*/
 
 function formatLoopEndVariant(
   finished: Date,
@@ -165,14 +168,26 @@ function renderTimeAndFinishedLine(
   width: number,
   theme: Theme,
 ): string[] {
+  if (!lastLoopEndTime) return [];
+
   const now = new Date();
   const candidates: string[] = [];
 
-  if (lastLoopEndTime) {
-    const fullFinished = formatLoopEndVariant(lastLoopEndTime, now, lastLoopDurationMs, "full");
-    const compactFinished = formatLoopEndVariant(lastLoopEndTime, now, lastLoopDurationMs, "compact");
-    const durationFinished = formatLoopEndVariant(lastLoopEndTime, now, lastLoopDurationMs, "duration_only");
+  const fullFinished = formatLoopEndVariant(lastLoopEndTime, now, lastLoopDurationMs, "full");
+  const compactFinished = formatLoopEndVariant(lastLoopEndTime, now, lastLoopDurationMs, "compact");
+  const durationFinished = formatLoopEndVariant(lastLoopEndTime, now, lastLoopDurationMs, "duration_only");
 
+  candidates.push(fullFinished);
+  if (compactFinished !== fullFinished) {
+    candidates.push(compactFinished);
+  }
+  if (durationFinished && durationFinished !== compactFinished && durationFinished !== fullFinished) {
+    candidates.push(durationFinished);
+  }
+
+  /*
+  // 时间胶囊（已禁用/注释，仅保留 agent-loop 完成时间和用时）：
+  if (lastLoopEndTime) {
     candidates.push(
       `${fullFinished} ${formatFooterClockVariant(now, "full")}`,
       `${fullFinished} ${formatFooterClockVariant(now, "month_day")}`,
@@ -191,6 +206,7 @@ function renderTimeAndFinishedLine(
       formatFooterClockVariant(now, "time_only"),
     );
   }
+  */
 
   const content = candidates.find((candidate) => visibleWidth(candidate) <= width) ?? candidates.at(-1)!;
   const line = truncateToWidth(content, width, "…");
@@ -653,13 +669,10 @@ export default function (pi: ExtensionAPI) {
     ctx.ui.setFooter(undefined);
     ctx.ui.setWidget(
       "srp-footer",
-      (tui, theme) => {
-        const clockTimer = setInterval(() => tui.requestRender(), 30_000);
+      (_tui, theme) => {
         return {
           invalidate() {},
-          dispose() {
-            clearInterval(clockTimer);
-          },
+          dispose() {},
           render(width: number): string[] {
             return [
               ...renderLastPromptLine(lastUserPrompt, width),
