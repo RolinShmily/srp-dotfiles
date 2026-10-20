@@ -1,60 +1,542 @@
-import { existsSync, readFileSync, readdirSync, unlinkSync } from "node:fs";
+/**
+ * subagent/index.ts — Unified Homogeneous Subagent Extension
+ *
+ * Core Principles:
+ * - Every subagent is a standard, full-featured Pi instance (peer worker).
+ * - Single native tool: `subagent` (supports spawn, message/reply, and stop).
+ * - Multi-worker concurrency with smart multiplexer pane management (tmux & Zellij).
+ * - Non-blocking async dispatch: results and questions delivered as steer events.
+ * - Cross-platform: Native Windows (PowerShell + Zellij) & POSIX (bash + tmux/Zellij).
+ */
+
+import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { Box, Container, type SelectItem, SelectList, Text, type TUI } from "@earendil-works/pi-tui";
+import { Type } from "typebox";
+import { randomUUID } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { DynamicBorder, type ExtensionAPI, type ExtensionContext, keyHint } from "@earendil-works/pi-coding-agent";
-import { Container, type SelectItem, SelectList, Text, type TUI } from "@earendil-works/pi-tui";
-import { attachSession } from "./mux.ts";
+
+import type { ChildProcess } from "node:child_process";
 import {
-  effectiveRunState,
-  inboxDir,
-  killRunSession,
-  launchRun,
-  listRuns,
-  readMetadata,
-  removeRunDir,
-  runDisplayName,
-  runSessionExists,
-  type InboxMessage,
-  type RunMetadata,
-  updateMetadata,
-  waitForRunShutdown,
-} from "./shared.ts";
-import { renderRunWidget } from "./ui.ts";
+  closeSurface,
+  createSurface,
+  getWorkerBackend,
+  isMuxAvailable,
+  isProcessSurface,
+  pollForExit,
+  renderSubagentCommand,
+  sendCommand,
+  sendLongCommand,
+  spawnProcessWorker,
+  type WorkerBackend,
+} from "./mux.ts";
+import { findLastAssistantMessage } from "./session.ts";
+import { renderWorkersWidget, type WorkerStatus } from "./ui.ts";
 
-const packageDir = dirname(fileURLToPath(import.meta.url));
+const extensionDir = dirname(fileURLToPath(import.meta.url));
 
-function isInboxMessage(value: unknown): value is InboxMessage {
-  if (typeof value !== "object" || value === null) return false;
-  const message = value as Record<string, unknown>;
-  return typeof message.message === "string" && (message.delivery === "auto" || message.delivery === "followUp");
+interface RunningWorker {
+  id: string;
+  name: string;
+  task: string;
+  surface: string;
+  sessionFile: string;
+  startTime: number;
+  status: "running" | "waiting" | "done" | "error";
+  question?: string;
+  error?: string;
+  abortController: AbortController;
+  childProcess?: ChildProcess;
+  backend: WorkerBackend;
+  logFile?: string;
 }
 
-function displayState(metadata: RunMetadata): string {
-  return effectiveRunState(metadata).padEnd(8);
-}
+const SubagentParams = Type.Object({
+  task: Type.Optional(
+    Type.String({
+      description:
+        "Task or prompt for the worker. For a new worker, describe the complete objective. " +
+        "For an existing worker, provide the follow-up instruction or answer to its question.",
+    }),
+  ),
+  name: Type.Optional(
+    Type.String({
+      description:
+        "Descriptive label for the worker (e.g. 'frontend', 'db-migration', 'tester'). " +
+        "Defaults to 'worker-1', 'worker-2', etc. if omitted.",
+    }),
+  ),
+  target: Type.Optional(
+    Type.String({
+      description:
+        "Name of an existing worker to direct this message to (for replying to its question, " +
+        "providing additional guidance, or stopping it).",
+    }),
+  ),
+  action: Type.Optional(
+    Type.Union(
+      [Type.Literal("spawn"), Type.Literal("send"), Type.Literal("stop")],
+      {
+        description:
+          "Action to perform: 'spawn' (start new worker, default), 'send' (steer/reply to worker), 'stop' (kill worker).",
+      },
+    ),
+  ),
+  model: Type.Optional(
+    Type.String({
+      description: "Optional model override for this worker (e.g. a faster or stronger model).",
+    }),
+  ),
+  cwd: Type.Optional(
+    Type.String({
+      description: "Optional working directory for the worker.",
+    }),
+  ),
+});
 
 export default function subagentExtension(pi: ExtensionAPI) {
-  const runDir = process.env.PI_SUBAGENT_RUN_DIR;
-  if (!runDir) {
-    pi.on("resources_discover", () => ({ skillPaths: [join(packageDir, "skills")] }));
+  // Prevent child subagents from self-hosting or infinite recursion
+  if (process.env.PI_SUBAGENT_ACTIVE === "1") {
+    return;
   }
 
+  // Active workers state
+  const activeWorkers = new Map<string, RunningWorker>();
+  const reservedNames = new Set<string>();
+
+  let widgetContext: ExtensionContext | undefined;
+  let widgetTimer: ReturnType<typeof setInterval> | undefined;
+
+  const refreshWidget = (): void => {
+    if (!widgetContext || !widgetContext.hasUI) return;
+    const workers: WorkerStatus[] = Array.from(activeWorkers.values()).map((w) => ({
+      name: w.name,
+      state: w.status,
+      startTime: w.startTime,
+      sessionFile: w.sessionFile,
+      question: w.question,
+      error: w.error,
+      backend: w.backend,
+    }));
+
+    if (workers.length === 0) {
+      widgetContext.ui.setWidget("subagents", undefined);
+      if (widgetTimer) {
+        clearInterval(widgetTimer);
+        widgetTimer = undefined;
+      }
+      return;
+    }
+
+    widgetContext.ui.setWidget("subagents", renderWorkersWidget(workers, widgetContext.ui.theme), {
+      placement: "aboveEditor",
+    });
+
+    if (!widgetTimer) {
+      widgetTimer = setInterval(refreshWidget, 1000);
+      widgetTimer.unref();
+    }
+  };
+
+  function allocateUniqueName(preferred?: string): string {
+    const base = preferred?.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "-") || "worker";
+    if (!activeWorkers.has(base) && !reservedNames.has(base)) {
+      return base;
+    }
+    let index = 2;
+    while (activeWorkers.has(`${base}-${index}`) || reservedNames.has(`${base}-${index}`)) {
+      index++;
+    }
+    return `${base}-${index}`;
+  }
+
+  // ── Watcher Loop ──
+  async function watchWorker(worker: RunningWorker, signal: AbortSignal): Promise<void> {
+    try {
+      const result = await pollForExit(worker.surface, signal, {
+        interval: 1000,
+        sessionFile: worker.sessionFile,
+        childProcess: worker.childProcess,
+        onTick: () => {
+          // Check for .ask question sidecar
+          const askFile = `${worker.sessionFile}.ask`;
+          if (existsSync(askFile)) {
+            try {
+              const data = JSON.parse(readFileSync(askFile, "utf-8"));
+              if (worker.status !== "waiting" && data.question) {
+                worker.status = "waiting";
+                worker.question = data.question;
+                refreshWidget();
+
+                pi.sendMessage(
+                  {
+                    customType: "subagent_question",
+                    content:
+                      `[Subagent "${worker.name}" 提问]\n\n${data.question}\n\n` +
+                      `👉 请使用 subagent 工具回复解答：subagent({ target: "${worker.name}", task: "你的回答" })`,
+                    display: true,
+                    details: {
+                      name: worker.name,
+                      question: data.question,
+                    },
+                  },
+                  { triggerTurn: true, deliverAs: "steer" },
+                );
+              }
+            } catch {}
+          }
+        },
+      });
+
+      // Worker finished
+      const elapsed = Math.floor((Date.now() - worker.startTime) / 1000);
+      const summary =
+        findLastAssistantMessage(worker.sessionFile) ??
+        (result.errorMessage
+          ? `Worker failed with error: ${result.errorMessage}`
+          : result.exitCode !== 0
+            ? `Worker exited with status ${result.exitCode}`
+            : "Worker completed without output text.");
+
+      closeSurface(worker.surface, worker.childProcess);
+      activeWorkers.delete(worker.name);
+      refreshWidget();
+
+      pi.sendMessage(
+        {
+          customType: "subagent_result",
+          content: `[Subagent "${worker.name}" 汇报]\n\n${summary}`,
+          display: true,
+          details: {
+            name: worker.name,
+            task: worker.task,
+            exitCode: result.exitCode,
+            elapsed,
+            sessionFile: worker.sessionFile,
+            backend: worker.backend,
+            logFile: worker.logFile,
+          },
+        },
+        { triggerTurn: true, deliverAs: "steer" },
+      );
+    } catch (err: any) {
+      closeSurface(worker.surface, worker.childProcess);
+      activeWorkers.delete(worker.name);
+      refreshWidget();
+
+      if (!signal.aborted) {
+        pi.sendMessage(
+          {
+            customType: "subagent_result",
+            content: `[Subagent "${worker.name}" 异常中止]: ${err?.message ?? String(err)}`,
+            display: true,
+            details: { name: worker.name, error: err?.message, backend: worker.backend },
+          },
+          { triggerTurn: true, deliverAs: "steer" },
+        );
+      }
+    }
+  }
+
+  // ── Register Tool: subagent ──
+  pi.registerTool({
+    name: "subagent",
+    label: "Subagent",
+    description:
+      "Dispatch, message, or stop an independent, full-powered Pi worker in a split terminal pane. " +
+      "Every worker has complete Pi capabilities (read, write, bash, edit, skills, extensions). " +
+      "This call is NON-BLOCKING: it returns immediately after launching or messaging. " +
+      "When a worker completes or asks a question, results are delivered automatically as steer messages. " +
+      "You can launch MULTIPLE parallel workers in a single turn by calling this tool multiple times.",
+    promptSnippet:
+      "Spawn or communicate with parallel Pi subagent workers. Returns immediately; results arrive automatically via steer.",
+    parameters: SubagentParams,
+
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      const action = params.action ?? (params.target ? "send" : "spawn");
+
+      // ── Action: Stop ──
+      if (action === "stop") {
+        const targetName = params.target || params.name;
+        if (!targetName) {
+          return {
+            content: [{ type: "text", text: "Error: Please specify the worker 'target' or 'name' to stop." }],
+            details: { error: "target required" },
+          };
+        }
+        const worker = activeWorkers.get(targetName);
+        if (!worker) {
+          return {
+            content: [{ type: "text", text: `No active worker named "${targetName}".` }],
+            details: { error: "worker not found" },
+          };
+        }
+
+        worker.abortController.abort();
+        closeSurface(worker.surface, worker.childProcess);
+        activeWorkers.delete(targetName);
+        refreshWidget();
+
+        const typeHint = worker.backend === "process" ? "process killed" : "pane closed";
+        return {
+          content: [{ type: "text", text: `Worker "${targetName}" stopped (${typeHint}).` }],
+          details: { status: "stopped", name: targetName },
+        };
+      }
+
+      // ── Action: Send (Steer / Reply) ──
+      if (action === "send" || params.target) {
+        const targetName = params.target || params.name;
+        if (!targetName) {
+          return {
+            content: [{ type: "text", text: "Error: Please specify the 'target' worker to send instructions to." }],
+            details: { error: "target required" },
+          };
+        }
+
+        const worker = activeWorkers.get(targetName);
+        if (!worker) {
+          const known = Array.from(activeWorkers.keys()).join(", ") || "(none)";
+          return {
+            content: [{ type: "text", text: `No active worker named "${targetName}". Active workers: ${known}.` }],
+            details: { error: "worker not found" },
+          };
+        }
+
+        if (!params.task?.trim()) {
+          return {
+            content: [{ type: "text", text: "Error: `task` parameter is required when sending a message." }],
+            details: { error: "task required" },
+          };
+        }
+
+        // Deliver via reply file to unblock ask_question tool
+        const replyFile = `${worker.sessionFile}.reply`;
+        writeFileSync(replyFile, params.task, "utf8");
+
+        // Clear waiting question if answering
+        if (worker.status === "waiting") {
+          worker.status = "running";
+          worker.question = undefined;
+          refreshWidget();
+        } else if (!isProcessSurface(worker.surface)) {
+          // If in mux mode and not waiting on ask_question, also send keys to terminal pane
+          const flatMessage = params.task.replace(/\r?\n/g, " ");
+          sendCommand(worker.surface, flatMessage);
+        }
+
+        return {
+          content: [
+            {
+              type: "text",
+              text:
+                `Message delivered to worker "${targetName}". It will process the instruction and ` +
+                `steer results back when finished.`,
+            },
+          ],
+          details: { status: "message_delivered", name: targetName },
+        };
+      }
+
+      // ── Action: Spawn (Default) ──
+      if (!params.task?.trim()) {
+        return {
+          content: [{ type: "text", text: "Error: `task` is required to spawn a new subagent worker." }],
+          details: { error: "task required" },
+        };
+      }
+
+      // Determine backend: tmux, zellij, or process (headless)
+      const backend = getWorkerBackend();
+
+      // Allocate and reserve name
+      const workerName = allocateUniqueName(params.name);
+      reservedNames.add(workerName);
+
+      const id = randomUUID().slice(0, 8);
+      let surface: string;
+      try {
+        surface = createSurface(workerName, backend);
+      } catch (err: any) {
+        reservedNames.delete(workerName);
+        return {
+          content: [{ type: "text", text: `Failed to create worker surface: ${err.message}` }],
+          details: { error: err.message },
+        };
+      }
+
+      // Prepare session file & log file
+      const sessionsDir = join(homedir(), ".pi", "agent", "subagent-sessions");
+      mkdirSync(sessionsDir, { recursive: true });
+      const sessionFile = join(sessionsDir, `${Date.now()}_${workerName}_${id}.jsonl`);
+      const logFile = `${sessionFile}.log`;
+
+      const bridgePath = join(extensionDir, "bridge.ts");
+      const parts: string[] = ["pi", "--session", sessionFile, "-e", bridgePath];
+
+      if (params.model) {
+        parts.push("--model", params.model);
+      }
+
+      // Environment variables passed to worker
+      const envPairs: Array<[string, string]> = [
+        ["PI_SUBAGENT_ACTIVE", "1"],
+        ["PI_SUBAGENT_NAME", workerName],
+        ["PI_SUBAGENT_SESSION", sessionFile],
+        ["PI_SUBAGENT_SURFACE", surface],
+        ["PI_SUBAGENT_BACKEND", backend],
+        ["PI_SUBAGENT_PARENT_ID", ctx.sessionManager.getSessionId()],
+      ];
+
+      if (process.env.PI_CODING_AGENT_DIR) {
+        envPairs.push(["PI_CODING_AGENT_DIR", process.env.PI_CODING_AGENT_DIR]);
+      }
+
+      // Deliver task: if long or multiline, write to artifact file
+      let taskArg: string;
+      if (params.task.length > 300 || params.task.includes("\n")) {
+        const artifactsDir = join(homedir(), ".pi", "agent", "artifacts", "subagents");
+        mkdirSync(artifactsDir, { recursive: true });
+        const taskPath = join(artifactsDir, `${workerName}-${id}.md`);
+        writeFileSync(taskPath, params.task, "utf8");
+        taskArg = `@${taskPath}`;
+      } else {
+        taskArg = params.task;
+      }
+      parts.push(taskArg);
+
+      let childProcess: ChildProcess | undefined;
+
+      if (backend === "process") {
+        childProcess = spawnProcessWorker({
+          cwd: params.cwd ?? null,
+          env: envPairs,
+          args: parts,
+          logPath: logFile,
+        });
+      } else {
+        const { script } = renderSubagentCommand({
+          cwd: params.cwd ?? null,
+          env: envPairs,
+          args: parts,
+        });
+        sendLongCommand(surface, script);
+      }
+
+      // Track running worker
+      const abortController = new AbortController();
+      const worker: RunningWorker = {
+        id,
+        name: workerName,
+        task: params.task,
+        surface,
+        sessionFile,
+        startTime: Date.now(),
+        status: "running",
+        abortController,
+        childProcess,
+        backend,
+        logFile,
+      };
+
+      activeWorkers.set(workerName, worker);
+      reservedNames.delete(workerName);
+      refreshWidget();
+
+      // Start non-blocking watcher in background
+      void watchWorker(worker, abortController.signal);
+
+      const modeHint =
+        backend === "process"
+          ? "running silently in background process"
+          : `running in ${backend} split pane`;
+
+      return {
+        content: [
+          {
+            type: "text",
+            text:
+              `Worker "${workerName}" launched (${modeHint}). ` +
+              `Do NOT write polling loops or sleep commands. The harness will deliver results automatically ` +
+              `as a steer message when the worker finishes. You can now continue your work or spawn other workers in parallel.`,
+          },
+        ],
+        details: {
+          id,
+          name: workerName,
+          status: "started",
+          surface,
+          backend,
+          logFile: backend === "process" ? logFile : undefined,
+        },
+      };
+    },
+
+    renderCall(args, theme) {
+      const partial = args as Record<string, unknown>;
+      const action = String(partial.action || (partial.target ? "send" : "spawn"));
+      const name = String(partial.target || partial.name || "worker");
+      const title = theme.fg("toolTitle", theme.bold(`subagent (${action}) `));
+      const targetTag = theme.fg("accent", `[${name}] `);
+      const taskPreview = typeof partial.task === "string" ? partial.task.slice(0, 60).replace(/\n/g, " ") : "";
+      return new Text(`${title}${targetTag}${theme.fg("muted", taskPreview)}`, 0, 0);
+    },
+  });
+
+  // ── Register Message Renderers ──
+  pi.registerMessageRenderer("subagent_result", (message, options, theme) => {
+    const details = (message.details as any) || {};
+    const name = details.name || "worker";
+    const pad = options?.outputPad ?? 1;
+    const box = new Box(pad, 0, (text: string) => {
+      try {
+        return theme.bg("toolSuccessBg", text);
+      } catch {
+        return text;
+      }
+    });
+    const title = theme.bold(theme.fg("success", `✔ [Subagent: ${name}] Completed`));
+    const meta = details.elapsed ? theme.fg("dim", ` (${details.elapsed}s)`) : "";
+    const body = new Text(`${title}${meta}\n\n${message.content}`, 0, 0);
+    box.addChild(body);
+    return box;
+  });
+
+  pi.registerMessageRenderer("subagent_question", (message, options, theme) => {
+    const details = (message.details as any) || {};
+    const name = details.name || "worker";
+    const pad = options?.outputPad ?? 1;
+    const box = new Box(pad, 0, (text: string) => {
+      try {
+        return theme.bg("customMessageBg", text);
+      } catch {
+        return text;
+      }
+    });
+    const title = theme.bold(theme.fg("warning", `◆ [Subagent: ${name}] Question / Blocked`));
+    const body = new Text(`${title}\n\n${message.content}`, 0, 0);
+    box.addChild(body);
+    return box;
+  });
+
+  // ── Register Interactive Command: /subagent ──
   pi.registerCommand("subagent", {
-    description: "Select and attach to a subagent spawned by this session",
+    description: "Manage and inspect active subagent workers",
     handler: async (_args, ctx) => {
-      const runs = listRuns(ctx.sessionManager.getSessionId()).filter((run) => effectiveRunState(run) !== "exited");
-      if (runs.length === 0) {
-        ctx.ui.notify("No active subagents spawned by this session", "info");
+      const workers = Array.from(activeWorkers.values());
+      if (workers.length === 0) {
+        ctx.ui.notify("No active subagent workers currently running.", "info");
         return;
       }
 
-      const items: SelectItem[] = runs.map((run) => ({
-        value: run.handle,
-        label: `${runDisplayName(run)}  ${displayState(run)}  ${run.provider}/${run.model}  ${run.thinking}`,
+      const items: SelectItem[] = workers.map((w) => ({
+        value: w.name,
+        label: `${w.name}  [${w.status}]  pane:${w.surface}  task: ${w.task.slice(0, 30)}...`,
       }));
-      let tui: TUI | undefined;
-      const selected = await ctx.ui.custom<string | undefined>((customTui, theme, _keybindings, done) => {
-        tui = customTui;
+
+      await ctx.ui.custom<string | undefined>((customTui, theme, _keybindings, done) => {
         const list = new SelectList(items, Math.min(items.length, 10), {
           selectedPrefix: (text) => theme.fg("accent", text),
           selectedText: (text) => theme.fg("accent", text),
@@ -62,24 +544,15 @@ export default function subagentExtension(pi: ExtensionAPI) {
           scrollInfo: (text) => theme.fg("dim", text),
           noMatch: (text) => theme.fg("warning", text),
         });
-        list.onSelect = (item) => done(item.value);
+        list.onSelect = (item) => {
+          ctx.ui.notify(`Selected worker: ${item.value}`, "info");
+          done(item.value);
+        };
         list.onCancel = () => done(undefined);
 
         const container = new Container();
-        container.addChild(new DynamicBorder((text: string) => theme.fg("accent", text)));
-        container.addChild(new Text(theme.fg("accent", theme.bold("Attach to subagent")), 1, 0));
+        container.addChild(new Text(theme.fg("accent", theme.bold("Active Subagents")), 1, 0));
         container.addChild(list);
-        container.addChild(
-          new Text(
-            theme.fg(
-              "dim",
-              `${keyHint("tui.select.confirm", "attach")}  ${keyHint("tui.select.cancel", "cancel")}`,
-            ),
-            1,
-            0,
-          ),
-        );
-        container.addChild(new DynamicBorder((text: string) => theme.fg("accent", text)));
 
         return {
           render: (width) => container.render(width),
@@ -90,194 +563,28 @@ export default function subagentExtension(pi: ExtensionAPI) {
           },
         };
       });
-      if (!selected || !tui) return;
-      const run = runs.find((candidate) => candidate.handle === selected);
-      if (!run) return;
-
-      // Inside the same multiplexer the current client is switched and the TUI keeps running;
-      // otherwise a client is attached and the TUI has to step aside until the user detaches.
-      const insideSameMux =
-        (run.mux === "tmux" && Boolean(process.env.TMUX)) ||
-        (run.mux === "zellij" && Boolean(process.env.ZELLIJ));
-      if (insideSameMux) {
-        const exitCode = await attachSession(run.mux, run.sessionName);
-        if (exitCode !== 0) ctx.ui.notify(`Could not switch to ${run.handle}`, "error");
-        return;
-      }
-
-      tui.stop();
-      try {
-        const exitCode = await attachSession(run.mux, run.sessionName);
-        if (exitCode !== 0) process.stderr.write(`Could not attach to ${run.handle}\n`);
-      } finally {
-        tui.start();
-        tui.requestRender(true);
-      }
     },
   });
 
-  if (!runDir) {
-    let widgetTimer: ReturnType<typeof setInterval> | undefined;
-    let widgetContext: ExtensionContext | undefined;
-
-    const refreshWidget = (): void => {
-      if (!widgetContext) return;
-      const activeRuns = listRuns(widgetContext.sessionManager.getSessionId())
-        .map((run) => ({ run, state: effectiveRunState(run) }))
-        .filter(({ state }) => state !== "exited");
-      if (activeRuns.length === 0) {
-        widgetContext.ui.setWidget("subagents", undefined);
-        return;
-      }
-
-      widgetContext.ui.setWidget("subagents", renderRunWidget(activeRuns, widgetContext.ui.theme), {
-        placement: "aboveEditor",
-      });
-    };
-
-    pi.on("session_start", (_event, ctx) => {
-      // Relaunch children that were suspended when this session was last quit or switched away from.
-      for (const run of listRuns(ctx.sessionManager.getSessionId())) {
-        if (!run.suspended || runSessionExists(run)) continue;
-        if (!existsSync(run.sessionFile)) {
-          removeRunDir(run.runDir);
-          continue;
-        }
-        const starting = updateMetadata(run.runDir, { state: "starting", error: undefined }) ?? run;
-        try {
-          launchRun(starting);
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          updateMetadata(run.runDir, { state: "error", error: message });
-          if (ctx.hasUI) ctx.ui.notify(`Could not resume subagent ${runDisplayName(run)}: ${message}`, "error");
-        }
-      }
-
-      if (!ctx.hasUI) return;
-      widgetContext = ctx;
-      refreshWidget();
-      widgetTimer = setInterval(refreshWidget, 1000);
-      widgetTimer.unref();
-    });
-
-    pi.on("session_shutdown", async (event, ctx) => {
-      if (widgetTimer) clearInterval(widgetTimer);
-      widgetTimer = undefined;
-      widgetContext = undefined;
-      ctx.ui.setWidget("subagents", undefined);
-      if (event.reason === "reload") return;
-      // Suspend running children: stop the process but keep transcript and metadata so resuming this
-      // session relaunches them. Children that already exited on their own are discarded.
-      for (const run of listRuns(ctx.sessionManager.getSessionId())) {
-        if (!runSessionExists(run)) {
-          if (!run.suspended) removeRunDir(run.runDir);
-          continue;
-        }
-        updateMetadata(run.runDir, { suspended: true });
-        killRunSession(run);
-        await waitForRunShutdown(run.runDir);
-      }
-    });
-    return;
-  }
-
-  let currentContext: ExtensionContext | undefined;
-  let timer: ReturnType<typeof setInterval> | undefined;
-  let processing = false;
-  let sessionName: string | undefined;
-
-  const syncSessionName = (): void => {
-    const metadata = readMetadata(runDir);
-    if (!metadata) return;
-    const next = `subagent ${metadata.name ?? metadata.handle}`;
-    if (next === sessionName) return;
-    pi.setSessionName(next);
-    sessionName = next;
-  };
-
-  const processInbox = async (): Promise<void> => {
-    if (processing || !currentContext) return;
-    syncSessionName();
-    const queueDir = inboxDir(runDir);
-    if (!existsSync(queueDir)) return;
-    processing = true;
-    try {
-      for (const name of readdirSync(queueDir)
-        .filter((entry) => entry.endsWith(".json"))
-        .sort()) {
-        const path = join(queueDir, name);
-        let payload: InboxMessage;
-        try {
-          const value: unknown = JSON.parse(readFileSync(path, "utf8"));
-          if (!isInboxMessage(value)) throw new Error("Invalid inbox message");
-          payload = value;
-        } catch (error) {
-          unlinkSync(path);
-          updateMetadata(runDir, {
-            state: "error",
-            error: error instanceof Error ? error.message : String(error),
-          });
-          continue;
-        }
-
-        updateMetadata(runDir, { state: "busy", error: undefined });
-        try {
-          if (currentContext.isIdle()) {
-            pi.sendUserMessage(payload.message);
-          } else {
-            pi.sendUserMessage(payload.message, {
-              deliverAs: payload.delivery === "followUp" ? "followUp" : "steer",
-            });
-          }
-          unlinkSync(path);
-        } catch (error) {
-          updateMetadata(runDir, {
-            state: currentContext.isIdle() ? "idle" : "busy",
-            error: error instanceof Error ? error.message : String(error),
-          });
-          return;
-        }
-      }
-    } finally {
-      processing = false;
-    }
-  };
-
+  // ── Session Lifecycle Hooks ──
   pi.on("session_start", (_event, ctx) => {
-    currentContext = ctx;
-    const metadata = readMetadata(runDir);
-    if (!metadata) return;
-    updateMetadata(runDir, {
-      childSessionId: ctx.sessionManager.getSessionId(),
-      sessionFile: ctx.sessionManager.getSessionFile() ?? metadata.sessionFile,
-      state: ctx.isIdle() ? "idle" : "busy",
-      suspended: undefined,
-      error: undefined,
-    });
-    syncSessionName();
-    if (!timer) {
-      timer = setInterval(() => void processInbox(), 250);
-      timer.unref();
+    widgetContext = ctx;
+    refreshWidget();
+  });
+
+  pi.on("session_shutdown", (_event, ctx) => {
+    if (widgetTimer) {
+      clearInterval(widgetTimer);
+      widgetTimer = undefined;
     }
-    void processInbox();
-  });
+    widgetContext = undefined;
+    ctx.ui.setWidget("subagents", undefined);
 
-  pi.on("agent_start", (_event, ctx) => {
-    currentContext = ctx;
-    updateMetadata(runDir, { state: "busy", hasStarted: true, error: undefined });
-  });
-
-  pi.on("agent_settled", (_event, ctx) => {
-    currentContext = ctx;
-    if (ctx.isIdle()) updateMetadata(runDir, { state: "idle" });
-  });
-
-  pi.on("session_shutdown", (event) => {
-    currentContext = undefined;
-    if (timer) {
-      clearInterval(timer);
-      timer = undefined;
+    // Clean up all active worker panes
+    for (const worker of activeWorkers.values()) {
+      worker.abortController.abort();
+      closeSurface(worker.surface, worker.childProcess);
     }
-    if (event.reason === "quit") updateMetadata(runDir, { state: "exited" });
+    activeWorkers.clear();
   });
 }
