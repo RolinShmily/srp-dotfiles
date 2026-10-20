@@ -30,6 +30,8 @@ export default function customProviders(pi: ExtensionAPI): void {
       name: chat?.name ?? image?.name ?? classifier?.name ?? asr?.name ?? id,
       baseUrl: chat?.baseUrl ?? image?.baseUrl ?? classifier?.baseUrl,
       api: (chat?.api ?? "openai-completions") as any,
+      ...(chat?.apiKey ? { apiKey: chat.apiKey } : {}),
+      ...(chat?.refreshModels ? { refreshModels: chat.refreshModels } : {}),
       models: [
         ...(chat?.models ?? []),
         ...(image?.models ?? []),

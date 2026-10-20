@@ -5,8 +5,10 @@ export interface ModalityProviderConfig {
   name?: string;
   baseUrl?: string;
   api?: string;
+  apiKey?: ProviderConfig["apiKey"];
   headers?: Record<string, string>;
   models?: Record<string, unknown>[];
+  refreshModels?: ProviderConfig["refreshModels"];
   images?: ProviderConfig["images"];
   classifiers?: ProviderConfig["classifiers"];
   asr?: AsrModelDefinition[];

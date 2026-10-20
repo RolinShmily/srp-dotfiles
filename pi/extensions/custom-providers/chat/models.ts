@@ -1,16 +1,3 @@
-export const OMNIROUTE_MODELS: Record<string, unknown>[] = [
-  {
-    id: "antigravity/gemini-3.6-flash-high",
-    name: "Gemini 3.6 Flash High (Antigravity)",
-    reasoning: true,
-    input: ["text", "image"],
-    contextWindow: 1_048_576,
-    maxTokens: 65_536,
-    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    compat: { supportsUsageInStreaming: true },
-  },
-];
-
 export const SHUAIAPI_MODELS: Record<string, unknown>[] = [
   {
     id: "gpt-6-sol",
