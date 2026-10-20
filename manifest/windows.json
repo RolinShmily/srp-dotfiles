@@ -142,7 +142,7 @@
       "npm:@narumitw/pi-usage",
       "npm:pi-antigravity",
       "npm:pi-wakatime",
-      "@repo/pi/packages/pi-learn"
+      "npm:pi-web-access"
     ],
     "extensions": [
       "@repo/pi/extensions/ask-u-questions.ts",
@@ -153,8 +153,9 @@
       "@repo/pi/extensions/image-generate.ts",
       "@repo/pi/extensions/memory-log",
       "@repo/pi/extensions/tui-asr.ts",
-      "@repo/pi/extensions/web-reach.ts",
-      "@repo/pi/extensions/windows-wheel-fix.ts"
+      "@repo/pi/extensions/windows-wheel-fix.ts",
+      "@repo/pi/extensions/subagent",
+      "@repo/pi/extensions/worktree-studio"
     ],
     "skills": [
       "@repo/pi/skills"

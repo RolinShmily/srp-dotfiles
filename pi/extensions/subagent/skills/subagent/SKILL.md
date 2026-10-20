@@ -46,7 +46,7 @@ All workers run concurrently in separate split panes. As each worker finishes, t
 
 Workers have an `ask_question` tool. When a worker encounters ambiguity or needs a decision:
 1. The worker pauses its work and marks itself as `waiting: ask`.
-2. You receive a steer notification: `[Subagent "<name>" 提问] ...`.
+2. You receive a steer notification: `[Subagent "<name>" question] ...`.
 3. Answer the worker by targeting its name:
 
 ```json

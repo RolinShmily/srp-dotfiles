@@ -36,9 +36,7 @@
     "skills"
   ],
   "skillsAdd": [
-    "mvanhorn/last30days-skill",
-    "tt-a1i/archify",
-    "https://github.com/Panniantong/agent-reach"
+    "tt-a1i/archify"
   ],
   "configs": [
     {
@@ -89,9 +87,7 @@
       "npm:@narumitw/pi-usage",
       "npm:pi-antigravity",
       "npm:pi-wakatime",
-      "npm:pi-web-access",
-      "npm:pi-subagents",
-      "npm:@xjuai/pi-feishu-lark"
+      "npm:pi-web-access"
     ],
     "extensions": [
       "@repo/pi/extensions/ask-u-questions.ts",
@@ -100,7 +96,9 @@
       "@repo/pi/extensions/srp-theme.ts",
       "@repo/pi/extensions/custom-providers",
       "@repo/pi/extensions/image-generate.ts",
-      "@repo/pi/extensions/memory-log"
+      "@repo/pi/extensions/memory-log",
+      "@repo/pi/extensions/subagent",
+      "@repo/pi/extensions/worktree-studio"
     ],
     "skills": [
       "@repo/pi/skills"

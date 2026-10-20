@@ -10,9 +10,9 @@
 
 import { type ChildProcess, execFile, execFileSync, spawn, spawnSync } from "node:child_process";
 import { promisify } from "node:util";
-import { closeSync, existsSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, rmSync, watch, writeFileSync, type FSWatcher } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 
 const execFileAsync = promisify(execFile);
 
@@ -120,12 +120,12 @@ export interface SubagentCommandSpec {
   args: string[];
 }
 
-export function renderSubagentCommand(spec: SubagentCommandSpec): {
+export function renderSubagentCommand(spec: SubagentCommandSpec, options?: { persistent?: boolean }): {
   script: string;
   scriptExt: ".sh" | ".ps1";
 } {
   const renderArgs = (escape: (s: string) => string): string =>
-    spec.args.length > 0 ? [spec.args[0], ...spec.args.slice(1).map(escape)].join(" ") : "";
+    spec.args.map(escape).join(" ");
 
   if (process.platform === "win32") {
     const lines: string[] = [
@@ -140,7 +140,7 @@ export function renderSubagentCommand(spec: SubagentCommandSpec): {
     for (const [key, value] of spec.env) {
       lines.push(`$env:${key} = ${psEscape(value)}`);
     }
-    lines.push(renderArgs(psToken));
+    lines.push(`& ${renderArgs(psToken)}`);
     lines.push(
       `if ($null -eq $LASTEXITCODE) { Write-Output '__SUBAGENT_DONE_127__' } else { Write-Output "__SUBAGENT_DONE_\${LASTEXITCODE}__" }`,
     );
@@ -149,7 +149,9 @@ export function renderSubagentCommand(spec: SubagentCommandSpec): {
 
   const envPrefix = spec.env.map(([key, value]) => `${key}=${shellEscape(value)}`).join(" ");
   const cdPrefix = spec.cwd ? `cd ${shellEscape(spec.cwd)} && ` : "";
-  const script = `${cdPrefix}${envPrefix ? envPrefix + " " : ""}${renderArgs(shellEscape)}; echo '__SUBAGENT_DONE_'$?'__'`;
+  const script = options?.persistent
+    ? `${cdPrefix}exec ${envPrefix ? `env ${envPrefix} ` : ""}${renderArgs(shellEscape)}`
+    : `${cdPrefix}${envPrefix ? envPrefix + " " : ""}${renderArgs(shellEscape)}; echo '__SUBAGENT_DONE_'$?'__'`;
   return { script, scriptExt: ".sh" };
 }
 
@@ -286,13 +288,13 @@ function rebalanceTmuxLayout(targetPane?: string): void {
       const countOut = execFileSync(
         "tmux",
         ["list-panes", "-t", target, "-F", "#{pane_id}"],
-        { encoding: "utf8" },
+        { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
       ).trim();
       const paneCount = countOut.split("\n").filter(Boolean).length;
 
       // <= 3 panes: even-horizontal; > 3 panes: tiled grid so each pane has space
       const layout = paneCount <= 3 ? "even-horizontal" : "tiled";
-      execFileSync("tmux", ["select-layout", "-t", target, layout], { encoding: "utf8" });
+      execFileSync("tmux", ["select-layout", "-t", target, layout], { encoding: "utf8", stdio: "ignore" });
     } catch {
       // Best effort layout balancing
     }
@@ -361,6 +363,7 @@ export function spawnProcessWorker(spec: {
   env: Array<[string, string]>;
   args: string[];
   logPath: string;
+  useProcessEntrypoint?: boolean;
 }): ChildProcess {
   const logFd = openSync(spec.logPath, "a");
   const envObj = {
@@ -377,7 +380,7 @@ export function spawnProcessWorker(spec: {
   let command = rawCommand;
   let args = userArgs;
 
-  if (cliScript && existsSync(cliScript) && (rawCommand === "pi" || rawCommand === process.execPath)) {
+  if (spec.useProcessEntrypoint !== false && cliScript && existsSync(cliScript) && (rawCommand === "pi" || rawCommand === process.execPath)) {
     command = process.execPath;
     args = [cliScript, ...userArgs];
   }
@@ -579,15 +582,40 @@ export async function pollForExit(
 
     await new Promise<void>((resolve, reject) => {
       if (signal.aborted) return reject(new Error("Aborted"));
-      const timer = setTimeout(() => {
-        signal.removeEventListener("abort", onAbort);
-        resolve();
-      }, options.interval);
-      function onAbort() {
+      let watcher: FSWatcher | undefined;
+      let settled = false;
+      const done = () => {
+        if (settled) return;
+        settled = true;
         clearTimeout(timer);
+        signal.removeEventListener("abort", onAbort);
+        if (watcher) {
+          try { watcher.close(); } catch {}
+          watcher = undefined;
+        }
+        resolve();
+      };
+      const onAbort = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        if (watcher) {
+          try { watcher.close(); } catch {}
+          watcher = undefined;
+        }
         reject(new Error("Aborted"));
-      }
+      };
       signal.addEventListener("abort", onAbort, { once: true });
+      const timer = setTimeout(done, options.interval);
+      if (options.sessionFile) {
+        try {
+          const dir = dirname(options.sessionFile);
+          const target = basename(`${options.sessionFile}.exit`);
+          watcher = watch(dir, (_event, filename) => {
+            if (filename === target || existsSync(`${options.sessionFile}.exit`)) done();
+          });
+        } catch {}
+      }
     });
   }
 }

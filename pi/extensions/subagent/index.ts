@@ -174,8 +174,8 @@ export default function subagentExtension(pi: ExtensionAPI) {
                   {
                     customType: "subagent_question",
                     content:
-                      `[Subagent "${worker.name}" 提问]\n\n${data.question}\n\n` +
-                      `👉 请使用 subagent 工具回复解答：subagent({ target: "${worker.name}", task: "你的回答" })`,
+                      `[Subagent "${worker.name}" question]\n\n${data.question}\n\n` +
+                      `Reply with subagent({ target: "${worker.name}", task: "Your answer" }).`,
                     display: true,
                     details: {
                       name: worker.name,
@@ -207,7 +207,7 @@ export default function subagentExtension(pi: ExtensionAPI) {
       pi.sendMessage(
         {
           customType: "subagent_result",
-          content: `[Subagent "${worker.name}" 汇报]\n\n${summary}`,
+          content: `[Subagent "${worker.name}" report]\n\n${summary}`,
           display: true,
           details: {
             name: worker.name,
@@ -230,7 +230,7 @@ export default function subagentExtension(pi: ExtensionAPI) {
         pi.sendMessage(
           {
             customType: "subagent_result",
-            content: `[Subagent "${worker.name}" 异常中止]: ${err?.message ?? String(err)}`,
+            content: `[Subagent "${worker.name}" stopped unexpectedly]: ${err?.message ?? String(err)}`,
             display: true,
             details: { name: worker.name, error: err?.message, backend: worker.backend },
           },
