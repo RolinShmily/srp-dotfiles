@@ -3,8 +3,9 @@
  * Open with /snipaste or Alt+S; snippets come from Pi's prompts directories.
  */
 
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { homedir } from "node:os";
+import { basename, isAbsolute, join, resolve } from "node:path";
 import {
 	CONFIG_DIR_NAME,
 	getAgentDir,
@@ -32,55 +33,190 @@ interface Snippet {
 const WIDGET_ID = "prompt-snipaste";
 
 function parseSnippet(filename: string, raw: string): Snippet | null {
-	const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
-	if (!match) return null;
+	const cleanRaw = raw.replace(/^\uFEFF/, "");
+	const match = cleanRaw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
 
-	const meta: Record<string, string> = {};
-	for (const line of match[1].split(/\r?\n/)) {
-		const kv = line.match(/^([A-Za-z][\w-]*)\s*:\s*(.*)$/);
-		if (kv) meta[kv[1].toLowerCase()] = kv[2].trim().replace(/^["']|["']$/g, "");
+	let name = filename.replace(/\.md$/, "");
+	let description = "";
+	let placement: "prepend" | "append" = "append";
+	let order = 100;
+	let body = "";
+
+	if (match) {
+		const meta: Record<string, string> = {};
+		for (const line of match[1].split(/\r?\n/)) {
+			const kv = line.match(/^([A-Za-z][\w-]*)\s*:\s*(.*)$/);
+			if (kv) meta[kv[1].toLowerCase()] = kv[2].trim().replace(/^["']|["']$/g, "");
+		}
+		if (meta.name) name = meta.name;
+		if (meta.description) description = meta.description;
+		if (meta.placement === "prepend") placement = "prepend";
+		const parsedOrder = Number.parseInt(meta.order ?? "100", 10);
+		if (!Number.isNaN(parsedOrder)) order = parsedOrder;
+		body = match[2].trim();
+	} else {
+		body = cleanRaw.trim();
+		if (!body) return null;
+		const firstLine = body.split(/\r?\n/).find((l) => l.trim().length > 0) ?? "";
+		description = firstLine.replace(/^#+\s*/, "").slice(0, 80);
 	}
 
-	const name = meta.name || filename.replace(/\.md$/, "");
-	const description = meta.description || "";
-	const placement = meta.placement === "prepend" ? "prepend" : "append";
-	const order = Number.parseInt(meta.order ?? "100", 10);
-	const body = match[2].trim();
+	if (!body) return null;
 
 	return {
 		id: filename,
 		name,
 		description,
 		placement,
-		order: Number.isNaN(order) ? 100 : order,
+		order,
 		body,
 	};
 }
 
-function loadSnippets(cwd: string): Snippet[] {
-	const dirs = [join(getAgentDir(), "prompts"), join(cwd, CONFIG_DIR_NAME, "prompts")];
-	const seen = new Map<string, Snippet>();
+function resolveSnippetPath(rawPath: string, cwd: string): string {
+	const trimmed = rawPath.trim();
+	if (trimmed === "~" || trimmed.startsWith("~/") || (process.platform === "win32" && trimmed.startsWith("~\\"))) {
+		return resolve(homedir(), trimmed.replace(/^~[/\\]?/, ""));
+	}
+	if (isAbsolute(trimmed)) {
+		return resolve(trimmed);
+	}
+	const fromCwd = resolve(cwd, trimmed);
+	if (existsSync(fromCwd)) return fromCwd;
+	const fromAgent = resolve(getAgentDir(), trimmed);
+	if (existsSync(fromAgent)) return fromAgent;
+	return fromCwd;
+}
 
-	for (const dir of dirs) {
-		if (!existsSync(dir)) continue;
+function getSettingsPrompts(cwd: string, pi?: ExtensionAPI): string[] {
+	const results: string[] = [];
+
+	if (pi) {
+		try {
+			const settings = pi.getSettings();
+			if (Array.isArray(settings?.prompts)) {
+				results.push(...settings.prompts);
+				return results;
+			}
+		} catch {
+			// pi.getSettings() may throw before runner binds
+		}
+	}
+
+	const settingsFiles = [
+		join(getAgentDir(), "settings.json"),
+		join(cwd, CONFIG_DIR_NAME, "settings.json"),
+	];
+
+	for (const sf of settingsFiles) {
+		if (!existsSync(sf)) continue;
+		try {
+			const content = readFileSync(sf, "utf-8");
+			const parsed = JSON.parse(content.replace(/^\uFEFF/, ""));
+			if (Array.isArray(parsed?.prompts)) {
+				for (const p of parsed.prompts) {
+					if (typeof p === "string" && !results.includes(p)) {
+						results.push(p);
+					}
+				}
+			}
+		} catch {
+			// ignore JSON parse errors
+		}
+	}
+
+	return results;
+}
+
+function loadSnippets(cwd: string, pi?: ExtensionAPI): Snippet[] {
+	const seen = new Map<string, Snippet>();
+	const excludedNames = new Set<string>();
+
+	const defaultDirs = [
+		join(getAgentDir(), "prompts"),
+		join(cwd, CONFIG_DIR_NAME, "prompts"),
+	];
+	const settingsPrompts = getSettingsPrompts(cwd, pi);
+
+	const processDirectory = (dir: string) => {
+		if (!existsSync(dir)) return;
 		let files: string[];
 		try {
 			files = readdirSync(dir);
 		} catch (error) {
 			if (!(error instanceof Error) || !("code" in error)) throw error;
 			console.error(`Failed to read prompt directory ${dir}: ${error.message}`);
-			continue;
+			return;
 		}
 		for (const file of files) {
 			if (!file.endsWith(".md")) continue;
+			if (excludedNames.has(file)) continue;
+			const fullPath = join(dir, file);
 			try {
-				const snippet = parseSnippet(file, readFileSync(join(dir, file), "utf-8"));
+				const snippet = parseSnippet(file, readFileSync(fullPath, "utf-8"));
 				if (snippet) seen.set(file, snippet);
 			} catch (error) {
 				if (!(error instanceof Error) || !("code" in error)) throw error;
-				console.error(`Failed to read prompt ${join(dir, file)}: ${error.message}`);
+				console.error(`Failed to read prompt ${fullPath}: ${error.message}`);
 			}
 		}
+	};
+
+	const processFile = (filePath: string) => {
+		if (!existsSync(filePath) || !filePath.endsWith(".md")) return;
+		const filename = basename(filePath);
+		if (excludedNames.has(filename)) return;
+		try {
+			const snippet = parseSnippet(filename, readFileSync(filePath, "utf-8"));
+			if (snippet) seen.set(filename, snippet);
+		} catch (error) {
+			if (!(error instanceof Error) || !("code" in error)) throw error;
+			console.error(`Failed to read prompt file ${filePath}: ${error.message}`);
+		}
+	};
+
+	// Collect exclusions first
+	for (const raw of settingsPrompts) {
+		if (typeof raw !== "string") continue;
+		const trimmed = raw.trim();
+		if (trimmed.startsWith("-") || trimmed.startsWith("!")) {
+			const clean = trimmed.slice(1).trim();
+			excludedNames.add(basename(clean));
+		}
+	}
+
+	// 1. Load default prompt directories
+	for (const dir of defaultDirs) {
+		processDirectory(dir);
+	}
+
+	// 2. Load custom prompt paths configured in settings.prompts
+	for (const raw of settingsPrompts) {
+		if (typeof raw !== "string") continue;
+		let trimmed = raw.trim();
+		if (trimmed.startsWith("-") || trimmed.startsWith("!")) continue;
+		if (trimmed.startsWith("+")) trimmed = trimmed.slice(1).trim();
+		if (!trimmed) continue;
+
+		const resolved = resolveSnippetPath(trimmed, cwd);
+		if (!existsSync(resolved)) continue;
+
+		try {
+			const stat = statSync(resolved);
+			if (stat.isDirectory()) {
+				processDirectory(resolved);
+			} else if (stat.isFile() && resolved.endsWith(".md")) {
+				processFile(resolved);
+			}
+		} catch (error) {
+			if (!(error instanceof Error) || !("code" in error)) throw error;
+			console.error(`Failed to inspect prompt path ${resolved}: ${error.message}`);
+		}
+	}
+
+	// Remove any excluded items
+	for (const ex of excludedNames) {
+		seen.delete(ex);
 	}
 
 	return Array.from(seen.values()).sort((a, b) => {
@@ -188,7 +324,7 @@ export default function promptSnipaste(pi: ExtensionAPI) {
 			return;
 		}
 
-		snippets = loadSnippets(ctx.cwd);
+		snippets = loadSnippets(ctx.cwd, pi);
 		enabled = new Set([...enabled].filter((id) => snippets.some((s) => s.id === id)));
 
 		if (snippets.length === 0) {
@@ -369,14 +505,14 @@ export default function promptSnipaste(pi: ExtensionAPI) {
 	pi.on("session_start", (_event, ctx) => {
 		enabled = new Set();
 		pendingTurnSnippets = null;
-		snippets = loadSnippets(ctx.cwd);
+		snippets = loadSnippets(ctx.cwd, pi);
 		updateWidget(ctx);
 	});
 
 	pi.on("input", async (_event, ctx) => {
 		if (enabled.size === 0) return undefined;
 
-		snippets = loadSnippets(ctx.cwd);
+		snippets = loadSnippets(ctx.cwd, pi);
 		const active = snippets.filter((s) => enabled.has(s.id));
 		enabled = new Set();
 		updateWidget(ctx);
@@ -411,23 +547,38 @@ export default function promptSnipaste(pi: ExtensionAPI) {
 		for (let i = messages.length - 1; i >= 0; i--) {
 			const msg = messages[i];
 			if (msg.role === "user") {
-				const originalText = typeof msg.content === "string" ? msg.content : "";
-				const parts: string[] = [];
+				if (typeof msg.content === "string") {
+					const parts: string[] = [];
 
-				if (prepends.length > 0) {
-					parts.push(prepends.map((s) => s.body.trim()).join("\n\n"));
-				}
-				if (originalText.trim()) {
-					parts.push(originalText.trim());
-				}
-				if (appends.length > 0) {
-					parts.push(appends.map((s) => s.body.trim()).join("\n\n"));
-				}
+					if (prepends.length > 0) {
+						parts.push(prepends.map((s) => s.body.trim()).join("\n\n"));
+					}
+					if (msg.content.trim()) {
+						parts.push(msg.content.trim());
+					}
+					if (appends.length > 0) {
+						parts.push(appends.map((s) => s.body.trim()).join("\n\n"));
+					}
 
-				messages[i] = {
-					...msg,
-					content: parts.join("\n\n"),
-				};
+					messages[i] = {
+						...msg,
+						content: parts.join("\n\n"),
+					};
+				} else if (Array.isArray(msg.content)) {
+					const prependText = prepends.map((s) => s.body.trim()).join("\n\n");
+					const appendText = appends.map((s) => s.body.trim()).join("\n\n");
+					const newContent = [...msg.content];
+					if (prependText) {
+						newContent.unshift({ type: "text", text: prependText });
+					}
+					if (appendText) {
+						newContent.push({ type: "text", text: appendText });
+					}
+					messages[i] = {
+						...msg,
+						content: newContent as any,
+					};
+				}
 				return { messages };
 			}
 		}
