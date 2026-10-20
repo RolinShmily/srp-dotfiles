@@ -9,9 +9,9 @@ export function interactiveArgs({ harness, directory, prompt, hookPath, exitFile
     }
     case "claude": {
       const quote = (value) => process.platform === "win32"
-        ? `'${value.replaceAll("'", "''")}'`
+        ? `"${value.replace(/"/g, '\\"')}"`
         : `'${value.replaceAll("'", "'\\''")}'`;
-      const hookCommand = (event) => `${process.platform === "win32" ? "& " : ""}${[process.execPath, hookPath, exitFile, event].map(quote).join(" ")}`;
+      const hookCommand = (event) => [process.execPath, hookPath, exitFile, event].map(quote).join(" ");
       const settings = JSON.stringify({ hooks: {
         Stop: [{ hooks: [{ type: "command", command: hookCommand("claude"), timeout: 10 }] }],
         UserPromptSubmit: [{ hooks: [{ type: "command", command: hookCommand("claude-start"), timeout: 10 }] }],

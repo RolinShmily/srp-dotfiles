@@ -198,7 +198,7 @@ export function sendLongCommand(
     const ps = getPowerShellCommand();
     sendCommand(
       surface,
-      `${ps} -NoProfile -ExecutionPolicy Bypass -File ${psEscape(scriptPath)}`,
+      `${ps} -NoProfile -ExecutionPolicy Bypass -Command "& ${psEscape(scriptPath)}; exit $LASTEXITCODE"`,
     );
   }
 
@@ -223,7 +223,7 @@ export function sendCommand(surface: string, command: string): void {
 
 // ── Zellij Plumbing ──
 
-function zellijPaneId(surface: string): string {
+export function zellijPaneId(surface: string): string {
   return surface.startsWith("pane:") ? surface.slice("pane:".length) : surface;
 }
 

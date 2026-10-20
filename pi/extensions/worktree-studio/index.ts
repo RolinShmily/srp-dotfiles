@@ -16,6 +16,7 @@ import {
   renderSubagentCommand,
   sendLongCommand,
   spawnProcessWorker,
+  zellijPaneId,
   type WorkerBackend,
 } from "../subagent/mux.ts";
 import { findLastAssistantMessage, readSessionUsage } from "../subagent/session.ts";
@@ -44,9 +45,11 @@ async function setupStudioBin(experimentDir: string): Promise<string> {
   const scriptPath = join(binDir, "studio-done");
   const psPath = join(binDir, "studio-done.ps1");
   const cmdPath = join(binDir, "studio-done.cmd");
-  const shContent = `#!/usr/bin/env sh\nexec "${process.execPath}" "${studioDoneScript}" "$@"\n`;
-  const psContent = `& "${process.execPath}" "${studioDoneScript}" $args\n`;
-  const cmdContent = `@call "${process.execPath}" "${studioDoneScript}" %*\n`;
+  const normExec = process.execPath.replace(/\\/g, "/");
+  const normScript = studioDoneScript.replace(/\\/g, "/");
+  const shContent = `#!/usr/bin/env sh\nexec "${normExec}" "${normScript}" "$@"\n`;
+  const psContent = `& "${process.execPath.replace(/"/g, '`"')}" "${studioDoneScript.replace(/"/g, '`"')}" $args\n`;
+  const cmdContent = `@"${process.execPath.replace(/"/g, "")}" "${studioDoneScript.replace(/"/g, "")}" %*\n`;
   await writeFile(scriptPath, shContent, { mode: 0o755 });
   await writeFile(psPath, psContent, { mode: 0o755 });
   await writeFile(cmdPath, cmdContent, { mode: 0o755 });
@@ -491,23 +494,45 @@ async function dispatchToTui(route: ExperimentRoute, surface: string, backend: W
       execFileSync("tmux", ["send-keys", "-t", surface, "Enter"], { stdio: "ignore", timeout: 2000 });
       return;
     }
-    throw new Error("Codex TUI follow-up requires either a reported thread ID or a tmux surface.");
+    if (backend === "zellij") {
+      const paneId = zellijPaneId(surface);
+      execFileSync("zellij", ["action", "write-chars", "--pane-id", paneId, `[Studio dispatch ${id}]\n${task}`], {
+        encoding: "utf8", windowsHide: true,
+      });
+      execFileSync("zellij", ["action", "write", "--pane-id", paneId, "13"], {
+        encoding: "utf8", windowsHide: true,
+      });
+      return;
+    }
+    throw new Error("Codex TUI follow-up requires a reported thread ID, tmux, or zellij.");
   }
-  if (route.harness === "claude" && backend === "tmux") {
+  if (route.harness === "claude") {
     const stateFile = `${route.sessionFile}.state.json`;
     if (existsSync(stateFile) && JSON.parse(readFileSync(stateFile, "utf8")).status !== "idle") {
       throw new Error("Claude TUI is processing another prompt. Wait until it becomes idle before sending a follow-up.");
     }
-    if (!nativeTuiAlive(surface, backend)) throw new Error("Claude TUI has exited; refusing to paste into a shell.");
-    const file = `${route.sessionFile}.dispatch-${id}.txt`;
-    const buffer = `pi-studio-${id}`;
-    writeFileSync(file, `[Studio dispatch ${id}]\n${task}`, { encoding: "utf8", mode: 0o600 });
-    execFileSync("tmux", ["load-buffer", "-b", buffer, file], { stdio: "ignore", timeout: 2000 });
-    execFileSync("tmux", ["paste-buffer", "-p", "-d", "-b", buffer, "-t", surface], { stdio: "ignore", timeout: 2000 });
-    execFileSync("tmux", ["send-keys", "-t", surface, "Enter"], { stdio: "ignore", timeout: 2000 });
-    return;
+    if (backend === "tmux") {
+      if (!nativeTuiAlive(surface, backend)) throw new Error("Claude TUI has exited; refusing to paste into a shell.");
+      const file = `${route.sessionFile}.dispatch-${id}.txt`;
+      const buffer = `pi-studio-${id}`;
+      writeFileSync(file, `[Studio dispatch ${id}]\n${task}`, { encoding: "utf8", mode: 0o600 });
+      execFileSync("tmux", ["load-buffer", "-b", buffer, file], { stdio: "ignore", timeout: 2000 });
+      execFileSync("tmux", ["paste-buffer", "-p", "-d", "-b", buffer, "-t", surface], { stdio: "ignore", timeout: 2000 });
+      execFileSync("tmux", ["send-keys", "-t", surface, "Enter"], { stdio: "ignore", timeout: 2000 });
+      return;
+    }
+    if (backend === "zellij") {
+      const paneId = zellijPaneId(surface);
+      execFileSync("zellij", ["action", "write-chars", "--pane-id", paneId, `[Studio dispatch ${id}]\n${task}`], {
+        encoding: "utf8", windowsHide: true,
+      });
+      execFileSync("zellij", ["action", "write", "--pane-id", paneId, "13"], {
+        encoding: "utf8", windowsHide: true,
+      });
+      return;
+    }
   }
-  throw new Error(`Automatic follow-up for ${route.harness} requires a supported native TUI (Claude requires tmux).`);
+  throw new Error(`Automatic follow-up for ${route.harness} requires a supported native TUI (tmux or zellij).`);
 }
 
 async function renderReport(run: ActiveRun, results: RouteResult[]): Promise<string> {
