@@ -21,7 +21,7 @@ type MagpieDiscoveredModelConfig = MagpieChatModelConfig | MagpieClassifierModel
 // Authenticate with a Magpie gateway key via /login magpie (stored in Pi's
 // auth.json) or MAGPIE_GATEWAY_KEY. This is not an upstream provider API key.
 
-const BASE_URL = "http://deb-lan.tail.net:3425/v1";
+const BASE_URL = "http://n100.tail.net:3425/v1";
 const DEFAULT_CONTEXT_WINDOW = 128_000;
 const DEFAULT_MAX_TOKENS = 8_192;
 

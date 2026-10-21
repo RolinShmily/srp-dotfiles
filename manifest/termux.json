@@ -101,7 +101,7 @@
       "@repo/pi/extensions/image-generate.ts",
       "@repo/pi/extensions/memory-log",
       "@repo/pi/extensions/subagent",
-      "@repo/pi/extensions/worktree-studio"
+      "@repo/pi/extensions/multi-harness"
     ],
     "skills": [
       "@repo/pi/skills"

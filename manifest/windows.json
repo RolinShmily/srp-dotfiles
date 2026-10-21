@@ -155,7 +155,7 @@
       "@repo/pi/extensions/tui-asr.ts",
       "@repo/pi/extensions/windows-wheel-fix.ts",
       "@repo/pi/extensions/subagent",
-      "@repo/pi/extensions/worktree-studio"
+      "@repo/pi/extensions/multi-harness"
     ],
     "skills": [
       "@repo/pi/skills"
