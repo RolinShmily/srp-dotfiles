@@ -32,8 +32,8 @@
   ],
   "npmGlobals": [
     "@earendil-works/pi-coding-agent",
-    "@agegr/pi-web@latest",
-    "skills"
+    "@antfu/ni",
+    "live-server"
   ],
   "skillsAdd": [
     "tt-a1i/archify"
