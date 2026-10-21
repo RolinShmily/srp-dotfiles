@@ -18,10 +18,7 @@
     },
     "mineru": {
       "command": "uvx",
-      "args": ["mineru-open-mcp"],
-      "env": {
-        "MINERU_API_TOKEN": "${MINERU_API_TOKEN}"
-      }
+      "args": ["mineru-open-mcp"]
     }
   }
 }
