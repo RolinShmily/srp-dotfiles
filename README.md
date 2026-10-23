@@ -175,39 +175,117 @@ Or run directly with subcommands:
 
 ---
 
-## ⌨️ Productivity Shortcuts Cheat Sheet
+## ⌨️ Shell Command Reference
 
-### WezTerm (Windows)
+Repository-defined aliases and functions, excluding Oh My Zsh's built-in aliases. Some commands require the corresponding tools to be installed.
 
-| Shortcut | Action | Description |
-| :--- | :--- | :--- |
-| **`Ctrl + Shift + t` / `Alt + t`** | **New Tab** | Spawn a new tab and focus it immediately |
-| **`Ctrl + Shift + w` / `Alt + w`** | **Close Current Tab** | Instantly close active tab without prompt |
-| **`Alt + 1 ~ 4`** | **Activate Tab 1 ~ 4** | Jump directly to specific tabs |
-| **`Ctrl + Tab`** | **Cycle Next Tab** | Relative next tab navigation |
-| **`Ctrl + Shift + Tab`** | **Cycle Prev Tab** | Relative previous tab navigation |
-| **`Alt + /`** | **Toggle Background Image** | Toggle between custom background image and pure black focus mode |
-| **`Alt + f`** | **Terminal Search** | Full-screen interactive search across terminal scrollback |
-| **`F2`** | **Command Palette** | Fuzzy-search all WezTerm commands and actions (VSCode style) |
-| **`Alt + Ctrl + u`** | **QuickSelect URL** | Highlight URLs on screen; press assigned label to open in browser |
-| **`Ctrl + Left Click`**| **Open Link** | Click any link to open; automatically trims surrounding brackets |
-| **`F1`** | **Vi Copy Mode** | Navigate scrollback with keyboard and copy text |
+### Zsh ([zshrc](zsh/zshrc))
 
-### PowerShell 7 & Zsh Aligned Commands
+| Command | Action |
+| :--- | :--- |
+| `cl` / `e` | Clear the screen / exit the shell |
+| `ff` / `lg` / `ze` | Launch Fastfetch / Lazygit / Zellij |
+| `t` | Run tmux; e.g. t a -t 0 attaches to a session |
+| `cat <file>` | View a file with bat syntax highlighting |
+| `find <pattern>` / `fd <pattern>` | Find files with fd; alias fd to fdfind when needed |
+| `help <command>` | Show tldr command examples |
+| `ls` / `l` | List directory entries / one entry per line |
+| `ll` / `la` | Detailed listing / include hidden entries |
+| `lt` | Show a two-level directory tree |
+| `lm` / `lmd` | Sort by modification time / reverse order |
+| `yz [path]` | Open Yazi and sync the shell directory on exit |
+| `proj [name]` | Enter the projects root or a project; override the root with `PROJECTS_DIR` |
+| `dir <path>` | Create a directory and enter it (not a directory listing) |
+| `clone <url> [dir]` | Clone a repository and enter it |
+| `clonep <url>` | Clone under the projects root, open in VS Code, then return to the projects root |
+| `codep [name]` | Open a project under the projects root in VS Code, then return |
+| `serve` | Start a live-server static server |
+| `grt` | Enter the current Git repository root |
+| `gs` | `git status` |
+| `gd` / `gdc` | Show working-tree / staged diffs; use diff-so-fancy when available |
+| `gl` / `glo` | Commit log / one-line graph |
+| `glp [n]` | Show the log without a pager, optionally limited to n commits |
+| `gp` / `gpft` | Push / push with associated annotated tags |
+| `gpf` | `git push --force` (rewrites remote history; use with care) |
+| `gpl` | `git pull --rebase` |
+| `gcl` | `git clone`, without changing directory |
+| `gst` | `git stash` (not status) |
+| `grm` / `grmc` | `git rm` / `git rm --cached` |
+| `gmv` | `git mv` |
+| `main` | Check out the local main branch |
+| `gco <branch>` / `gcob <branch>` | Check out / create and check out a branch |
+| `gb` / `gbd <branch>` | List branches / delete a merged branch |
+| `grb` / `grbc` | `git rebase` / `git rebase --continue` |
+| `grbom` | Rebase onto origin's default branch, with main/master fallback |
+| `gfrb` | Fetch origin, then rebase onto its default branch |
+| `grh` / `grh1` | Reset the index to HEAD / move back one commit; keep working-tree files |
+| `ga <path>` / `gA` | Stage paths / all changes (case-sensitive) |
+| `gc` / `gcm "msg"` | `git commit` / commit with a message |
+| `gca` | `git commit -a`, including tracked-file changes |
+| `gcam "msg"` | Stage all changes and commit with a message |
+| `gxn` / `gx` | Preview / delete untracked files and directories (gx is irreversible; use with care) |
+| `gcfg <name> <email>` | Set the global Git user name and email |
+| `gssh [pubkey]` | Enable SSH commit signing globally; find a local public key if omitted |
+| `ggpg <key-id>` | Enable GPG commit signing globally; show setup hints if omitted |
+| `gsha` | Copy the full HEAD SHA, or print it if no clipboard tool is available |
+| `ghci` | Show the latest GitHub Actions run |
+| `pr ls` / `pr <id>` | List pull requests / check out a pull request |
 
-| Command | Target Action | Description |
-| :--- | :--- | :--- |
-| `yz` | **Yazi CWD Sync** | Open Yazi file manager; synchronizes shell CWD upon exit |
-| `proj [name]` | **Project Jump** | Jump to `~/Projects` or a specific project subfolder |
-| `grt` | **Git Root** | Instantly return to the top-level directory of current Git repo |
-| `clone <url>` | **Clone & Enter** | Clone a Git repository and automatically `cd` into its directory |
-| `clonep <url>`| **Clone & VS Code**| Clone repo under `~/Projects` and open immediately in VS Code |
-| `ghci` | **GitHub CI Status** | Run `gh run list -L 1` to check latest GitHub Actions workflow status |
-| `pr [ls \| id]` | **GitHub PR Quick** | List pull requests (`pr ls`) or checkout PR (`pr <id>`) |
-| `grbom` | **Git Rebase Main** | Auto-detect `origin/main` or `origin/master` and rebase |
-| `gfrb` | **Fetch & Rebase** | Run `git fetch origin` and rebase on default remote branch |
-| `gcam "msg"` | **Git Add & Commit**| Stage all changes and commit with message |
-| `gcfg <name> <mail>` | **Git Config User** | Quickly configure global Git user name and email |
+### PowerShell 7 ([profile.ps1](powershell/profile.ps1))
+
+| Command | Action |
+| :--- | :--- |
+| `cl` / `e` | Clear the screen / exit the shell |
+| `ff` / `lg` / `ze` | Launch Fastfetch / Lazygit / Zellij |
+| `cat <file>` | View a file with bat syntax highlighting |
+| `find <pattern>` | Find files with fd |
+| `help <command>` | Show tldr command examples |
+| `which <command>` | Find a command's source or path |
+| `ls` / `l` | List directory entries / one entry per line |
+| `ll` / `la` | Detailed listing / include hidden entries |
+| `lt` | Show a two-level directory tree |
+| `lm` / `lmd` | Sort by modification time / reverse order |
+| `yz [path]` | Open Yazi and sync the shell directory on exit |
+| `proj [name]` | Enter the projects root or a project; override the root with `PROJECTS_DIR` |
+| `dir <path>` | Create a directory and enter it (not a directory listing) |
+| `clone <url> [dir]` | Clone a repository and enter it |
+| `clonep <url>` | Clone under the projects root, open in VS Code, then return |
+| `codep [name]` | Open a project in VS Code, then return |
+| `serve` | Start a live-server static server |
+| `grt` | Enter the current Git repository root |
+| `gs` | `git status` |
+| `gd` / `gdc` | Show working-tree / staged diffs; use diff-so-fancy when available |
+| `gl` / `glo` | Commit log / one-line graph |
+| `glp [n]` | Show the log without a pager, optionally limited to n commits |
+| `gp` / `gpft` | Push / push with associated annotated tags |
+| `gpf` | `git push --force` (rewrites remote history; use with care) |
+| `gpl` | `git pull --rebase` |
+| `gcl` | `git clone`, without changing directory |
+| `gst` | `git stash` (not status) |
+| `grm` / `grmc` | `git rm` / `git rm --cached` |
+| `gmv` | `git mv` |
+| `main` | Check out the local main branch |
+| `gco <branch>` / `gcob <branch>` | Check out / create and check out a branch |
+| `gb` / `gbd <branch>` | List branches / delete a merged branch |
+| `grb` / `grbc` | `git rebase` / `git rebase --continue` |
+| `grbom` | Rebase onto origin's default branch, with main/master fallback |
+| `gfrb` | Fetch origin, then rebase onto its default branch |
+| `grh` / `grh1` | Reset the index to HEAD / move back one commit; keep working-tree files |
+| `ga` / `gA` | Both currently run git add -A (PowerShell is case-insensitive; the later definition wins) |
+| `gc` / `gcm "msg"` | `git commit` / commit with a message |
+| `gca` | `git commit -a`, including tracked-file changes |
+| `gcam "msg"` | Stage all changes and commit with a message |
+| `gxn` / `gx` | Preview / delete untracked files and directories (gx is irreversible; use with care) |
+| `gunlock` | Remove a stale .git/index.lock only when no Git process is running |
+| `gfix-crlf` | Renormalize and stage tracked files under the current directory according to .gitattributes |
+| `gcfg <name> <email>` | Set the global Git user name and email |
+| `gssh [pubkey]` | Enable SSH commit signing globally; find a local public key if omitted |
+| `ggpg <key-id>` | Enable GPG commit signing globally; show setup hints if omitted |
+| `ghci` | Show the latest GitHub Actions run |
+| `pr ls` / `pr <id>` | List pull requests / check out a pull request |
+| `ssh-copy-id user@host [-i key.pub] [-p port]` | Append a local SSH public key to remote authorized_keys (-i takes a public key) |
+
+PowerShell's listings and file viewing prefer eza and bat, falling back to built-in commands. With no arguments, `pr` lists pull requests.
 
 ---
 
@@ -250,81 +328,25 @@ Optional fields:
 
 Path placeholders: `~`, `%APPDATA%`, `$SCOOP`, `$PROFILE`.
 
-### 3. Add a Special-Case Config (multi-target routing / name resolution)
+### 3. Add a Special-Case Config
 
-Write a script only when `link` / `copy` cannot express what you need (e.g. Pi preserves existing JSON, saves template sidecars, and injects OS-specific resource paths):
+Use a dedicated script only when `link` / `copy` cannot express the behavior. Scripts can reuse the deployment functions in `scripts/lib/`:
 
-```bash
+```text
 scripts/configs/<name>.sh     # Unix
 scripts/configs/<name>.ps1    # Windows
 ```
 
-Scripts can reuse the verb library (`source ../lib/deploy.sh` → `link_item` / `copy_item`) and run standalone for debugging:
-
-```bash
-bash scripts/configs/pi.sh
-```
+For example, [pi.sh](scripts/configs/pi.sh) / [pi.ps1](scripts/configs/pi.ps1) initializes missing JSON files, preserves existing configs with template sidecars, and injects OS-specific resource paths. More Pi configuration and extensions are maintained in [pi-kit](https://github.com/RolinShmily/pi-kit).
 
 ### 4. Deploy Semantics at a Glance
 
 | Config entry | Verb | Resulting form |
 | :--- | :--- | :--- |
 | `zshrc` / `vimrc` / `btop` / `fastfetch` / `yazi` / `zellij` / `tmux` | `link` | One symlink under `~/.config/<name>` pointing at the repo; edits apply live |
-| `pi` | `custom` | Initializes Pi JSON templates and injects OS-specific `packages` / `extensions` / `skills` / `prompts` paths |
 | `windows-terminal-settings` | `custom` | Partially overwrites Windows Terminal settings while preserving machine-generated `defaultProfile` / `profiles.list` |
 
 Windows Terminal does not use a normal whole-file `copy`: the template omits machine-specific `defaultProfile` and `profiles.list`. When the target `settings.json` exists, only fields declared by the template are recursively overwritten; all other target fields are preserved. A missing target is created directly from the template.
-
-Pi deployment creates missing JSON files from templates; existing `settings.json`, `mcp.json`, and `keybindings.json` are preserved, with repository templates saved alongside them as `.json.example`. The selected OS profile adds its `piResources` to settings:
-
-```jsonc
-"piResources": {
-  "packages": [],
-  "extensions": [],
-  "skills": ["@repo/pi/skills"],
-  "prompts": []
-}
-```
-
-`@repo/` is expanded by `pi-inject-resources.js` into an absolute repository path. Local resources are
-therefore loaded directly from the checkout; they are not copied or linked into `~/.pi/agent/`.
-External `skillsAdd` entries are still installed by the `skills` CLI into `~/.pi/agent/skills`.
-
-This repository owns personal settings, OS additions, remaining local skills, and third-party forks. Reusable extensions, prompt templates, and `worktree-studio` live in [pi-kit](https://github.com/RolinShmily/pi-kit), loaded through the `npm:@rol1n/pi-kit` package entry. `worktree-studio` is no longer copied or maintained under `pi/skills/`; keep `@repo/pi/skills` for the other local skills. The package's `extensions`, `prompts`, and `skills` filters are independent.
-
-After the kit release is available, run `pi update npm:@rol1n/pi-kit` and `/reload` to load the packaged skill. Remove any older explicit worktree-studio paths or manually installed copies if they cause duplicate skill names.
-
-| Resource type | Pi setting | Deployment behavior |
-| :--- | :--- | :--- |
-| External/local Pi packages | `packages` | Pi manages npm, Git and local package sources |
-| Repository extensions | `extensions` | Pi loads paths directly from the checkout |
-| Repository skills | `skills` | Pi loads paths directly from the checkout |
-| Repository prompts | `prompts` | Pi loads paths directly from the checkout |
-| External Agent Skills | `skillsAdd` | Installed separately by the `skills` CLI |
-
-Resource injection appends resolved manifest entries without clearing existing arrays, deduplicating identical incoming strings. It applies to both the formal settings and its template sidecar when present. Empty manifest arrays do not remove existing resources; changes to shared package defaults in the sidecar must be merged manually into an existing installation.
-
-#### Local Pi packages and resources
-
-`@repo/` is a deploy-time token, so the same manifest works after cloning the repository elsewhere.
-Pi receives the resolved absolute path and loads the local package or resource in place; no
-`~/.pi/agent/packages/` copy and no resource symlink are needed.
-
-#### MCP Config Uses pi's Built-in Implementation
-
-pi ships with built-in MCP and reads `~/.pi/agent/mcp.json` (project-level: `.pi/mcp.json`).
-This repo's `pi/mcp.json.example` creates `mcp.json` when it is missing; if it already exists, the template is saved as `mcp.json.example` beside it.
-
-> ⚠️ Installing the `pi-mcp-adapter` extension **replaces the built-in support** — pi then stops
-> reading `mcp.json` and `/mcp` belongs to the extension. That is why `piResources.packages` no longer includes it.
-> The old `~/.config/mcp/mcp.json` is the **adapter's** path, which the built-in never reads; it is deprecated.
-
-Never commit secrets: `env` supports `${VAR}` references, e.g. `"MINERU_API_TOKEN": "${MINERU_API_TOKEN}"`,
-with the real value in `~/.zshrc.local`. When the variable is unset, `pi mcp list` reports it explicitly
-instead of silently sending a placeholder.
-
-`~/.pi/agent/mcp.json` is also written by pi itself (`/mcp` UI, `pi mcp add/remove`). If it exists,
-deployment preserves it and saves the repository template as `mcp.json.example` beside it.
 
 ### 5. Intelligent Two-Stage `Ctrl + C` Interrupt
 Both `./launch.sh` and `.\start.ps1` feature a built-in signal state machine:

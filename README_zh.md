@@ -175,39 +175,117 @@ cd ~/.dotfiles
 
 ---
 
-## ⌨️ 高频快捷键速查
+## ⌨️ Shell 缩写指令
 
-### WezTerm (Windows)
+以下列出仓库自定义的别名与函数，不包含 Oh My Zsh 自带别名。部分命令需先安装对应工具。
 
-| 快捷键 | 功能 | 说明 |
-| :--- | :--- | :--- |
-| **`Ctrl + Shift + t` / `Alt + t`** | **新建标签页 (New Tab)** | 极速新建标签页并立即进入 |
-| **`Ctrl + Shift + w` / `Alt + w`** | **关闭当前标签页 (Close Tab)** | 秒关当前活动标签页 (免弹窗二次确认) |
-| **`Alt + 1 ~ 4`** | **直达标签页 1 ~ 4** | 极速在不同 Tab 之间直达切换 |
-| **`Ctrl + Tab`** | **向后轮转标签页** | 顺序切换至下一个标签页 |
-| **`Ctrl + Shift + Tab`** | **向前轮转标签页** | 逆序切换至上一个标签页 |
-| **`Alt + /`** | **专属背景图 / 纯黑底色切换** | 默认开启专属背景图，一键秒切纯黑专注模式 |
-| **`Alt + f`** | **终端全屏实时搜索** | 高亮检索屏幕与所有回滚历史输出 |
-| **`F2`** | **唤起 Command Palette 命令面板** | 类似 VSCode 模糊搜索所有终端操作与设置 |
-| **`Alt + Ctrl + u`** | **URL 免鼠标 QuickSelect** | 全屏高亮所有链接，按提示字母一键在浏览器打开 |
-| **`Ctrl + 鼠标左键`** | **精准点击打开链接** | 正则自动剥离括号/尖括号，杜绝 404 |
-| **`F1`** | **Vi 键盘复制模式 (Copy Mode)** | 纯键盘移动光标选中文本并复制 |
+### Zsh（[zshrc](zsh/zshrc)）
 
-### PowerShell 7 与 Zsh 统一快捷指令
+| 指令 | 作用 |
+| :--- | :--- |
+| `cl` / `e` | 清屏 / 退出 Shell |
+| `ff` / `lg` / `ze` | 启动 Fastfetch / Lazygit / Zellij |
+| `t` | 启动 tmux，如 `t a -t 0` 连接会话 |
+| `cat <file>` | 用 bat 高亮查看文件 |
+| `find <pattern>` / `fd <pattern>` | 用 fd 查找文件；仅有 fdfind 时也提供 `fd` 别名 |
+| `help <command>` | 查看 tldr 简明用法 |
+| `ls` / `l` | 目录列表 / 每行一项 |
+| `ll` / `la` | 详细列表 / 详细列表含隐藏项 |
+| `lt` | 两层目录树 |
+| `lm` / `lmd` | 按修改时间排序 / 反向排序 |
+| `yz [path]` | 打开 Yazi，退出时同步当前目录 |
+| `proj [name]` | 进入项目根目录或子项目；可用 `PROJECTS_DIR` 自定义根目录 |
+| `dir <path>` | 创建目录并进入（不是列目录） |
+| `clone <url> [dir]` | 克隆仓库并进入 |
+| `clonep <url>` | 克隆到项目根目录并用 VS Code 打开，随后回到项目根目录 |
+| `codep [name]` | 用 VS Code 打开项目根目录下的项目，随后返回原目录 |
+| `serve` | 启动 `live-server` 静态服务器 |
+| `grt` | 进入当前 Git 仓库根目录 |
+| `gs` | `git status` |
+| `gd` / `gdc` | 查看工作区 / 暂存区差异；可用时启用 diff-so-fancy |
+| `gl` / `glo` | 提交日志 / 单行图形日志 |
+| `glp [n]` | 不分页显示日志，可限制条数 |
+| `gp` / `gpft` | 推送 / 推送并携带关联的附注标签 |
+| `gpf` | `git push --force`（会改写远端历史，慎用） |
+| `gpl` | `git pull --rebase` |
+| `gcl` | `git clone`，不自动进入目录 |
+| `gst` | `git stash`（不是 status） |
+| `grm` / `grmc` | `git rm` / `git rm --cached` |
+| `gmv` | `git mv` |
+| `main` | 切换到本地 `main` 分支 |
+| `gco <branch>` / `gcob <branch>` | 切换分支 / 创建并切换分支 |
+| `gb` / `gbd <branch>` | 查看分支 / 删除已合并分支 |
+| `grb` / `grbc` | `git rebase` / `git rebase --continue` |
+| `grbom` | 变基到 origin 的默认分支，兼容 `main` / `master` |
+| `gfrb` | 先 `fetch origin`，再变基到远端默认分支 |
+| `grh` / `grh1` | 重置暂存区到 HEAD / 回退一个提交，均保留工作区文件 |
+| `ga <path>` / `gA` | 暂存指定路径 / 全部变更（区分大小写） |
+| `gc` / `gcm "msg"` | `git commit` / 指定提交信息 |
+| `gca` | `git commit -a`，提交已跟踪文件的修改 |
+| `gcam "msg"` | 暂存全部变更并提交 |
+| `gxn` / `gx` | 预览 / 执行未跟踪文件与目录清理（`gx` 不可恢复，慎用） |
+| `gcfg <name> <email>` | 设置全局 Git 用户名与邮箱 |
+| `gssh [pubkey]` | 全局启用 SSH 提交签名；省略路径时查找本机公钥 |
+| `ggpg <key-id>` | 全局启用 GPG 提交签名；不传参数时显示配置指引 |
+| `gsha` | 复制 HEAD 的完整 SHA；无可用剪贴板工具时直接输出 |
+| `ghci` | 查看最近一次 GitHub Actions 运行 |
+| `pr ls` / `pr <id>` | 列出 PR / 检出指定 PR |
 
-| 指令 | 对应操作 | 功能说明 |
-| :--- | :--- | :--- |
-| `yz` | **Yazi CWD 同步** | 启动 Yazi 文件管理器，退出时自动同步 Shell 当前工作目录 |
-| `proj [name]` | **项目快速跳转** | 直达 `~/Projects` 或指定子项目目录 |
-| `grt` | **Git 根目录** | 一秒回到当前 Git 仓库顶层根目录 |
-| `clone <url>` | **克隆并进入** | 克隆 Git 仓库并自动 `cd` 进入该项目目录 |
-| `clonep <url>`| **克隆并在 VSCode 打开** | 在 `~/Projects` 下克隆并立即用 VS Code 打开 |
-| `ghci` | **GitHub CI 状态** | 执行 `gh run list -L 1` 秒查最近一次 Actions 状态 |
-| `pr [ls \| id]` | **GitHub PR 操作** | 列出 PR 列表 (`pr ls`) 或检出 PR 到本地 (`pr <id>`) |
-| `grbom` | **Git Rebase 主分支** | 自动探测 `origin/main` 或 `origin/master` 并执行变基 |
-| `gfrb` | **Fetch 并 Rebase** | 执行 `git fetch origin` 并自动变基至远端主分支 |
-| `gcam "msg"` | **一键暂存并提交** | 相当于 `git add -A && git commit -m "msg"` |
-| `gcfg <name> <mail>` | **配置 Git 身份** | 极速设置全局 Git 用户名与邮箱 |
+### PowerShell 7（[profile.ps1](powershell/profile.ps1)）
+
+| 指令 | 作用 |
+| :--- | :--- |
+| `cl` / `e` | 清屏 / 退出 Shell |
+| `ff` / `lg` / `ze` | 启动 Fastfetch / Lazygit / Zellij |
+| `cat <file>` | 用 bat 高亮查看文件 |
+| `find <pattern>` | 用 fd 查找文件 |
+| `help <command>` | 查看 tldr 简明用法 |
+| `which <command>` | 查找命令来源或路径 |
+| `ls` / `l` | 目录列表 / 每行一项 |
+| `ll` / `la` | 详细列表 / 详细列表含隐藏项 |
+| `lt` | 两层目录树 |
+| `lm` / `lmd` | 按修改时间排序 / 反向排序 |
+| `yz [path]` | 打开 Yazi，退出时同步当前目录 |
+| `proj [name]` | 进入项目根目录或子项目；可用 `PROJECTS_DIR` 自定义根目录 |
+| `dir <path>` | 创建目录并进入（不是列目录） |
+| `clone <url> [dir]` | 克隆仓库并进入 |
+| `clonep <url>` | 克隆到项目根目录并用 VS Code 打开，随后返回原目录 |
+| `codep [name]` | 用 VS Code 打开项目，随后返回原目录 |
+| `serve` | 启动 `live-server` 静态服务器 |
+| `grt` | 进入当前 Git 仓库根目录 |
+| `gs` | `git status` |
+| `gd` / `gdc` | 查看工作区 / 暂存区差异；可用时启用 diff-so-fancy |
+| `gl` / `glo` | 提交日志 / 单行图形日志 |
+| `glp [n]` | 不分页显示日志，可限制条数 |
+| `gp` / `gpft` | 推送 / 推送并携带关联的附注标签 |
+| `gpf` | `git push --force`（会改写远端历史，慎用） |
+| `gpl` | `git pull --rebase` |
+| `gcl` | `git clone`，不自动进入目录 |
+| `gst` | `git stash`（不是 status） |
+| `grm` / `grmc` | `git rm` / `git rm --cached` |
+| `gmv` | `git mv` |
+| `main` | 切换到本地 `main` 分支 |
+| `gco <branch>` / `gcob <branch>` | 切换分支 / 创建并切换分支 |
+| `gb` / `gbd <branch>` | 查看分支 / 删除已合并分支 |
+| `grb` / `grbc` | `git rebase` / `git rebase --continue` |
+| `grbom` | 变基到 origin 的默认分支，兼容 `main` / `master` |
+| `gfrb` | 先 `fetch origin`，再变基到远端默认分支 |
+| `grh` / `grh1` | 重置暂存区到 HEAD / 回退一个提交，均保留工作区文件 |
+| `ga` / `gA` | 当前均为 `git add -A`（PowerShell 不区分大小写，后定义覆盖前者） |
+| `gc` / `gcm "msg"` | `git commit` / 指定提交信息 |
+| `gca` | `git commit -a`，提交已跟踪文件的修改 |
+| `gcam "msg"` | 暂存全部变更并提交 |
+| `gxn` / `gx` | 预览 / 执行未跟踪文件与目录清理（`gx` 不可恢复，慎用） |
+| `gunlock` | 删除残留 `.git/index.lock`；仅在确认无 Git 进程运行时使用 |
+| `gfix-crlf` | 按 `.gitattributes` 重新规范化并暂存当前目录下的已跟踪文件 |
+| `gcfg <name> <email>` | 设置全局 Git 用户名与邮箱 |
+| `gssh [pubkey]` | 全局启用 SSH 提交签名；省略路径时查找本机公钥 |
+| `ggpg <key-id>` | 全局启用 GPG 提交签名；不传参数时显示配置指引 |
+| `ghci` | 查看最近一次 GitHub Actions 运行 |
+| `pr ls` / `pr <id>` | 列出 PR / 检出指定 PR |
+| `ssh-copy-id user@host [-i key.pub] [-p port]` | 将本地 SSH 公钥追加到远端 `authorized_keys`（`-i` 指定公钥） |
+
+PowerShell 的列表和文件查看优先使用 eza、bat，未安装时回退到内置命令；`pr` 不传参数时默认列出 PR。
 
 ---
 
@@ -250,76 +328,25 @@ cd ~/.dotfiles
 
 路径占位符：`~`、`%APPDATA%`、`$SCOOP`、`$PROFILE`。
 
-### 3. 加一个特例配置项（多路分发 / 名称解析）
+### 3. 加一个特例配置项
 
-只有 `link` / `copy` 表达不了的场景才需要脚本（例如 Pi 要保留已有 JSON、旁存模板并注入系统专属资源路径）：
+只有 `link` / `copy` 无法表达的场景才需要独立脚本，可复用 `scripts/lib/` 中的部署函数：
 
-```bash
+```text
 scripts/configs/<name>.sh     # Unix
 scripts/configs/<name>.ps1    # Windows
 ```
 
-脚本内可复用部署动词库（`source ../lib/deploy.sh` → `link_item` / `copy_item`），也可单独调试：
-
-```bash
-bash scripts/configs/pi.sh
-```
+例如 [pi.sh](scripts/configs/pi.sh) / [pi.ps1](scripts/configs/pi.ps1) 会初始化缺失的 JSON、保留已有配置并旁存模板，再注入当前系统的资源路径。更多 Pi 配置与扩展已整理为 [pi-kit](https://github.com/RolinShmily/pi-kit)。
 
 ### 4. 部署语义速查
 
 | 配置项 | 动词 | 落地形态 |
 | :--- | :--- | :--- |
 | `zshrc` / `vimrc` / `btop` / `fastfetch` / `yazi` / `zellij` / `tmux` | `link` | `~/.config/<name>` 一条指向仓库的软链，改仓库即时生效 |
-| `pi` | `custom` | 初始化 Pi 模板，并注入当前 OS 的 `packages` / `extensions` / `skills` / `prompts` 路径 |
 | `windows-terminal-settings` | `custom` | 局部覆盖 Windows Terminal 设置，保留机器生成的 `defaultProfile` / `profiles.list` |
 
 Windows Terminal 不使用普通的整文件 `copy`：模板不声明机器相关的 `defaultProfile` 和 `profiles.list`；目标已有 `settings.json` 时，只递归覆盖模板中声明的字段，并保留目标中其他未声明字段。目标不存在时才直接用模板创建。
-
-Pi 部署仅在 JSON 不存在时使用模板创建；已有 `settings.json`、`mcp.json`、`keybindings.json` 保留原内容，仓库模板旁存为 `.json.example`。所选 OS 的 `piResources` 会追加到 settings：
-
-```jsonc
-"piResources": {
-  "packages": [],
-  "extensions": [],
-  "skills": ["@repo/pi/skills"],
-  "prompts": []
-}
-```
-
-`@repo/` 由 `pi-inject-resources.js` 在部署时展开为仓库绝对路径。因此仓库内本地资源直接从本地仓库加载，无需复制，也无需在 `~/.pi/agent/` 下建软链。
-外部 Agent Skills（`skillsAdd`）依然通过 `skills` CLI 单独安装到 `~/.pi/agent/skills`。
-
-本仓库负责个人配置、系统专属资源、其余本地技能与第三方 fork。可复用扩展、提示词及 `worktree-studio` 在 [pi-kit](https://github.com/RolinShmily/pi-kit) 维护，经 `packages` 中的 `npm:@rol1n/pi-kit` 加载。`pi/skills/` 不再保留 worktree-studio 副本，但其他本地技能仍通过 `@repo/pi/skills` 原地使用。包内的 `extensions`、`prompts`、`skills` 可分别筛选。
-
-待新版本 kit 发布后，执行 `pi update npm:@rol1n/pi-kit` 并 `/reload`，即可加载包内技能。若旧环境曾单独指定 worktree-studio 路径或安装过副本，需要自行移除重复项，避免同名技能冲突。
-
-| 资源类型 | Pi setting 字段 | 部署行为 |
-| :--- | :--- | :--- |
-| 外部 / 本地 Pi 包 | `packages` | 由 Pi 自行管理 npm、Git 及本地包源 |
-| 仓库内置扩展 | `extensions` | Pi 直接按绝对路径从仓库加载 |
-| 仓库内置技能 | `skills` | Pi 直接按绝对路径从仓库加载 |
-| 仓库内置 Prompt | `prompts` | Pi 直接按绝对路径从仓库加载 |
-| 外部 Agent Skills | `skillsAdd` | 由 `skills` CLI 独立安装 |
-
-资源注入只追加解析后的 manifest 条目，不清空已有数组，并按相同字符串去重；正式 settings 与存在的模板旁存文件都会注入。空 manifest 数组不代表删除旧配置；模板中的公共包默认值发生变化时，已有安装仍需自行合并。
-
-#### 本地 Pi 包与资源直接加载
-
-`@repo/` 是部署时展开的令牌，因此同一份 manifest 在任意目录克隆后都能正常工作。
-Pi 接收解析后的绝对路径并原地加载本地包或资源，无需 `~/.pi/agent/packages/` 副本，也无需建软链接。
-
-#### MCP 配置走 pi 内置实现
-
-pi 已内置 MCP，读取 `~/.pi/agent/mcp.json`（项目级为 `.pi/mcp.json`）。本仓库的
-`pi/mcp.json.example` 在目标 `mcp.json` 不存在时生成该文件；若已存在，则模板另存为同目录的 `mcp.json.example`。
-
-> ⚠️ 安装 `pi-mcp-adapter` 扩展会**顶掉内置支持** —— pi 就不再读 `mcp.json`，`/mcp` 也归该扩展。
-> 所以 `piResources.packages` 里不再包含它。旧的 `~/.config/mcp/mcp.json` 是**适配器的路径，内置实现不读**，已废弃。
-
-密钥不要写进仓库：`env` 支持 `${VAR}` 引用，例如 `"MINERU_API_TOKEN": "${MINERU_API_TOKEN}"`，
-真实值放 `~/.zshrc.local`。变量未设置时 pi 会在 `pi mcp list` 里明确报错，不会静默使用占位符。
-
-`~/.pi/agent/mcp.json` 也是 pi 自己会写的文件（`/mcp` 界面、`pi mcp add/remove`）。已有 `mcp.json` 时部署会保留它，并把仓库模板另存为 `mcp.json.example`。
 
 ### 5. 智能两级 `Ctrl + C` 中断与故障审计
 全平台启动引擎（`./launch.sh` 与 `.\start.ps1`）均内置两级按键中断与执行审计状态机：
