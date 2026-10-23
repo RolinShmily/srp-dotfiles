@@ -36,11 +36,14 @@ mkdir -p "$PI_DEST"
 # ---------- 1. 全局规范 ----------
 [ -f "$PI_SRC/AGENTS.md" ] && copy_item "$PI_SRC/AGENTS.md" "$PI_DEST/AGENTS.md"
 
-# ---------- 2. settings.json：一次性创建并注入完整资源集合 ----------
+# ---------- 2. settings.json：按 .example 规则部署并追加注入 piResources ----------
 if [ -f "$PI_SRC/settings.json.example" ]; then
     settings_target="$PI_DEST/settings.json"
-    copy_item "$PI_SRC/settings.json.example" "$settings_target"
+    copy_example_item "$PI_SRC/settings.json.example" "$settings_target"
     node "$INJECT_JS" "$settings_target" "$PI_MANIFEST_OS"
+    if [ -f "$settings_target.example" ]; then
+        node "$INJECT_JS" "$settings_target.example" "$PI_MANIFEST_OS"
+    fi
 fi
 
 # ---------- 3. Pi 自己维护的 JSON 配置 ----------

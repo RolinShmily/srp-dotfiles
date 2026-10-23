@@ -63,10 +63,18 @@ if (!settings || typeof settings !== "object" || Array.isArray(settings)) {
 
 const resourceKeys = ["packages", "extensions", "skills", "prompts"];
 for (const key of resourceKeys) {
-  const values = Array.isArray(resources[key]) ? resources[key] : [];
-  settings[key] = values
+  const existing = Array.isArray(settings[key]) ? settings[key] : [];
+  const incoming = (Array.isArray(resources[key]) ? resources[key] : [])
     .filter((value) => typeof value === "string" && value.trim() !== "")
     .map(resolveSource);
+
+  const merged = [...existing];
+  for (const item of incoming) {
+    if (!merged.includes(item)) {
+      merged.push(item);
+    }
+  }
+  settings[key] = merged;
 }
 
 const temporaryPath = `${settingsPath}.tmp-${process.pid}-${Date.now()}`;

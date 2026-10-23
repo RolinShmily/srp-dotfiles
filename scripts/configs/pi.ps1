@@ -58,17 +58,20 @@ if (Test-Path -LiteralPath $agentsMd) {
                     -Name "Pi AGENTS.md" -BackupDir $Global:DF_BackupDir | Out-Null
 }
 
-# ---------- 2. settings.json：一次性创建并注入完整资源集合 ----------
+# ---------- 2. settings.json：按 .example 规则部署并追加注入 piResources ----------
 $settingsExample = Join-Path $piSrc "settings.json.example"
 $settingsTarget = Join-Path $piDest "settings.json"
 if (Test-Path -LiteralPath $settingsExample) {
-    Deploy-CopyItem -Source $settingsExample -Target $settingsTarget `
-                    -Name "Pi settings.json" -BackupDir $Global:DF_BackupDir | Out-Null
+    Deploy-CopyExampleItem -Source $settingsExample -Target $settingsTarget `
+                           -Name "Pi settings.json" -BackupDir $Global:DF_BackupDir | Out-Null
 
     if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
         throw "Node.js is required to inject Pi resources: $injectJs"
     }
     & node $injectJs $settingsTarget $ManifestOs
+    if (Test-Path -LiteralPath "$settingsTarget.example") {
+        & node $injectJs "$settingsTarget.example" $ManifestOs
+    }
 }
 
 # ---------- 3. Pi 自己维护的 JSON 配置 ----------

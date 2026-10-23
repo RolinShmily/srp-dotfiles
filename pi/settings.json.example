@@ -19,5 +19,8 @@
       }
     }
   },
-  "packages": []
+  "packages": [],
+  "extensions": [],
+  "skills": [],
+  "prompts": []
 }
