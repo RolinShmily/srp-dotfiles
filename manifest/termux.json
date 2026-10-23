@@ -78,64 +78,24 @@
       "target": "~/.config/tmux"
     },
     {
-      "name": "pi-agents",
-      "method": "copy",
-      "source": "pi/AGENTS.md",
-      "target": "~/.pi/agent/AGENTS.md"
-    },
-    {
-      "name": "pi-settings",
-      "method": "copy",
-      "source": "pi/settings.json.example",
-      "target": "~/.pi/agent/settings.json"
-    },
-    {
-      "name": "pi-mcp",
-      "method": "copy",
-      "source": "pi/mcp.json.example",
-      "target": "~/.pi/agent/mcp.json"
-    },
-    {
-      "name": "pi-keybindings",
-      "method": "copy",
-      "source": "pi/keybindings.json.example",
-      "target": "~/.pi/agent/keybindings.json"
-    },
-    {
-      "name": "pi-skill-browser-tools",
-      "method": "link",
-      "source": "pi/skills/browser-tools",
-      "target": "~/.pi/agent/skills/browser-tools"
-    },
-    {
-      "name": "pi-skill-gh",
-      "method": "link",
-      "source": "pi/skills/gh",
-      "target": "~/.pi/agent/skills/gh"
-    },
-    {
-      "name": "pi-skill-grill-me",
-      "method": "link",
-      "source": "pi/skills/grill-me",
-      "target": "~/.pi/agent/skills/grill-me"
-    },
-    {
-      "name": "pi-skill-i-have-adhd",
-      "method": "link",
-      "source": "pi/skills/i-have-adhd",
-      "target": "~/.pi/agent/skills/i-have-adhd"
-    },
-    {
-      "name": "pi-skill-skill-creator",
-      "method": "link",
-      "source": "pi/skills/skill-creator",
-      "target": "~/.pi/agent/skills/skill-creator"
-    },
-    {
-      "name": "pi-skill-worktree-studio",
-      "method": "link",
-      "source": "pi/skills/worktree-studio",
-      "target": "~/.pi/agent/skills/worktree-studio"
+      "name": "pi",
+      "method": "custom"
     }
-  ]
+  ],
+  "piResources": {
+    "packages": [
+      "npm:@upstash/context7-pi",
+      "npm:@narumitw/pi-btw",
+      "npm:@narumitw/pi-usage",
+      "npm:pi-antigravity",
+      "npm:pi-web-access",
+      "npm:pi-wakatime",
+      "npm:@rol1n/pi-kit"
+    ],
+    "extensions": [],
+    "skills": [
+      "@repo/pi/skills"
+    ],
+    "prompts": []
+  }
 }
