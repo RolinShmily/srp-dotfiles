@@ -1,6 +1,6 @@
 # SrP-Dotfiles
 
-> **统一、现代且声明式驱动的跨平台 Dotfiles 统一配置与开发环境系统。**
+> **面向 Linux、WSL、Termux 与 Windows 的个人配置仓库，以分系统 JSON 清单管理终端环境和部署。**
 
 <p align="left">
   <a href="README.md"><b>English</b></a> •
@@ -35,7 +35,7 @@ SrP-Dotfiles 采用 **单分支（`main`）+ 解耦清单（`manifest/<os>.json`
   - **PowerShell 7 + Oh My Posh**：全局 Profile 模板自动覆盖部署，100% 对齐 Unix Git/GitHub CLI 工作流（`ghci`, `pr`, `grbom`, `gfrb`, `gcam`, `gst`），集成 `yz`（Yazi 退出同步目录）、`proj`、`clone`、`grt` 等全套提效函数；
   - **国内镜像源与多线程加速**：Scoop 自动配置南京大学镜像源（main/extras/versions/nerd-fonts）与 Aria2 多线程下载加速；
   - **全覆盖式复制部署**：Windows 端不用符号链接（需开发者模式/管理员权限且行为不一致），所有配置一律覆盖式复制，结果可预期。
-- 🤖 **Pi Coding Agent 深度集成**：内置全局智能体规范（`AGENTS.md`）、自研扩展集（OpenRouter生图、流式语音识别、长期记忆、多Pane子智能体、视觉理解、网页抓取）、提示词与技能工具链。
+- 🤖 **个人 Pi Agent 环境**：维护安全规范（`AGENTS.md`）、settings / MCP / 快捷键模板、本地技能和第三方 fork。通用扩展、提示词及 worktree-studio 技能由独立的 [pi-kit](https://github.com/RolinShmily/pi-kit) 包提供。
 
 ---
 
@@ -88,7 +88,7 @@ srp-dotfiles/
     ├── pi/mcp.json.example # MCP 服务模板 (按目标 JSON 是否存在决定生成 JSON 或旁存 .example)
     ├── pi/keybindings.json.example # 快捷键映射模板 (按目标 JSON 是否存在决定生成 JSON 或旁存 .example)
     ├── pi/AGENTS.md       # 全局智能体通用行为与安全准则
-    ├── pi/skills/         # 自定义技能工具库（通过 @repo/pi/skills 原地加载，不建软链）
+    ├── pi/skills/         # 个人/本地技能（通过 @repo/pi/skills 原地加载，不建软链）
     └── pi/packages/pi-learn  # 本地 Pi 包（**不部署**，由 manifest 以 @repo 路径直接引用）
 ```
 
@@ -252,7 +252,7 @@ cd ~/.dotfiles
 
 ### 3. 加一个特例配置项（多路分发 / 名称解析）
 
-只有 `link` / `copy` 表达不了的场景才需要脚本（例如 Pi 要分发到 5 个不同位置并按白名单过滤扩展）：
+只有 `link` / `copy` 表达不了的场景才需要脚本（例如 Pi 要保留已有 JSON、旁存模板并注入系统专属资源路径）：
 
 ```bash
 scripts/configs/<name>.sh     # Unix
@@ -275,7 +275,7 @@ bash scripts/configs/pi.sh
 
 Windows Terminal 不使用普通的整文件 `copy`：模板不声明机器相关的 `defaultProfile` 和 `profiles.list`；目标已有 `settings.json` 时，只递归覆盖模板中声明的字段，并保留目标中其他未声明字段。目标不存在时才直接用模板创建。
 
-Pi 部署时会生成初始的 `settings.json`，并注入所选 OS 对应的 `piResources`：
+Pi 部署仅在 JSON 不存在时使用模板创建；已有 `settings.json`、`mcp.json`、`keybindings.json` 保留原内容，仓库模板旁存为 `.json.example`。所选 OS 的 `piResources` 会追加到 settings：
 
 ```jsonc
 "piResources": {
@@ -287,7 +287,11 @@ Pi 部署时会生成初始的 `settings.json`，并注入所选 OS 对应的 `p
 ```
 
 `@repo/` 由 `pi-inject-resources.js` 在部署时展开为仓库绝对路径。因此仓库内本地资源直接从本地仓库加载，无需复制，也无需在 `~/.pi/agent/` 下建软链。
-外部 Agent Skills（`skillsAdd`）依然通过 `skills` CLI 单独安装到 `~/.pi/agent/skills`。自定义扩展与 Prompt 模板统一在 [pi-kit](https://github.com/RolinShmily/pi-kit) 仓库维护，通过 `packages` 中的 `npm:@rol1n/pi-kit` 引入。
+外部 Agent Skills（`skillsAdd`）依然通过 `skills` CLI 单独安装到 `~/.pi/agent/skills`。
+
+本仓库负责个人配置、系统专属资源、其余本地技能与第三方 fork。可复用扩展、提示词及 `worktree-studio` 在 [pi-kit](https://github.com/RolinShmily/pi-kit) 维护，经 `packages` 中的 `npm:@rol1n/pi-kit` 加载。`pi/skills/` 不再保留 worktree-studio 副本，但其他本地技能仍通过 `@repo/pi/skills` 原地使用。包内的 `extensions`、`prompts`、`skills` 可分别筛选。
+
+待新版本 kit 发布后，执行 `pi update npm:@rol1n/pi-kit` 并 `/reload`，即可加载包内技能。若旧环境曾单独指定 worktree-studio 路径或安装过副本，需要自行移除重复项，避免同名技能冲突。
 
 | 资源类型 | Pi setting 字段 | 部署行为 |
 | :--- | :--- | :--- |
@@ -297,7 +301,7 @@ Pi 部署时会生成初始的 `settings.json`，并注入所选 OS 对应的 `p
 | 仓库内置 Prompt | `prompts` | Pi 直接按绝对路径从仓库加载 |
 | 外部 Agent Skills | `skillsAdd` | 由 `skills` CLI 独立安装 |
 
-在全新的单次部署流程中，脚本基于模板生成 `settings.json` 并一次性写入上述四个字段。历史环境不在此次自动化迁移范围内，可按需自行清理旧副本。
+资源注入只追加解析后的 manifest 条目，不清空已有数组，并按相同字符串去重；正式 settings 与存在的模板旁存文件都会注入。空 manifest 数组不代表删除旧配置；模板中的公共包默认值发生变化时，已有安装仍需自行合并。
 
 #### 本地 Pi 包与资源直接加载
 
@@ -345,7 +349,6 @@ export ANTHROPIC_API_KEY="sk-..."
 
 - [KevinSilvester/wezterm-config](https://github.com/KevinSilvester/wezterm-config) — WezTerm 工业级细节调优与平滑 URL 处理设计借鉴。
 - [amosblomqvist/learn](https://github.com/amosblomqvist/learn) — 本仓库保留的第三方 `pi-learn` fork 的上游学习系统，已在本地适配 Windows 和 Zellij。
-- [BarryYangi/chezmoi-dotfiles](https://github.com/BarryYangi/chezmoi-dotfiles) — 模块化 Zsh 与系统分流设计参考。
 - [Aikoyori/ProgrammingVTuberLogos](https://github.com/Aikoyori/ProgrammingVTuberLogos) — VS Code 视觉素材（`code/VSCode-Thick.png`）由 [Aikoyori](https://github.com/Aikoyori) 创作，遵循 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) 知识共享许可协议进行署名与非商业性使用。
 - [Xy (Pixiv 85385041)](https://www.pixiv.net/users/85385041) — 终端与编辑器专属背景壁纸原创画师：
   - VS Code 背景插画（`code/background.png`）：[CSGO / Nightlight-Print&Asimov](https://www.pixiv.net/artworks/121230570)

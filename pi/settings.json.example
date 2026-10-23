@@ -26,7 +26,15 @@
     "npm:pi-antigravity",
     "npm:pi-web-access",
     "npm:pi-wakatime",
-    "npm:@rol1n/pi-kit"
+    {
+      "source": "npm:@rol1n/pi-kit",
+      "extensions": [
+        "!web-reach/**",
+        "!screenshot/**",
+        "!oai-subquota/**",
+        "!model-vision/**"
+      ]
+    }
   ],
   "extensions": [],
   "skills": [],

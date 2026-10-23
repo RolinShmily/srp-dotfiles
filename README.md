@@ -1,6 +1,6 @@
 # SrP-Dotfiles
 
-> **A unified, modern, declarative, and cross-platform Dotfiles configuration ecosystem.**
+> **Personal dotfiles and declarative environment setup for Linux, WSL, Termux, and Windows.**
 
 <p align="left">
   <b>English</b> •
@@ -35,7 +35,7 @@ SrP-Dotfiles utilizes a **Single Branch (`main`) + Declarative Manifests (`manif
   - **PowerShell 7 Profile**: 100% aligned with Unix Git/GitHub CLI workflows (`ghci`, `pr`, `grbom`, `gfrb`, `gcam`, `gst`), directory sync for Yazi (`yz`), and quick navigation (`proj`, `dir`, `clone`, `grt`).
   - **Scoop Acceleration**: Automatic configuration of Nanjing University (NJU) mirrors and Aria2 multi-threaded download acceleration.
   - **Graceful Privilege Degradation**: Prioritizes native symbolic links; safely falls back to file copying if Developer Mode is disabled.
-- 🤖 **Pi Coding Agent Deep Integration**: Global agent safety standards (`AGENTS.md`), custom extension suite (Image Generation, Streaming Voice ASR, Long-Term Memory, Multi-Pane Subagents, Vision, Web Extraction), and prompt/skill toolchains.
+- 🤖 **Personal Pi Agent Setup**: Safety rules (`AGENTS.md`), settings/MCP/keybindings templates, local skills, and third-party forks. Reusable extensions, prompt templates, and the worktree-studio skill are distributed separately through [pi-kit](https://github.com/RolinShmily/pi-kit).
 
 ---
 
@@ -88,7 +88,7 @@ srp-dotfiles/
     ├── pi/mcp.json.example # MCP server template (create JSON if missing; otherwise save as .json.example)
     ├── pi/keybindings.json.example # Keybindings template (create JSON if missing; otherwise save as .json.example)
     ├── pi/AGENTS.md       # Global agent behavioral & safety rules
-    ├── pi/skills/         # Custom agent skills (loaded in place via @repo/pi/skills)
+    ├── pi/skills/         # Personal/local skills (loaded in place via @repo/pi/skills)
     └── pi/packages/pi-learn  # Local Pi package (**not deployed**; referenced in place via @repo)
 ```
 
@@ -252,7 +252,7 @@ Path placeholders: `~`, `%APPDATA%`, `$SCOOP`, `$PROFILE`.
 
 ### 3. Add a Special-Case Config (multi-target routing / name resolution)
 
-Write a script only when `link` / `copy` cannot express what you need (e.g. Pi fans out to 5 locations and allowlists extensions):
+Write a script only when `link` / `copy` cannot express what you need (e.g. Pi preserves existing JSON, saves template sidecars, and injects OS-specific resource paths):
 
 ```bash
 scripts/configs/<name>.sh     # Unix
@@ -275,7 +275,7 @@ bash scripts/configs/pi.sh
 
 Windows Terminal does not use a normal whole-file `copy`: the template omits machine-specific `defaultProfile` and `profiles.list`. When the target `settings.json` exists, only fields declared by the template are recursively overwritten; all other target fields are preserved. A missing target is created directly from the template.
 
-Pi deployment initializes a fresh `settings.json` and injects the selected OS profile's `piResources`:
+Pi deployment creates missing JSON files from templates; existing `settings.json`, `mcp.json`, and `keybindings.json` are preserved, with repository templates saved alongside them as `.json.example`. The selected OS profile adds its `piResources` to settings:
 
 ```jsonc
 "piResources": {
@@ -288,7 +288,11 @@ Pi deployment initializes a fresh `settings.json` and injects the selected OS pr
 
 `@repo/` is expanded by `pi-inject-resources.js` into an absolute repository path. Local resources are
 therefore loaded directly from the checkout; they are not copied or linked into `~/.pi/agent/`.
-External `skillsAdd` entries are still installed by the `skills` CLI into `~/.pi/agent/skills`. Custom extensions and prompt templates are maintained in [pi-kit](https://github.com/RolinShmily/pi-kit) and loaded via `npm:@rol1n/pi-kit` in `packages`.
+External `skillsAdd` entries are still installed by the `skills` CLI into `~/.pi/agent/skills`.
+
+This repository owns personal settings, OS additions, remaining local skills, and third-party forks. Reusable extensions, prompt templates, and `worktree-studio` live in [pi-kit](https://github.com/RolinShmily/pi-kit), loaded through the `npm:@rol1n/pi-kit` package entry. `worktree-studio` is no longer copied or maintained under `pi/skills/`; keep `@repo/pi/skills` for the other local skills. The package's `extensions`, `prompts`, and `skills` filters are independent.
+
+After the kit release is available, run `pi update npm:@rol1n/pi-kit` and `/reload` to load the packaged skill. Remove any older explicit worktree-studio paths or manually installed copies if they cause duplicate skill names.
 
 | Resource type | Pi setting | Deployment behavior |
 | :--- | :--- | :--- |
@@ -298,9 +302,7 @@ External `skillsAdd` entries are still installed by the `skills` CLI into `~/.pi
 | Repository prompts | `prompts` | Pi loads paths directly from the checkout |
 | External Agent Skills | `skillsAdd` | Installed separately by the `skills` CLI |
 
-For the one-shot deployment flow, the generated `settings.json` is written from the repository template
-and the four resource fields are injected for the selected OS. Existing installations are intentionally
-outside this migration path and can be cleaned up manually.
+Resource injection appends resolved manifest entries without clearing existing arrays, deduplicating identical incoming strings. It applies to both the formal settings and its template sidecar when present. Empty manifest arrays do not remove existing resources; changes to shared package defaults in the sidecar must be merged manually into an existing installation.
 
 #### Local Pi packages and resources
 
@@ -352,7 +354,6 @@ We recommend installing [Maple Mono NF CN](https://github.com/subframe7536/maple
 
 - [KevinSilvester/wezterm-config](https://github.com/KevinSilvester/wezterm-config) — Reference for WezTerm tuning, smooth URL cleanup, and QuickSelect design.
 - [amosblomqvist/learn](https://github.com/amosblomqvist/learn) — Upstream learning system for the third-party `pi-learn` fork retained in this repository; adapted locally for Windows and Zellij.
-- [BarryYangi/chezmoi-dotfiles](https://github.com/BarryYangi/chezmoi-dotfiles) — Reference for modular Zsh architecture and OS branching.
 - [Aikoyori/ProgrammingVTuberLogos](https://github.com/Aikoyori/ProgrammingVTuberLogos) — VS Code visual asset (`code/VSCode-Thick.png`) created by [Aikoyori](https://github.com/Aikoyori), licensed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) for non-commercial use with attribution.
 - [Xy (Pixiv 85385041)](https://www.pixiv.net/users/85385041) — Original artist for terminal & editor background wallpapers:
   - VS Code background artwork (`code/background.png`): [CSGO / Nightlight-Print&Asimov](https://www.pixiv.net/artworks/121230570)
