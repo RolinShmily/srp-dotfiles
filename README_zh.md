@@ -279,7 +279,7 @@ Pi 部署时会生成初始的 `settings.json`，并注入所选 OS 对应的 `p
 
 ```jsonc
 "piResources": {
-  "packages": ["npm:@rol1n/pi-kit", "npm:pi-antigravity", "@repo/pi/packages/pi-learn"],
+  "packages": [],
   "extensions": [],
   "skills": ["@repo/pi/skills"],
   "prompts": []

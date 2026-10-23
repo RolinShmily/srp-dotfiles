@@ -279,7 +279,7 @@ Pi deployment initializes a fresh `settings.json` and injects the selected OS pr
 
 ```jsonc
 "piResources": {
-  "packages": ["npm:@rol1n/pi-kit", "npm:pi-antigravity", "@repo/pi/packages/pi-learn"],
+  "packages": [],
   "extensions": [],
   "skills": ["@repo/pi/skills"],
   "prompts": []
