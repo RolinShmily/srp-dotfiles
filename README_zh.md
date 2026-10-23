@@ -276,7 +276,7 @@ Pi 的包列表直接写在 [pi/settings.json.example](pi/settings.json.example)
 ```json
 {
   "packages": [
-    "git:git@github.com:RolinShmily/pi-kit.git",
+    "npm:@rol1n/pi-kit",
     "npm:pi-antigravity"
   ]
 }
@@ -288,7 +288,7 @@ Pi 的包列表直接写在 [pi/settings.json.example](pi/settings.json.example)
 
 本仓库的 skills 逐个链接到 `~/.pi/agent/skills/`，由 Pi 自动发现；Windows 可由部署库回退为 Junction 或复制。该目录中其他已安装技能会保留，外部技能仍由 `skills` CLI 和 `skillsAdd` 声明管理。
 
-扩展与 Prompt 统一在 [pi-kit](https://github.com/RolinShmily/pi-kit) 维护。其 npm 发布名为 `@srprolin/pi-kit`；尚未发布时模板暂用 GitHub SSH 包源，目标机器需具备 GitHub SSH 访问能力。发布后把模板中的这一项换成 `npm:@srprolin/pi-kit` 即可。已安装的包通过 `pi update --extensions` 更新。
+扩展与 Prompt 统一在 [pi-kit](https://github.com/RolinShmily/pi-kit) 维护，通过 `npm:@rol1n/pi-kit`（或 `https://github.com/RolinShmily/pi-kit`）安装。已安装的包通过 `pi update --extensions` 更新。
 
 扩展命令、模型服务认证、资源选择以及更多 Pi 配置，请参阅 [pi-kit 仓库文档](https://github.com/RolinShmily/pi-kit#readme)及各独立扩展 README。需要启用单独保留的学习系统 fork 时，可在本仓库根目录执行 `pi install ./pi/packages/pi-learn`。
 

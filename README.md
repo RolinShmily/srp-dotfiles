@@ -276,7 +276,7 @@ Pi package declarations live directly in [pi/settings.json.example](pi/settings.
 ```json
 {
   "packages": [
-    "git:git@github.com:RolinShmily/pi-kit.git",
+    "npm:@rol1n/pi-kit",
     "npm:pi-antigravity"
   ]
 }
@@ -288,7 +288,7 @@ The shared deployment layer recognizes `.example` sources. On first deployment i
 
 Local skills are linked individually under `~/.pi/agent/skills/`, which Pi discovers automatically. On Windows the deployment library can fall back to a junction or copy. Other skills already installed in that directory remain in place, including external skills managed by the `skills` CLI and `skillsAdd` declarations.
 
-Extensions and prompt templates are maintained in [pi-kit](https://github.com/RolinShmily/pi-kit). Its npm publication name is `@srprolin/pi-kit`; until publication the template uses the GitHub SSH source, requiring GitHub SSH access on the target machine. After publication, replace that source in the template with `npm:@srprolin/pi-kit`. Installed packages update through `pi update --extensions`.
+Extensions and prompt templates are maintained in [pi-kit](https://github.com/RolinShmily/pi-kit) and installed via `npm:@rol1n/pi-kit` (or `https://github.com/RolinShmily/pi-kit`). Installed packages update through `pi update --extensions`.
 
 For extension commands, provider authentication, resource selection, and further Pi configuration, see the [pi-kit documentation](https://github.com/RolinShmily/pi-kit#readme) and individual extension READMEs. To enable the separately retained learning-system fork, run `pi install ./pi/packages/pi-learn` from this repository's root.
 
