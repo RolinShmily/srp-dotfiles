@@ -34,8 +34,8 @@ SrP-Dotfiles 采用 **单分支（`main`）+ 解耦清单（`manifest/<os>.json`
   - **WezTerm 工业级调优**：低功耗 30 FPS 渲染、经典快闪烁方块光标、智能 URL 清洗与全键盘 QuickSelect (`Alt+Ctrl+u`)、专属背景图 / 纯黑底色一键秒切 (`Alt+/`)；
   - **PowerShell 7 + Oh My Posh**：全局 Profile 模板自动覆盖部署，100% 对齐 Unix Git/GitHub CLI 工作流（`ghci`, `pr`, `grbom`, `gfrb`, `gcam`, `gst`），集成 `yz`（Yazi 退出同步目录）、`proj`、`clone`、`grt` 等全套提效函数；
   - **国内镜像源与多线程加速**：Scoop 自动配置南京大学镜像源（main/extras/versions/nerd-fonts）与 Aria2 多线程下载加速；
-  - **全覆盖式复制部署**：Windows 端不用符号链接（需开发者模式/管理员权限且行为不一致），所有配置一律覆盖式复制，结果可预期。
-- 🤖 **Pi Coding Agent 深度集成**：内置全局智能体规范（`AGENTS.md`）、自研扩展集（OpenRouter生图、流式语音识别、长期记忆、多Pane子智能体、视觉理解、网页抓取）、提示词与技能工具链。
+  - **原生链接与复制部署**：普通应用继续覆盖式复制；Pi 本地 skills 逐项链接，权限不足时由部署库回退，不替换整个技能目录。
+- 🤖 **Pi Coding Agent 深度集成**：全局智能体规范（`AGENTS.md`）、通过 [pi-kit](https://github.com/RolinShmily/pi-kit) 分发的扩展与 Prompt，以及由本仓库管理的 skills 和第三方 fork。
 
 ---
 
@@ -55,11 +55,9 @@ srp-dotfiles/
 │       │   ├── deploy.sh             # Unix 部署动词: link / copy
 │       │   ├── deploy.ps1            # Windows 部署动词: link / copy
 │       │   ├── manifest.js           # Unix 清单读取 (node)
-│       │   ├── manifest.ps1          # Windows 清单读取 (ConvertFrom-Json)
-│       │   └── pi-inject-resources.js # 展开 @repo 令牌并写入 Pi settings 资源
-│       └── configs/                  # 特例配置项（「谁」，每个 method:custom 一条）
-│           ├── pi.sh                 # 对应 manifest 里 { "name": "pi", "method": "custom" }
-│           └── pi.ps1
+│       │   └── manifest.ps1          # Windows 清单读取 (ConvertFrom-Json)
+│       └── configs/                  # 每个 method:custom 对应的特例脚本
+│           └── windows-terminal-settings.ps1 # 保留机器专属字段的局部合并
 │
 ├── 🐧 类 Unix 系统配置体系
 │   ├── vim/               # 现代轻量 Vim 配置体系
@@ -88,10 +86,8 @@ srp-dotfiles/
     ├── pi/mcp.json.example # MCP 服务模板 (按目标 JSON 是否存在决定生成 JSON 或旁存 .example)
     ├── pi/keybindings.json.example # 快捷键映射模板 (按目标 JSON 是否存在决定生成 JSON 或旁存 .example)
     ├── pi/AGENTS.md       # 全局智能体通用行为与安全准则
-    ├── pi/extensions/     # 核心扩展体系 (subagent、custom-providers、tui-asr、image-generate、memory-log …)
-    ├── pi/skills/         # 自定义技能工具库
-    ├── pi/prompts/        # 结构化 Prompt 模板
-    └── pi/packages/pi-learn  # 本地 Pi 包（**不部署**，由 manifest 以 @repo 路径直接引用）
+    ├── pi/skills/         # 由本仓库管理的技能工具库
+    └── pi/packages/pi-learn  # 第三方 fork，可按需作为本地包启用
 ```
 
 ---
@@ -254,57 +250,47 @@ cd ~/.dotfiles
 
 ### 3. 加一个特例配置项（多路分发 / 名称解析）
 
-只有 `link` / `copy` 表达不了的场景才需要脚本（例如 Pi 要分发到 5 个不同位置并按白名单过滤扩展）：
+只有 `link` / `copy` 表达不了的场景才需要脚本，例如局部合并 Windows Terminal 设置并保留机器生成字段：
 
 ```bash
 scripts/configs/<name>.sh     # Unix
 scripts/configs/<name>.ps1    # Windows
 ```
 
-脚本内可复用部署动词库（`source ../lib/deploy.sh` → `link_item` / `copy_item`），也可单独调试：
-
-```bash
-bash scripts/configs/pi.sh
-```
+脚本内可复用 `scripts/lib/deploy.sh` 或 `deploy.ps1` 的部署函数。Pi 配置已使用普通 manifest 条目，不再需要特例脚本。
 
 ### 4. 部署语义速查
 
 | 配置项 | 动词 | 落地形态 |
 | :--- | :--- | :--- |
 | `zshrc` / `vimrc` / `btop` / `fastfetch` / `yazi` / `zellij` / `tmux` | `link` | `~/.config/<name>` 一条指向仓库的软链，改仓库即时生效 |
-| `pi` | `custom` | 初始化 Pi 模板，并注入当前 OS 的 `packages` / `extensions` / `skills` / `prompts` 路径 |
+| `pi-agents` | `copy` | 部署全局智能体规范 |
+| `pi-settings` / `pi-mcp` / `pi-keybindings` | 从 `.example` 执行 `copy` | 缺失时创建 JSON；已有 JSON 保留，新模板另存为旁边的 `.example` |
+| `pi-skill-*` | `link` | 各个本地技能部署到 Pi 标准目录，Windows 可由部署库回退 |
 | `windows-terminal-settings` | `custom` | 局部覆盖 Windows Terminal 设置，保留机器生成的 `defaultProfile` / `profiles.list` |
 
 Windows Terminal 不使用普通的整文件 `copy`：模板不声明机器相关的 `defaultProfile` 和 `profiles.list`；目标已有 `settings.json` 时，只递归覆盖模板中声明的字段，并保留目标中其他未声明字段。目标不存在时才直接用模板创建。
 
-Pi 部署时会生成初始的 `settings.json`，并注入所选 OS 对应的 `piResources`：
+Pi 的包列表直接写在 [pi/settings.json.example](pi/settings.json.example)，与其他 Pi 偏好配置放在一起：
 
-```jsonc
-"piResources": {
-  "packages": ["npm:pi-antigravity", "@repo/pi/packages/pi-learn"],
-  "extensions": ["@repo/pi/extensions/subagent"],
-  "skills": ["@repo/pi/skills"],
-  "prompts": ["@repo/pi/prompts"]
+```json
+{
+  "packages": [
+    "git:git@github.com:RolinShmily/pi-kit.git",
+    "npm:pi-antigravity"
+  ]
 }
 ```
 
-`@repo/` 由 `pi-inject-resources.js` 在部署时展开为仓库绝对路径。因此仓库内本地资源直接从本地仓库加载，无需复制，也无需在 `~/.pi/agent/` 下建软链。
-外部 Agent Skills（`skillsAdd`）依然通过 `skills` CLI 单独安装到 `~/.pi/agent/skills`。
+模板中保留了完整的共享包列表。OS manifest 只声明 settings/MCP/keybindings 模板、智能体规范和各个本地技能的部署，不再包含 Pi 资源注入步骤或部署时路径令牌。Debian VPS profile 继续不部署 Pi。
 
-| 资源类型 | Pi setting 字段 | 部署行为 |
-| :--- | :--- | :--- |
-| 外部 / 本地 Pi 包 | `packages` | 由 Pi 自行管理 npm、Git 及本地包源 |
-| 仓库内置扩展 | `extensions` | Pi 直接按绝对路径从仓库加载 |
-| 仓库内置技能 | `skills` | Pi 直接按绝对路径从仓库加载 |
-| 仓库内置 Prompt | `prompts` | Pi 直接按绝对路径从仓库加载 |
-| 外部 Agent Skills | `skillsAdd` | 由 `skills` CLI 独立安装 |
+通用部署器已识别 `.example` 源文件：首次部署创建正式 JSON；已有正式文件时保留它，并把新模板写到 `<目标>.example`。强制模式也保留正式 JSON。模板更新需要自行审阅并合入已有 settings；部署过程不会自动追加包，也不会覆盖现有 settings。
 
-在全新的单次部署流程中，脚本基于模板生成 `settings.json` 并一次性写入上述四个字段。历史环境不在此次自动化迁移范围内，可按需自行清理旧副本。
+本仓库的 skills 逐个链接到 `~/.pi/agent/skills/`，由 Pi 自动发现；Windows 可由部署库回退为 Junction 或复制。该目录中其他已安装技能会保留，外部技能仍由 `skills` CLI 和 `skillsAdd` 声明管理。
 
-#### 本地 Pi 包与资源直接加载
+扩展与 Prompt 统一在 [pi-kit](https://github.com/RolinShmily/pi-kit) 维护。其 npm 发布名为 `@srprolin/pi-kit`；尚未发布时模板暂用 GitHub SSH 包源，目标机器需具备 GitHub SSH 访问能力。发布后把模板中的这一项换成 `npm:@srprolin/pi-kit` 即可。已安装的包通过 `pi update --extensions` 更新。
 
-`@repo/` 是部署时展开的令牌，因此同一份 manifest 在任意目录克隆后都能正常工作。
-Pi 接收解析后的绝对路径并原地加载本地包或资源，无需 `~/.pi/agent/packages/` 副本，也无需建软链接。
+扩展命令、模型服务认证、资源选择以及更多 Pi 配置，请参阅 [pi-kit 仓库文档](https://github.com/RolinShmily/pi-kit#readme)及各独立扩展 README。需要启用单独保留的学习系统 fork 时，可在本仓库根目录执行 `pi install ./pi/packages/pi-learn`。
 
 #### MCP 配置走 pi 内置实现
 
@@ -312,7 +298,7 @@ pi 已内置 MCP，读取 `~/.pi/agent/mcp.json`（项目级为 `.pi/mcp.json`�
 `pi/mcp.json.example` 在目标 `mcp.json` 不存在时生成该文件；若已存在，则模板另存为同目录的 `mcp.json.example`。
 
 > ⚠️ 安装 `pi-mcp-adapter` 扩展会**顶掉内置支持** —— pi 就不再读 `mcp.json`，`/mcp` 也归该扩展。
-> 所以 `piResources.packages` 里不再包含它。旧的 `~/.config/mcp/mcp.json` 是**适配器的路径，内置实现不读**，已废弃。
+> 因此 settings 模板中不包含它。旧的 `~/.config/mcp/mcp.json` 是**适配器的路径，内置实现不读**，已废弃。
 
 密钥不要写进仓库：`env` 支持 `${VAR}` 引用，例如 `"MINERU_API_TOKEN": "${MINERU_API_TOKEN}"`，
 真实值放 `~/.zshrc.local`。变量未设置时 pi 会在 `pi mcp list` 里明确报错，不会静默使用占位符。
@@ -346,7 +332,7 @@ export ANTHROPIC_API_KEY="sk-..."
 ## 💖 鸣谢与致敬
 
 - [KevinSilvester/wezterm-config](https://github.com/KevinSilvester/wezterm-config) — WezTerm 工业级细节调优与平滑 URL 处理设计借鉴。
-- [amosblomqvist/pi-config](https://github.com/amosblomqvist/pi-config) — Pi Coding Agent 扩展体系架构参考。
+- [amosblomqvist/learn](https://github.com/amosblomqvist/learn) — 本仓库保留的第三方 `pi-learn` fork 的上游学习系统，已在本地适配 Windows 和 Zellij。
 - [BarryYangi/chezmoi-dotfiles](https://github.com/BarryYangi/chezmoi-dotfiles) — 模块化 Zsh 与系统分流设计参考。
 - [Aikoyori/ProgrammingVTuberLogos](https://github.com/Aikoyori/ProgrammingVTuberLogos) — VS Code 视觉素材（`code/VSCode-Thick.png`）由 [Aikoyori](https://github.com/Aikoyori) 创作，遵循 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) 知识共享许可协议进行署名与非商业性使用。
 - [Xy (Pixiv 85385041)](https://www.pixiv.net/users/85385041) — 终端与编辑器专属背景壁纸原创画师：

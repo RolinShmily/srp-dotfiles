@@ -57,11 +57,5 @@
       "source": "tmux",
       "target": "~/.config/tmux"
     }
-  ],
-  "piResources": {
-    "packages": [],
-    "extensions": [],
-    "skills": [],
-    "prompts": []
-  }
+  ]
 }

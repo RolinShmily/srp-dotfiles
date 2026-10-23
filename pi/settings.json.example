@@ -19,5 +19,13 @@
       }
     }
   },
-  "packages": []
+  "packages": [
+    "npm:@upstash/context7-pi",
+    "npm:@narumitw/pi-btw",
+    "npm:@narumitw/pi-usage",
+    "npm:pi-antigravity",
+    "npm:pi-web-access",
+    "npm:pi-wakatime",
+    "git:git@github.com:RolinShmily/pi-kit.git"
+  ]
 }

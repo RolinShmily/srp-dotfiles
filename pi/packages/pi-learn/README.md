@@ -1,5 +1,13 @@
 # learn
 
+## Local adaptations
+
+I adapted this fork of [amosblomqvist/learn](https://github.com/amosblomqvist/learn) for native Windows and Zellij while retaining tmux support. The changes include PowerShell-based subagent launching, Chrome/Edge rendering fallbacks, and a bundled subagent runtime with namespaced tools so it can coexist with other Pi extensions.
+
+Use this directory for the adapted version. The upstream project overview and installation instructions are preserved below; cloning the upstream URL installs the original project rather than this fork.
+
+---
+
 [![video](assets/thumbnail.png)](https://www.youtube.com/watch?v=kzcI5F4tGiU)
 
 My AI learning system from this video: [How I Use AI to Learn Things](https://www.youtube.com/watch?v=kzcI5F4tGiU).

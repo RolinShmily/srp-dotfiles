@@ -510,7 +510,7 @@ run_config() {
     [ "$FORCE" -eq 1 ] && log_info "$(i18n config.force)"
 
     # 子脚本 (scripts/configs/*.sh) 需要的上下文
-    export DOTFILES_DIR BACKUP_DIR FORCE PI_MANIFEST_OS="$TARGET_OS"
+    export DOTFILES_DIR BACKUP_DIR FORCE
 
     # 1. Oh My Zsh 插件与 Spaceship 主题
     run_step "$(i18n step.ohmyzsh_deploy)" setup_omz_plugins
