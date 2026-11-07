@@ -62,18 +62,6 @@
       "target": "~/_vimrc"
     },
     {
-      "name": "wezterm-bg",
-      "method": "copy",
-      "source": "wezterm/background.png",
-      "target": "~/.config/wezterm/background.png"
-    },
-    {
-      "name": "wezterm-conf",
-      "method": "copy",
-      "source": "wezterm/wezterm.lua",
-      "target": "~/.config/wezterm/wezterm.lua"
-    },
-    {
       "name": "powershell",
       "method": "copy",
       "source": "powershell/profile.ps1",
