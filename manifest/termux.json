@@ -1,5 +1,8 @@
 {
   "packageManager": "pkg",
+  "fonts": [
+    "MapleMono-NF-CN"
+  ],
   "packages": [
     "zsh",
     "eza",

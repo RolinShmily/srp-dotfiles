@@ -368,7 +368,7 @@ export ANTHROPIC_API_KEY="sk-..."
 ## 🔤 推荐字体
 
 全平台推荐安装搭配 [subframe7536/maple-font](https://github.com/subframe7536/maple-font) 中的 **`Maple Mono NF CN`**（Maple Mono 包含 Nerd Fonts 图标与中文字符集），享受最佳的等宽连字弧度与排版对齐体验。  
-*(注：Windows 端执行 `.\start.ps1 install` 会自动通过 Scoop 一键安装该字体)*。
+*(注：Windows 端执行 `.\start.ps1 install` 与 Unix 端执行 `./launch.sh install` 时均会自动为您静默安装并部署该字体)*。
 
 ---
 

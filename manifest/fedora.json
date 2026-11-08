@@ -3,6 +3,9 @@
   "copr": [
     "dejan/lazygit"
   ],
+  "fonts": [
+    "MapleMono-NF-CN"
+  ],
   "packages": [
     "zsh",
     "zsh-autosuggestions",
@@ -43,9 +46,6 @@
     "wl-clipboard",
     "vim-enhanced",
     "git",
-    "gcc",
-    "gcc-c++",
-    "make",
     "unzip",
     "tmux",
     "fastfetch",
@@ -90,12 +90,6 @@
       "method": "link",
       "source": "fastfetch",
       "target": "~/.config/fastfetch"
-    },
-    {
-      "name": "yazi",
-      "method": "link",
-      "source": "yazi",
-      "target": "~/.config/yazi"
     },
     {
       "name": "tmux",

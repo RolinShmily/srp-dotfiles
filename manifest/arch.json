@@ -1,5 +1,8 @@
 {
   "packageManager": "pacman",
+  "fonts": [
+    "MapleMono-NF-CN"
+  ],
   "packages": [
     "zsh",
     "zsh-autosuggestions",

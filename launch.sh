@@ -371,6 +371,65 @@ do_enable_copr() {
     sudo dnf copr enable -y "$repo"
 }
 
+do_install_font() {
+    local font_name="$1"
+    case "$font_name" in
+        MapleMono-NF-CN|Maple-Mono-NF-CN)
+            if [ "$TARGET_OS" = "termux" ]; then
+                local termux_font="$HOME/.termux/font.ttf"
+                if [ -f "$termux_font" ]; then
+                    log_info "$(i18n font.already_installed "$font_name" "$termux_font")"
+                    return 0
+                fi
+                mkdir -p "$HOME/.termux"
+                local tmp_zip
+                tmp_zip="$(mktemp -t maple_font.XXXXXX.zip)"
+                log_info "$(i18n font.downloading "$font_name")"
+                if curl -fSL --progress-bar -o "$tmp_zip" "https://github.com/subframe7536/maple-font/releases/latest/download/MapleMono-NF-CN.zip"; then
+                    unzip -p "$tmp_zip" "MapleMono-NF-CN-Regular.ttf" > "$termux_font"
+                    rm -f "$tmp_zip"
+                    if command -v termux-reload-settings &>/dev/null; then
+                        termux-reload-settings || true
+                    fi
+                    log_success "$(i18n font.installed "$font_name" "$termux_font")"
+                else
+                    rm -f "$tmp_zip"
+                    log_error "$(i18n font.download_failed "$font_name")"
+                    return 1
+                fi
+                return 0
+            fi
+
+            local font_dir="$HOME/.local/share/fonts/MapleMono-NF-CN"
+            if [ -d "$font_dir" ] && compgen -G "$font_dir/*.ttf" >/dev/null; then
+                log_info "$(i18n font.already_installed "$font_name" "$font_dir")"
+                return 0
+            fi
+
+            mkdir -p "$font_dir"
+            local tmp_zip
+            tmp_zip="$(mktemp -t maple_font.XXXXXX.zip)"
+            log_info "$(i18n font.downloading "$font_name")"
+            if curl -fSL --progress-bar -o "$tmp_zip" "https://github.com/subframe7536/maple-font/releases/latest/download/MapleMono-NF-CN.zip"; then
+                unzip -q -o "$tmp_zip" -d "$font_dir"
+                rm -f "$tmp_zip"
+                if command -v fc-cache &>/dev/null; then
+                    fc-cache -f "$font_dir" >/dev/null 2>&1 || true
+                fi
+                log_success "$(i18n font.installed "$font_name" "$font_dir")"
+            else
+                rm -f "$tmp_zip"
+                log_error "$(i18n font.download_failed "$font_name")"
+                return 1
+            fi
+            ;;
+        *)
+            log_warn "$(i18n font.unknown "$font_name")"
+            return 1
+            ;;
+    esac
+}
+
 do_install_omz() {
     if [ ! -d "$HOME/.oh-my-zsh" ]; then
         env RUNZSH=no sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" || true
@@ -424,6 +483,7 @@ run_install() {
     package_manager="$(manifest_get "$TARGET_OS" packageManager)"
     readarray -t copr_repos  < <(manifest_get "$TARGET_OS" copr 2>/dev/null || true)
     readarray -t pkgs        < <(manifest_get "$TARGET_OS" packages)
+    readarray -t fonts       < <(manifest_get "$TARGET_OS" fonts 2>/dev/null || true)
     readarray -t npm_globals < <(manifest_get "$TARGET_OS" npmGlobals)
     readarray -t skills_add  < <(manifest_get "$TARGET_OS" skillsAdd)
 
@@ -446,7 +506,15 @@ run_install() {
     # 4. Oh My Zsh
     run_step "$(i18n step.ohmyzsh)" do_install_omz
 
-    # 5. 全局 npm 包 (逐个执行，失败可独立跳过)
+    # 5. 终端字体 (声明于 manifest.<os>.fonts)
+    if [ ${#fonts[@]} -gt 0 ]; then
+        for font_item in "${fonts[@]}"; do
+            [ -z "$font_item" ] && continue
+            run_step "$(i18n step.fonts "$font_item")" do_install_font "$font_item"
+        done
+    fi
+
+    # 6. 全局 npm 包 (逐个执行，失败可独立跳过)
     if [ ${#npm_globals[@]} -gt 0 ]; then
         for npm_pkg in "${npm_globals[@]}"; do
             [ -z "$npm_pkg" ] && continue
@@ -454,7 +522,7 @@ run_install() {
         done
     fi
 
-    # 6. Agent Skills (逐个执行，失败可独立跳过)
+    # 7. Agent Skills (逐个执行，失败可独立跳过)
     if [ ${#skills_add[@]} -gt 0 ]; then
         for skill_item in "${skills_add[@]}"; do
             skill_item="$(echo "$skill_item" | xargs)"
@@ -488,16 +556,6 @@ setup_omz_plugins() {
     fi
 }
 
-do_deploy_termux_font() {
-    if [ ! -f "$HOME/.termux/font.ttf" ]; then
-        mkdir -p "$HOME/.termux"
-        curl -fsSL -o "$HOME/.termux/font.ttf" "https://raw.githubusercontent.com/romkatv/powerlevel10k-media/master/MesloLGS%20NF%20Regular.ttf"
-        if command -v termux-reload-settings &>/dev/null; then
-            termux-reload-settings || true
-        fi
-    fi
-}
-
 run_config() {
     echo -e "${BLUE}====================================================${RESET}"
     echo -e "${BOLD}$(i18n config.title "$TARGET_OS")${RESET}"
@@ -525,11 +583,6 @@ run_config() {
         [ -z "$name" ] && continue
         _dispatch_config "$name" "$method" "$source" "$targets" "$exclude" "$ifmissing" "$when"
     done < <(manifest_plan "$TARGET_OS")
-
-    # 3. Termux 专属字体与外观适配
-    if [ "$TARGET_OS" = "termux" ]; then
-        run_step "$(i18n step.termux_font)" do_deploy_termux_font
-    fi
 }
 
 # 单条 config 的派发。只认三个动词: link / copy / custom

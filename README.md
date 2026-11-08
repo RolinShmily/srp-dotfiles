@@ -368,7 +368,7 @@ export ANTHROPIC_API_KEY="sk-..."
 ## 🔤 Recommended Font
 
 We recommend installing [Maple Mono NF CN](https://github.com/subframe7536/maple-font) (Maple Mono with Nerd Fonts icons and Chinese glyphs) for clean ligatures and terminal alignment.  
-*(Note: Windows setup via `.\start.ps1 install` automatically installs this font via Scoop)*.
+*(Note: Windows setup via `.\start.ps1 install` and Unix setup via `./launch.sh install` automatically deploy this font)*.
 
 ---
 
