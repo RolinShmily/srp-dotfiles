@@ -43,7 +43,7 @@ SrP-Dotfiles utilizes a **Single Branch (`main`) + Declarative Manifests (`manif
 
 ```text
 srp-dotfiles/
-├── manifest/              # 🧠 OS profile manifests (arch.json, debian-vps.json, windows.json ...)
+├── manifest/              # 🧠 OS profile manifests (arch.json, debian.json, fedora.json, windows.json ...)
 │
 ├── 🚀 Thin Dispatch Entrypoints (parse manifest → dispatch → audit ledger)
 │   ├── launch.sh          # Unix entrypoint (~650 lines)
@@ -71,7 +71,7 @@ srp-dotfiles/
 │   │   ├── git.zsh        # Git aliases, shortcuts & GPG/SSH commit signing
 │   │   ├── aliases.zsh    # Modern CLI aliases (eza, bat, fd) & directory navigation
 │   │   ├── tools.zsh      # Zellij, Yazi, Zoxide & FZF integrations
-│   │   └── os/            # OS-specific adaptations (Arch/WSL, Debian/Ubuntu, Termux)
+│   │   └── os/            # OS-specific adaptations (Arch/WSL, Debian/Ubuntu, Fedora, Termux)
 │   ├── btop/              # Btop monitor (Catppuccin Mocha theme)
 │   ├── fastfetch/         # Fastfetch system info configuration
 │   ├── yazi/              # Yazi terminal file manager configuration & plugins
@@ -130,15 +130,15 @@ Or run non-interactively with CLI arguments:
 
 # Interface language: English by default; use zh for Chinese
 ./launch.sh --lang zh
-./launch.sh all debian-vps --lang en
+./launch.sh all fedora --lang en
 
 # Explicitly specify target distribution/profile
 ./launch.sh install arch
-./launch.sh all debian-homeserver  # Full HomeServer profile with Pi Web
-./launch.sh all debian-vps          # Minimal VPS profile
+./launch.sh all fedora             # Full HomeServer profile with Pi Web
+./launch.sh all debian             # Minimal VPS profile
 ```
 
-> When Debian/Ubuntu is auto-detected without a profile, the script asks whether this is a HomeServer or VPS. In non-interactive environments, pass `--os debian-vps` or `--os debian-homeserver` explicitly.
+> Distributions (Arch, Debian/Ubuntu, Fedora, Termux) are automatically detected via `/etc/os-release`. In non-interactive environments, pass `--os <arch|debian|fedora|termux>` if needed.
 
 > **Apply changes**: Restart your terminal or run `source ~/.zshrc`.
 

@@ -286,7 +286,7 @@ $Global:DF_DotfilesDir = $DotfilesDir
 # 2. 运行环境探测
 # -------------------------------------------------------------------------
 # Windows 无 OS 探测分支: 固定使用 manifest/windows.json。
-# 对应 launch.sh 的 $TARGET_OS (arch | debian-homeserver | debian-vps | termux)。
+# 对应 launch.sh 的 $TARGET_OS (arch | debian | fedora | termux)。
 
 # -------------------------------------------------------------------------
 # 3. 模块一：环境与软件包检测安装 (Install)

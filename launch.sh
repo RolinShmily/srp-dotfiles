@@ -9,7 +9,7 @@ fi
 # launch.sh - SrP-Dotfiles Unix 统一环境一键管理总控引擎
 # 集成: 交互式启动菜单 (Launch) + 依赖安装 (Install) + 符号链接部署与备份 (Config)
 # 特性: 遇错拦截询问 (重试/跳过/终止) + 执行审计账本 + 部署汇总报告
-# 配置清单来源: manifest/<os>.json [arch / debian-homeserver / debian-vps / termux]
+# 配置清单来源: manifest/<os>.json [arch / debian / fedora / termux]
 #
 # 章节索引 (与 start.ps1 逐节对齐，便于两边对照阅读)
 #   0. 全局执行账本与受控步骤执行器    1. 声明清单读取    2. 操作系统与环境探测
@@ -221,9 +221,16 @@ _need_node() {
 
     log_warn "$(i18n manifest.node_missing)" >&2
     case "$TARGET_OS" in
-        debian|debian-homeserver|debian-vps)
+        debian)
             log_info "$(i18n manifest.bootstrap "$TARGET_OS")" >&2
             if sudo apt-get update -y && sudo apt-get install -y nodejs && command -v node >/dev/null 2>&1; then
+                log_success "$(i18n manifest.bootstrap_done)" >&2
+                return 0
+            fi
+            ;;
+        fedora)
+            log_info "$(i18n manifest.bootstrap "$TARGET_OS")" >&2
+            if sudo dnf install -y nodejs npm && command -v node >/dev/null 2>&1; then
                 log_success "$(i18n manifest.bootstrap_done)" >&2
                 return 0
             fi
@@ -249,6 +256,7 @@ _need_node() {
     echo -e "$(i18n manifest.install_hint)"
     echo -e "${BOLD}$(i18n manifest.arch_hint)${RESET}"
     echo -e "${BOLD}$(i18n manifest.debian_hint)${RESET}"
+    echo -e "${BOLD}$(i18n manifest.fedora_hint)${RESET}"
     echo -e "${BOLD}$(i18n manifest.termux_hint)${RESET}"
     echo -e ""
     echo -e "${YELLOW}$(i18n manifest.note)${RESET}"
@@ -275,6 +283,8 @@ detect_os() {
             echo "arch"
         elif grep -qiE "debian|ubuntu" /etc/os-release; then
             echo "debian"
+        elif grep -qi "fedora" /etc/os-release; then
+            echo "fedora"
         else
             echo "arch"
         fi
@@ -282,6 +292,8 @@ detect_os() {
         echo "arch"
     elif [ -f /etc/debian_version ]; then
         echo "debian"
+    elif [ -f /etc/fedora-release ]; then
+        echo "fedora"
     else
         echo "arch"
     fi
@@ -293,35 +305,6 @@ detect_wsl() {
     else
         echo "no"
     fi
-}
-
-# Debian/Ubuntu 无法仅凭系统信息可靠区分 VPS 与 HomeServer，避免误装服务，
-# 未显式指定 profile 时在交互终端中询问；非交互场景要求调用方明确指定。
-resolve_debian_profile() {
-    case "$TARGET_OS" in
-        debian-homeserver|debian-vps)
-            return 0
-            ;;
-        debian)
-            if [ ! -t 0 ]; then
-                log_error "$(i18n profile.noninteractive)"
-                exit 2
-            fi
-
-            echo -e "${YELLOW}$(i18n profile.detected)${RESET}"
-            echo "$(i18n profile.homeserver)"
-            echo "$(i18n profile.vps)"
-            read -rp "$(i18n profile.choice) " debian_profile
-            case "$debian_profile" in
-                1) TARGET_OS="debian-homeserver" ;;
-                2) TARGET_OS="debian-vps" ;;
-                *)
-                    log_error "$(i18n profile.invalid "$debian_profile")"
-                    exit 1
-                    ;;
-            esac
-            ;;
-    esac
 }
 
 TARGET_OS="$(detect_os)"
@@ -342,8 +325,11 @@ do_install_sys_packages() {
         arch)
             sudo pacman -Syu --needed --noconfirm "${pkgs[@]}"
             ;;
-        debian-homeserver|debian-vps)
+        debian)
             sudo apt-get update -y && sudo apt-get install -y "${pkgs[@]}"
+            ;;
+        fedora)
+            sudo dnf install -y --skip-broken "${pkgs[@]}"
             ;;
         termux)
             pkg update -y && pkg install -y "${pkgs[@]}"
@@ -612,7 +598,7 @@ while [ $# -gt 0 ]; do
             ACTION="$1"
             shift
             ;;
-        arch|debian|debian-homeserver|debian-vps|termux)
+        arch|debian|fedora|termux)
             TARGET_OS="$1"
             shift
             ;;
@@ -645,9 +631,6 @@ while [ $# -gt 0 ]; do
             ;;
     esac
 done
-
-# 将自动检测得到的 Debian 泛化标识解析为明确的部署 profile。
-resolve_debian_profile
 
 # 如果指定了明确的命令行动作且不是 launch，则直接非交互式执行
 if [ -n "$ACTION" ] && [ "$ACTION" != "launch" ]; then
@@ -721,14 +704,14 @@ case "$choice" in
         echo ""
         echo "$(i18n menu.profiles)"
         echo "$(i18n menu.profile_arch)"
-        echo "$(i18n menu.profile_homeserver)"
-        echo "$(i18n menu.profile_vps)"
+        echo "$(i18n menu.profile_debian)"
+        echo "$(i18n menu.profile_fedora)"
         echo "$(i18n menu.profile_termux)"
         read -rp "$(i18n menu.profile_choice) " os_choice
         case "$os_choice" in
             1) TARGET_OS="arch" ;;
-            2) TARGET_OS="debian-homeserver" ;;
-            3) TARGET_OS="debian-vps" ;;
+            2) TARGET_OS="debian" ;;
+            3) TARGET_OS="fedora" ;;
             4) TARGET_OS="termux" ;;
             *) log_error "$(i18n menu.invalid_choice "$os_choice")"; exit 1 ;;
         esac

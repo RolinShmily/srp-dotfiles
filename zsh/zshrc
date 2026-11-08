@@ -53,6 +53,8 @@ _detect_os_module() {
             echo "arch"
         elif grep -qiE "debian|ubuntu" /etc/os-release; then
             echo "debian"
+        elif grep -qi "fedora" /etc/os-release; then
+            echo "fedora"
         else
             echo "arch"
         fi
@@ -60,6 +62,8 @@ _detect_os_module() {
         echo "arch"
     elif [ -f /etc/debian_version ]; then
         echo "debian"
+    elif [ -f /etc/fedora-release ]; then
+        echo "fedora"
     else
         echo "arch"
     fi

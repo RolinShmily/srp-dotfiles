@@ -43,7 +43,7 @@ SrP-Dotfiles 采用 **单分支（`main`）+ 解耦清单（`manifest/<os>.json`
 
 ```text
 srp-dotfiles/
-├── manifest/              # 🧠 分系统声明清单 (arch.json, debian-vps.json, windows.json ...)
+├── manifest/              # 🧠 分系统声明清单 (arch.json, debian.json, fedora.json, windows.json ...)
 │
 ├── 🚀 极薄派发入口 (解析清单 → 逐条派发 → 审计账本)
 │   ├── launch.sh          # Unix 入口 (~650 行)
@@ -71,7 +71,7 @@ srp-dotfiles/
 │   │   ├── git.zsh        # Git 别名、快捷函数与 GPG/SSH 签名
 │   │   ├── aliases.zsh    # 现代 CLI 工具别名 (eza, bat, fd) 与目录导航
 │   │   ├── tools.zsh      # Zellij, Yazi, Zoxide, FZF 深度集成
-│   │   └── os/            # 操作系统特供片段 (Arch/WSL、Debian/Ubuntu、Termux 剪贴板与环境)
+│   │   └── os/            # 操作系统特供片段 (Arch/WSL、Debian/Ubuntu、Fedora、Termux 剪贴板与环境)
 │   ├── btop/              # Btop 性能监控 (Catppuccin Mocha 主题)
 │   ├── fastfetch/         # Fastfetch 系统信息美化展示
 │   ├── yazi/              # Yazi 现代终端文件管理器配置与插件
@@ -130,15 +130,15 @@ cd ~/.dotfiles
 
 # 界面默认英文；使用 zh 切换为中文
 ./launch.sh --lang zh
-./launch.sh all debian-vps --lang en
+./launch.sh all fedora --lang zh
 
 # 显式指定操作系统/profile
 ./launch.sh install arch
-./launch.sh all debian-homeserver  # 完整 HomeServer 配置，含 Pi Web
-./launch.sh all debian-vps          # 精简 VPS 配置
+./launch.sh all fedora             # 完整 HomeServer 配置，含 Pi Web
+./launch.sh all debian             # 精简 VPS 配置
 ```
 
-> 自动检测到 Debian/Ubuntu 且未指定 profile 时，脚本会询问选择 HomeServer 或 VPS；在非交互环境中请显式传入 `--os debian-vps` 或 `--os debian-homeserver`。
+> 系统类型（Arch、Debian/Ubuntu、Fedora、Termux）会自动通过 `/etc/os-release` 识别，无需手动交互选择；非交互环境亦可显式传入 `--os <arch|debian|fedora|termux>`。
 
 > **配置生效**：部署完成后，重启终端或在终端执行 `source ~/.zshrc` 即可即时生效。
 
