@@ -67,6 +67,7 @@ i18n() {
             manifest.declaration) printf 'Manifest: %s\n' "$@" ;;
             config.target) printf 'Target configuration profile: %s\n' "$@" ;;
             config.force) printf 'Force overwrite mode enabled (-f / --force).\n' ;;
+            step.copr) printf 'Enable Copr repository [%s]' "$@" ;;
             step.system_packages) printf 'Install system dependencies (%s - %s packages)' "$@" ;;
             step.default_shell) printf 'Configure zsh as the default shell' ;;
             step.ohmyzsh) printf 'Install Oh My Zsh base framework' ;;
@@ -189,6 +190,7 @@ i18n() {
             manifest.declaration) printf '声明清单: %s\n' "$@" ;;
             config.target) printf '目标配置环境: %s\n' "$@" ;;
             config.force) printf '已开启强制覆盖模式 (-f / --force)。\n' ;;
+            step.copr) printf '启用 Copr 软件源 [%s]' "$@" ;;
             step.system_packages) printf '安装系统基础依赖 (%s - %s 个包)' "$@" ;;
             step.default_shell) printf '配置默认 Shell 为 zsh' ;;
             step.ohmyzsh) printf '安装 Oh My Zsh 基础框架' ;;

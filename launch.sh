@@ -329,7 +329,11 @@ do_install_sys_packages() {
             sudo apt-get update -y && sudo apt-get install -y "${pkgs[@]}"
             ;;
         fedora)
-            sudo dnf install -y --skip-broken "${pkgs[@]}"
+            local skip_opt="--skip-unavailable"
+            if ! dnf install --help 2>&1 | grep -q -- '--skip-unavailable'; then
+                skip_opt="--skip-broken"
+            fi
+            sudo dnf install -y "$skip_opt" "${pkgs[@]}"
             ;;
         termux)
             pkg update -y && pkg install -y "${pkgs[@]}"
@@ -360,6 +364,11 @@ set_default_shell() {
             chsh -s "$zsh_path" 2>/dev/null || true
         fi
     fi
+}
+
+do_enable_copr() {
+    local repo="$1"
+    sudo dnf copr enable -y "$repo"
 }
 
 do_install_omz() {
@@ -413,22 +422,31 @@ run_install() {
 
     local package_manager
     package_manager="$(manifest_get "$TARGET_OS" packageManager)"
+    readarray -t copr_repos  < <(manifest_get "$TARGET_OS" copr 2>/dev/null || true)
     readarray -t pkgs        < <(manifest_get "$TARGET_OS" packages)
     readarray -t npm_globals < <(manifest_get "$TARGET_OS" npmGlobals)
     readarray -t skills_add  < <(manifest_get "$TARGET_OS" skillsAdd)
 
-    # 1. 系统核心包
+    # 1. 第三方软件源 (如 Fedora Copr)
+    if [ ${#copr_repos[@]} -gt 0 ]; then
+        for copr_repo in "${copr_repos[@]}"; do
+            [ -z "$copr_repo" ] && continue
+            run_step "$(i18n step.copr "$copr_repo")" do_enable_copr "$copr_repo"
+        done
+    fi
+
+    # 2. 系统核心包
     if [ ${#pkgs[@]} -gt 0 ]; then
         run_step "$(i18n step.system_packages "$package_manager" "${#pkgs[@]}")" do_install_sys_packages "$package_manager" "${pkgs[@]}"
     fi
 
-    # 2. 默认 Shell
+    # 3. 默认 Shell
     run_step "$(i18n step.default_shell)" set_default_shell
 
-    # 3. Oh My Zsh
+    # 4. Oh My Zsh
     run_step "$(i18n step.ohmyzsh)" do_install_omz
 
-    # 4. 全局 npm 包 (逐个执行，失败可独立跳过)
+    # 5. 全局 npm 包 (逐个执行，失败可独立跳过)
     if [ ${#npm_globals[@]} -gt 0 ]; then
         for npm_pkg in "${npm_globals[@]}"; do
             [ -z "$npm_pkg" ] && continue
@@ -436,7 +454,7 @@ run_install() {
         done
     fi
 
-    # 5. Agent Skills (逐个执行，失败可独立跳过)
+    # 6. Agent Skills (逐个执行，失败可独立跳过)
     if [ ${#skills_add[@]} -gt 0 ]; then
         for skill_item in "${skills_add[@]}"; do
             skill_item="$(echo "$skill_item" | xargs)"

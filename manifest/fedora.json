@@ -1,5 +1,8 @@
 {
   "packageManager": "dnf",
+  "copr": [
+    "dejan/lazygit"
+  ],
   "packages": [
     "zsh",
     "zsh-autosuggestions",
@@ -15,7 +18,7 @@
     "gh",
     "lazygit",
     "jq",
-    "tealdeer",
+    "tldr",
     "nodejs",
     "npm",
     "python3",
