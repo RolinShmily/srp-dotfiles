@@ -88,8 +88,7 @@ srp-dotfiles/
     ├── pi/mcp.json.example # MCP server template (create JSON if missing; otherwise save as .json.example)
     ├── pi/keybindings.json.example # Keybindings template (create JSON if missing; otherwise save as .json.example)
     ├── pi/AGENTS.md       # Global agent behavioral & safety rules
-    ├── pi/skills/         # Personal/local skills (loaded in place via @repo/pi/skills)
-    └── pi/packages/pi-learn  # Local Pi package (**not deployed**; referenced in place via @repo)
+    └── pi/skills/         # Personal/local skills (loaded in place via @repo/pi/skills)
 ```
 
 ---
@@ -375,7 +374,6 @@ We recommend installing [Maple Mono NF CN](https://github.com/subframe7536/maple
 ## 💖 Acknowledgements
 
 - [KevinSilvester/wezterm-config](https://github.com/KevinSilvester/wezterm-config) — Reference for WezTerm tuning, smooth URL cleanup, and QuickSelect design.
-- [amosblomqvist/learn](https://github.com/amosblomqvist/learn) — Upstream learning system for the third-party `pi-learn` fork retained in this repository; adapted locally for Windows and Zellij.
 - [Aikoyori/ProgrammingVTuberLogos](https://github.com/Aikoyori/ProgrammingVTuberLogos) — VS Code visual asset (`code/VSCode-Thick.png`) created by [Aikoyori](https://github.com/Aikoyori), licensed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) for non-commercial use with attribution.
 - [Xy (Pixiv 85385041)](https://www.pixiv.net/users/85385041) — Original artist for terminal & editor background wallpapers:
   - VS Code background artwork (`code/background.png`): [CSGO / Nightlight-Print&Asimov](https://www.pixiv.net/artworks/121230570)

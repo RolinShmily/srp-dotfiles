@@ -88,8 +88,7 @@ srp-dotfiles/
     ├── pi/mcp.json.example # MCP 服务模板 (按目标 JSON 是否存在决定生成 JSON 或旁存 .example)
     ├── pi/keybindings.json.example # 快捷键映射模板 (按目标 JSON 是否存在决定生成 JSON 或旁存 .example)
     ├── pi/AGENTS.md       # 全局智能体通用行为与安全准则
-    ├── pi/skills/         # 个人/本地技能（通过 @repo/pi/skills 原地加载，不建软链）
-    └── pi/packages/pi-learn  # 本地 Pi 包（**不部署**，由 manifest 以 @repo 路径直接引用）
+    └── pi/skills/         # 个人/本地技能（通过 @repo/pi/skills 原地加载，不建软链）
 ```
 
 ---
@@ -375,7 +374,6 @@ export ANTHROPIC_API_KEY="sk-..."
 ## 💖 鸣谢与致敬
 
 - [KevinSilvester/wezterm-config](https://github.com/KevinSilvester/wezterm-config) — WezTerm 工业级细节调优与平滑 URL 处理设计借鉴。
-- [amosblomqvist/learn](https://github.com/amosblomqvist/learn) — 本仓库保留的第三方 `pi-learn` fork 的上游学习系统，已在本地适配 Windows 和 Zellij。
 - [Aikoyori/ProgrammingVTuberLogos](https://github.com/Aikoyori/ProgrammingVTuberLogos) — VS Code 视觉素材（`code/VSCode-Thick.png`）由 [Aikoyori](https://github.com/Aikoyori) 创作，遵循 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) 知识共享许可协议进行署名与非商业性使用。
 - [Xy (Pixiv 85385041)](https://www.pixiv.net/users/85385041) — 终端与编辑器专属背景壁纸原创画师：
   - VS Code 背景插画（`code/background.png`）：[CSGO / Nightlight-Print&Asimov](https://www.pixiv.net/artworks/121230570)
