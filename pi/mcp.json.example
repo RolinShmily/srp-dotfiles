@@ -15,10 +15,6 @@
     "porter": {
       "command": "uvx",
       "args": ["--from", "porter-workflow[mcp]", "porter-mcp"]
-    },
-    "mineru": {
-      "command": "uvx",
-      "args": ["mineru-open-mcp"]
     }
   }
 }
