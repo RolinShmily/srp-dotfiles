@@ -56,10 +56,7 @@
     "@antfu/ni",
     "live-server"
   ],
-  "skillsAdd": [
-    "tt-a1i/archify",
-    "Vincentwei1021/video-shotcraft"
-  ],
+  "skillsAdd": [],
   "configs": [
     {
       "name": "zshrc",

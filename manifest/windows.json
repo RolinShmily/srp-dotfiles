@@ -50,10 +50,7 @@
     "live-server"
   ],
   "pythonManager": "uv",
-  "skillsAdd": [
-    "tt-a1i/archify",
-    "Vincentwei1021/video-shotcraft"
-  ],
+  "skillsAdd": [],
   "configs": [
     {
       "name": "vimrc",
