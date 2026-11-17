@@ -22,6 +22,7 @@ ZH = {
         "      --mirror-profile <name> 选择镜像预设（默认取 mirror.json 的 profile）\n"
         "      --mirror-<name> <value> 覆盖单项镜像 (github/npm/pypi/go/scoop)，none 清空\n"
         "      --proxy <url>       所有下载的代理；none 清空\n"
+        "      --copy            把 link 条目改为复制（部署后不依赖仓库）\n"
         "      --catalog         输出完整 catalog JSON 后退出\n"
         "      --os <name>       指定目标: arch|debian|fedora|termux|windows\n"
         "      --lang <zh|en> 界面语言（默认 en）\n"
@@ -112,7 +113,7 @@ ZH = {
     "deploy.overwrite_file": "已原地覆盖: {0}",
     "deploy.backup": "旧文件已备份: {0} -> {1}",
     "deploy.force_delete": "强制覆盖，已删除: {0}",
-    "deploy.source_missing": "源不存在，跳过 [{0}]: {1}",
+    "deploy.source_missing": "源不存在 [{0}]: {1}",
     "deploy.if_missing": "目标已存在，跳过: {0}",
     "deploy.exclude": "跳过排除项: {0}",
     "deploy.example_existing": "目标已存在，模板写入: {0}",
@@ -157,9 +158,11 @@ ZH = {
     "config.condition": "[{0}] 条件不满足，跳过 ({1})",
     "config.custom_missing": "[{0}] 自定义部署脚本不存在: {1}",
     "config.method_unknown": "[{0}] 未知 method: {1}",
-    "config.source_missing": "[{0}] 源不存在，跳过: {1}",
+    "config.source_missing": "[{0}] 源不存在: {1}",
     "config.target_missing": "[{0}] 未声明 target/targets，跳过。",
     "config.custom": "[{0}] 自定义部署",
+    "config.copy_mode": "复制模式：link 条目将以复制方式落地，部署后不再依赖仓库。",
+    "config.broken_link": "[{0}] 链接未生效或已悬空",
     "env.shell": "Windows 用户级 SHELL 环境变量。",
     "error.no_tty": "标准输入不是终端；请显式加 -y / --yes 以自动确认。",
     "error.python": "需要 Python 3.9+，当前版本过低。",
@@ -183,6 +186,7 @@ EN = {
         "      --mirror-profile <name> select a mirror profile (default: mirror.json profile)\n"
         "      --mirror-<name> <value> override one mirror (github/npm/pypi/go/scoop); none clears\n"
         "      --proxy <url>      proxy for all downloads; none clears\n"
+        "      --copy         materialise link entries as copies (no repo needed afterwards)\n"
         "      --catalog      print the full catalog JSON and exit\n"
         "      --os <name>    target: arch|debian|fedora|termux|windows\n"
         "      --lang <zh|en> UI language (default: en)\n"
@@ -273,7 +277,7 @@ EN = {
     "deploy.overwrite_file": "Overwrote in place: {0}",
     "deploy.backup": "Backed up: {0} -> {1}",
     "deploy.force_delete": "Force mode, removed: {0}",
-    "deploy.source_missing": "Source missing, skipped [{0}]: {1}",
+    "deploy.source_missing": "Source missing [{0}]: {1}",
     "deploy.if_missing": "Target exists, skipped: {0}",
     "deploy.exclude": "Excluded item: {0}",
     "deploy.example_existing": "Target exists; template written to: {0}",
@@ -318,9 +322,11 @@ EN = {
     "config.condition": "[{0}] Condition not met; skipped ({1})",
     "config.custom_missing": "[{0}] Custom deploy module missing: {1}",
     "config.method_unknown": "[{0}] Unknown method: {1}",
-    "config.source_missing": "[{0}] Source missing; skipped: {1}",
+    "config.source_missing": "[{0}] Source missing: {1}",
     "config.target_missing": "[{0}] No target/targets declared; skipped.",
     "config.custom": "[{0}] custom deployment",
+    "config.copy_mode": "Copy mode: link entries are materialised, so the deployment no longer needs the repository.",
+    "config.broken_link": "[{0}] link missing or dangling",
     "env.shell": "Windows user-level SHELL environment.",
     "error.no_tty": "stdin is not a TTY; pass -y / --yes to approve steps automatically.",
     "error.python": "Python 3.9+ is required; current version is too old.",

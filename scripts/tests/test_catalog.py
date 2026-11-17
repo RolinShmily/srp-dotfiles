@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import sys
 import unittest
 from pathlib import Path
@@ -13,6 +14,61 @@ sys.path.insert(0, str(SCRIPTS_DIR))
 from lib import catalog, manifest  # noqa: E402
 
 PROFILES = ("arch", "debian", "fedora", "termux", "windows")
+
+
+class LinkVerificationTests(unittest.TestCase):
+    def test_broken_links_are_reported(self) -> None:
+        import json
+        import tempfile
+
+        spec = importlib.util.spec_from_file_location("srp_main_v", SCRIPTS_DIR / "main.py")
+        main = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        spec.loader.exec_module(main)
+
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "manifest").mkdir()
+            (root / "manifest" / "arch.json").write_text(
+                json.dumps(
+                    {
+                        "configs": [
+                            {
+                                "name": "ok",
+                                "method": "link",
+                                "source": "configs/ok",
+                                "target": str(root / "ok-target"),
+                            },
+                            {
+                                "name": "gone",
+                                "method": "link",
+                                "source": "configs/gone",
+                                "target": str(root / "gone-target"),
+                            },
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (root / "configs" / "ok").mkdir(parents=True)
+            (root / "ok-target").mkdir()
+            data = manifest.Manifest(root, "arch")
+
+            broken = main.verify_links(root, data, {"ok", "gone"}, copy_mode=False)
+            self.assertEqual(len(broken), 1)
+            self.assertIn("gone", broken[0])
+
+            self.assertEqual(main.verify_links(root, data, {"ok", "gone"}, copy_mode=True), [])
+
+    def test_copy_flag(self) -> None:
+        import importlib.util as util
+
+        spec = util.spec_from_file_location("srp_main_c", SCRIPTS_DIR / "main.py")
+        main = util.module_from_spec(spec)
+        assert spec.loader is not None
+        spec.loader.exec_module(main)
+        self.assertTrue(main.parse_args(["-c", "--copy"]).copy_mode)
+        self.assertFalse(main.parse_args(["-c"]).copy_mode)
 
 
 class ArgumentParsingTests(unittest.TestCase):
