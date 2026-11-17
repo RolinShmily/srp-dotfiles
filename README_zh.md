@@ -134,6 +134,8 @@ Mirrors 区有 profile 下拉与可编辑输入框：切 profile 生成 `--mirro
 - `ci.yml` — Python 3.9/3.12 编译、单测、catalog 校验、CLI dry-run，以及 Worker 语法与路由测试。
 - `deploy.yml` — push 到 `main` 且改动 `worker/**`、`scripts/**` 或 `manifest/**` 时（或手动触发）：
   校验 catalog、跑 Worker 测试，然后通过 `cloudflare/wrangler-action` 部署。
+- `release.yml` — push `v*` tag（或用已有 tag 手动触发）时：从 [CHANGELOG.md](CHANGELOG.md)
+  提取对应版本内容，创建或更新 GitHub Release。
 
 部署前在仓库 Secrets 中配置：
 

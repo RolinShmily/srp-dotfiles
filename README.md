@@ -139,6 +139,8 @@ Two GitHub Actions workflows live in `.github/workflows/`:
 - `deploy.yml` — on pushes to `main` touching `worker/**`, `scripts/**` or `manifest/**` (or manual
   dispatch): validates the catalog, runs the Worker tests, then deploys with
   `cloudflare/wrangler-action`.
+- `release.yml` — on `v*` tag pushes (or manual dispatch with an existing tag): extracts the matching
+  section from [CHANGELOG.md](CHANGELOG.md) and creates or updates the GitHub release.
 
 Add repository secrets before deploying:
 
