@@ -65,11 +65,16 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     actions.add_argument("-c", "--config", dest="do_config", action="store_true")
     parser.add_argument("-y", "--yes", action="store_true")
     parser.add_argument("-f", "--force", "-Force", dest="force", action="store_true")
-    parser.add_argument("--apps", default=None)
-    parser.add_argument("--configs", default=None)
+    # nargs="+" keeps "a,b" and PowerShell's unquoted "a b c" (which it turns
+    # into an array) both working.
+    parser.add_argument("--apps", nargs="+", default=None)
+    parser.add_argument("--configs", nargs="+", default=None)
     for name in ("github", "npm", "pypi", "go", "scoop"):
         parser.add_argument(
-            f"--mirror-{name}", dest=f"mirror_{name.replace('-', '_')}", default=None
+            f"--mirror-{name}",
+            dest=f"mirror_{name.replace('-', '_')}",
+            nargs="+",
+            default=None,
         )
     parser.add_argument("--proxy", default=None)
     parser.add_argument("--mirror-profile", dest="mirror_profile", default=None)
@@ -78,7 +83,12 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--lang", "-Lang", dest="lang", default="")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("-h", "--help", action="store_true")
-    return parser.parse_args(argv)
+    args = parser.parse_args(argv)
+    for field in ("apps", "configs", "mirror_github", "mirror_npm", "mirror_pypi", "mirror_go", "mirror_scoop"):
+        value = getattr(args, field)
+        if isinstance(value, list):
+            setattr(args, field, ",".join(value))
+    return args
 
 
 def apply_mirror_env(mirrors: manifest_lib.Mirrors) -> None:

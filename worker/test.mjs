@@ -106,6 +106,18 @@ assert.equal(
     "irm https://o/install.ps1 -OutFile install.ps1; .\\install.ps1 -a -y",
 );
 
+const multi = { origin: "https://o", allApps: ["a", "b", "c"], allConfigs: ["x", "y", "z"] };
+assert.equal(
+  app.buildCommand({ ...multi, osName: "windows", apps: ["a", "b"], configs: ["x", "y"] }),
+  'Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force; ' +
+    "irm https://o/install.ps1 -OutFile install.ps1; .\\install.ps1 -a -y --apps \"a,b\" --configs \"x,y\"",
+);
+assert.ok(
+  app
+    .buildCommand({ ...multi, osName: "arch", apps: ["a", "b"], configs: ["x"] })
+    .includes('--apps "a,b"'),
+);
+
 const fields = [
   { id: "github", type: "list" },
   { id: "npm", type: "text" },
@@ -121,9 +133,9 @@ assert.deepEqual(app.buildMirrorFlags(fields, defaults, values), []);
 
 values = { github: "https://a\nhttps://z", npm: "", pypi: "https://p1\nhttps://p2" };
 assert.deepEqual(app.buildMirrorFlags(fields, defaults, values), [
-  "--mirror-github https://a,https://z",
+  '--mirror-github "https://a,https://z"',
   "--mirror-npm none",
-  "--mirror-pypi https://p1,https://p2",
+  '--mirror-pypi "https://p1,https://p2"',
 ]);
 
 assert.deepEqual(app.buildProxyFlag("", ""), []);

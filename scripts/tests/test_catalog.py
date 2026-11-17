@@ -15,6 +15,34 @@ from lib import catalog, manifest  # noqa: E402
 PROFILES = ("arch", "debian", "fedora", "termux", "windows")
 
 
+class ArgumentParsingTests(unittest.TestCase):
+    """PowerShell turns an unquoted "a,b" into an array, so both forms must work."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("srp_main", SCRIPTS_DIR / "main.py")
+        cls.main = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        spec.loader.exec_module(cls.main)
+
+    def test_comma_list(self) -> None:
+        args = self.main.parse_args(["-a", "-y", "--apps", "pkg:a,pkg:b"])
+        self.assertEqual(args.apps, "pkg:a,pkg:b")
+
+    def test_space_separated_list(self) -> None:
+        args = self.main.parse_args(["-a", "-y", "--apps", "pkg:a", "pkg:b", "--configs", "x"])
+        self.assertEqual(args.apps, "pkg:a,pkg:b")
+        self.assertEqual(args.configs, "x")
+
+    def test_mirror_list_and_none(self) -> None:
+        args = self.main.parse_args(["--mirror-github", "https://a", "https://b"])
+        self.assertEqual(args.mirror_github, "https://a,https://b")
+        args = self.main.parse_args(["--apps", "none"])
+        self.assertEqual(args.apps, "none")
+
+
 class CatalogTests(unittest.TestCase):
     def test_all_profiles_build(self) -> None:
         mirrors = manifest.load_mirrors(REPO_DIR)

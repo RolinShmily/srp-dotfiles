@@ -27,7 +27,8 @@ function fieldArg(field, text) {
 }
 
 function shellArg(value) {
-  if (!/\s/.test(value)) return value;
+  // Quote commas too: PowerShell parses an unquoted "a,b" as an array.
+  if (!/[,\s]/.test(value)) return value;
   return `"${value.replace(/"/g, '\\"')}"`;
 }
 
@@ -63,10 +64,10 @@ export function buildCommand({
 }) {
   const parts = [];
   if (apps.length !== allApps.length) {
-    parts.push(`--apps ${apps.length ? apps.join(",") : "none"}`);
+    parts.push(`--apps ${apps.length ? shellArg(apps.join(",")) : "none"}`);
   }
   if (configs.length !== allConfigs.length) {
-    parts.push(`--configs ${configs.length ? configs.join(",") : "none"}`);
+    parts.push(`--configs ${configs.length ? shellArg(configs.join(",")) : "none"}`);
   }
   if (mirrorProfile && mirrorProfile !== defaultProfile) {
     parts.push(`--mirror-profile ${mirrorProfile}`);

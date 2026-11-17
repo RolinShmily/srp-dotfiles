@@ -14,6 +14,12 @@ All notable changes to this project are documented here. The format follows
   Installer) and list winget-free ways to install Python. A missing Python now prints the
   environment-appropriate options instead of always pointing at winget.
 
+### Fixed
+
+- List flags broke on Windows: PowerShell splits an unquoted `--apps a,b` into an array, so only the
+  first ID was honoured. The configurator now quotes list values, and the CLI accepts both
+  comma-separated and space-separated forms.
+
 ## [1.0.3] - 2026-11-17
 
 ### Fixed

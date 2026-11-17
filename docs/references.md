@@ -27,6 +27,10 @@ Schemas, IDs and operational contracts.
 | `--proxy` | `socks5://…` or `http(s)://…`; `none` clears |
 | `--catalog` | print JSON and exit |
 
+List flags (`--apps`, `--configs`, `--mirror-*`) accept comma-separated values. On PowerShell an
+unquoted `a,b` is parsed as an array, so the configurator always quotes these values
+(`--apps "a,b"`); the CLI also accepts the expanded form (`--apps a b`) for hand-typed commands.
+
 ## App and config IDs
 
 | ID | Source |
