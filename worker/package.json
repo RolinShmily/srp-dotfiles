@@ -1,0 +1,12 @@
+{
+  "name": "srp-dotfiles-install-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "catalog": "python ../scripts/gen_catalog.py",
+    "catalog:check": "python ../scripts/gen_catalog.py --check",
+    "test": "node test.mjs"
+  }
+}

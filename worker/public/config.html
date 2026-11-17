@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SrP-Dotfiles installer</title>
+<link rel="icon" href="data:,">
+
+<h1>SrP-Dotfiles</h1>
+<p>Select apps, configs and mirrors, then copy the command.</p>
+
+<p><label>OS <select id="os"></select></label></p>
+
+<h2>Apps</h2>
+<div id="apps"></div>
+<p>
+  <button id="appsAll" type="button">all</button>
+  <button id="appsNone" type="button">none</button>
+</p>
+
+<h2>Configs</h2>
+<div id="configs"></div>
+<p>
+  <button id="configsAll" type="button">all</button>
+  <button id="configsNone" type="button">none</button>
+</p>
+
+<h2>Mirrors</h2>
+<p><label>Profile <select id="mirrorProfile"></select></label></p>
+<div id="mirrors"></div>
+
+<h2>Command</h2>
+<textarea id="command" readonly rows="4" cols="50" wrap="soft"></textarea>
+<p>
+  <button id="copy" type="button">copy command</button>
+  <span id="copyStatus"></span>
+</p>
+
+<script type="module" src="/app.js"></script>

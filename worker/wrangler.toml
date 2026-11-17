@@ -1,0 +1,15 @@
+name = "srp-dotfiles-install"
+main = "index.js"
+compatibility_date = "2024-11-01"
+
+# Route-based deployment on the existing srprolin.com zone.
+# Requires a proxied DNS record for dot.srprolin.com in that zone.
+workers_dev = false
+routes = [
+  { pattern = "dot.srprolin.com/*", zone_name = "srprolin.com" }
+]
+
+# Static: config.html, app.js and catalog.json.
+[assets]
+directory = "./public"
+binding = "ASSETS"

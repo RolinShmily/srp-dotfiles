@@ -1,0 +1,1614 @@
+{
+  "schema": 7,
+  "catalogs": {
+    "arch": {
+      "schema": 7,
+      "os": "arch",
+      "apps": [
+        {
+          "id": "pkg:zsh",
+          "source": "pacman",
+          "name": "zsh",
+          "label": "zsh"
+        },
+        {
+          "id": "pkg:zsh-autosuggestions",
+          "source": "pacman",
+          "name": "zsh-autosuggestions",
+          "label": "zsh-autosuggestions"
+        },
+        {
+          "id": "pkg:zsh-syntax-highlighting",
+          "source": "pacman",
+          "name": "zsh-syntax-highlighting",
+          "label": "zsh-syntax-highlighting"
+        },
+        {
+          "id": "pkg:eza",
+          "source": "pacman",
+          "name": "eza",
+          "label": "eza"
+        },
+        {
+          "id": "pkg:curl",
+          "source": "pacman",
+          "name": "curl",
+          "label": "curl"
+        },
+        {
+          "id": "pkg:zoxide",
+          "source": "pacman",
+          "name": "zoxide",
+          "label": "zoxide"
+        },
+        {
+          "id": "pkg:fzf",
+          "source": "pacman",
+          "name": "fzf",
+          "label": "fzf"
+        },
+        {
+          "id": "pkg:bat",
+          "source": "pacman",
+          "name": "bat",
+          "label": "bat"
+        },
+        {
+          "id": "pkg:fd",
+          "source": "pacman",
+          "name": "fd",
+          "label": "fd"
+        },
+        {
+          "id": "pkg:ripgrep",
+          "source": "pacman",
+          "name": "ripgrep",
+          "label": "ripgrep"
+        },
+        {
+          "id": "pkg:diff-so-fancy",
+          "source": "pacman",
+          "name": "diff-so-fancy",
+          "label": "diff-so-fancy"
+        },
+        {
+          "id": "pkg:github-cli",
+          "source": "pacman",
+          "name": "github-cli",
+          "label": "github-cli"
+        },
+        {
+          "id": "pkg:lazygit",
+          "source": "pacman",
+          "name": "lazygit",
+          "label": "lazygit"
+        },
+        {
+          "id": "pkg:jq",
+          "source": "pacman",
+          "name": "jq",
+          "label": "jq"
+        },
+        {
+          "id": "pkg:tldr",
+          "source": "pacman",
+          "name": "tldr",
+          "label": "tldr"
+        },
+        {
+          "id": "pkg:nodejs",
+          "source": "pacman",
+          "name": "nodejs",
+          "label": "nodejs"
+        },
+        {
+          "id": "pkg:npm",
+          "source": "pacman",
+          "name": "npm",
+          "label": "npm"
+        },
+        {
+          "id": "pkg:python",
+          "source": "pacman",
+          "name": "python",
+          "label": "python"
+        },
+        {
+          "id": "pkg:uv",
+          "source": "pacman",
+          "name": "uv",
+          "label": "uv"
+        },
+        {
+          "id": "pkg:yazi",
+          "source": "pacman",
+          "name": "yazi",
+          "label": "yazi"
+        },
+        {
+          "id": "pkg:file",
+          "source": "pacman",
+          "name": "file",
+          "label": "file"
+        },
+        {
+          "id": "pkg:chafa",
+          "source": "pacman",
+          "name": "chafa",
+          "label": "chafa"
+        },
+        {
+          "id": "pkg:imagemagick",
+          "source": "pacman",
+          "name": "imagemagick",
+          "label": "imagemagick"
+        },
+        {
+          "id": "pkg:poppler",
+          "source": "pacman",
+          "name": "poppler",
+          "label": "poppler"
+        },
+        {
+          "id": "pkg:ffmpeg",
+          "source": "pacman",
+          "name": "ffmpeg",
+          "label": "ffmpeg"
+        },
+        {
+          "id": "pkg:sox",
+          "source": "pacman",
+          "name": "sox",
+          "label": "sox"
+        },
+        {
+          "id": "pkg:7zip",
+          "source": "pacman",
+          "name": "7zip",
+          "label": "7zip"
+        },
+        {
+          "id": "pkg:unarchiver",
+          "source": "pacman",
+          "name": "unarchiver",
+          "label": "unarchiver"
+        },
+        {
+          "id": "pkg:perl-image-exiftool",
+          "source": "pacman",
+          "name": "perl-image-exiftool",
+          "label": "perl-image-exiftool"
+        },
+        {
+          "id": "pkg:mediainfo",
+          "source": "pacman",
+          "name": "mediainfo",
+          "label": "mediainfo"
+        },
+        {
+          "id": "pkg:zathura",
+          "source": "pacman",
+          "name": "zathura",
+          "label": "zathura"
+        },
+        {
+          "id": "pkg:zathura-pdf-poppler",
+          "source": "pacman",
+          "name": "zathura-pdf-poppler",
+          "label": "zathura-pdf-poppler"
+        },
+        {
+          "id": "pkg:miller",
+          "source": "pacman",
+          "name": "miller",
+          "label": "miller"
+        },
+        {
+          "id": "pkg:resvg",
+          "source": "pacman",
+          "name": "resvg",
+          "label": "resvg"
+        },
+        {
+          "id": "pkg:xdg-utils",
+          "source": "pacman",
+          "name": "xdg-utils",
+          "label": "xdg-utils"
+        },
+        {
+          "id": "pkg:xclip",
+          "source": "pacman",
+          "name": "xclip",
+          "label": "xclip"
+        },
+        {
+          "id": "pkg:wl-clipboard",
+          "source": "pacman",
+          "name": "wl-clipboard",
+          "label": "wl-clipboard"
+        },
+        {
+          "id": "pkg:vim",
+          "source": "pacman",
+          "name": "vim",
+          "label": "vim"
+        },
+        {
+          "id": "pkg:git",
+          "source": "pacman",
+          "name": "git",
+          "label": "git"
+        },
+        {
+          "id": "pkg:base-devel",
+          "source": "pacman",
+          "name": "base-devel",
+          "label": "base-devel"
+        },
+        {
+          "id": "pkg:gcc",
+          "source": "pacman",
+          "name": "gcc",
+          "label": "gcc"
+        },
+        {
+          "id": "pkg:unzip",
+          "source": "pacman",
+          "name": "unzip",
+          "label": "unzip"
+        },
+        {
+          "id": "pkg:tmux",
+          "source": "pacman",
+          "name": "tmux",
+          "label": "tmux"
+        },
+        {
+          "id": "pkg:fastfetch",
+          "source": "pacman",
+          "name": "fastfetch",
+          "label": "fastfetch"
+        },
+        {
+          "id": "pkg:btop",
+          "source": "pacman",
+          "name": "btop",
+          "label": "btop"
+        },
+        {
+          "id": "font:MapleMono-NF-CN",
+          "source": "font",
+          "name": "MapleMono-NF-CN",
+          "label": "MapleMono-NF-CN"
+        },
+        {
+          "id": "npm:@earendil-works/pi-coding-agent",
+          "source": "npm",
+          "name": "@earendil-works/pi-coding-agent",
+          "label": "@earendil-works/pi-coding-agent"
+        },
+        {
+          "id": "npm:@antfu/ni",
+          "source": "npm",
+          "name": "@antfu/ni",
+          "label": "@antfu/ni"
+        },
+        {
+          "id": "npm:live-server",
+          "source": "npm",
+          "name": "live-server",
+          "label": "live-server"
+        }
+      ],
+      "configs": [
+        {
+          "id": "zshrc",
+          "label": "zshrc",
+          "method": "link"
+        },
+        {
+          "id": "vimrc",
+          "label": "vimrc",
+          "method": "link"
+        },
+        {
+          "id": "btop-conf",
+          "label": "btop-conf",
+          "method": "copy"
+        },
+        {
+          "id": "btop-themes",
+          "label": "btop-themes",
+          "method": "link"
+        },
+        {
+          "id": "fastfetch",
+          "label": "fastfetch",
+          "method": "link"
+        },
+        {
+          "id": "yazi",
+          "label": "yazi",
+          "method": "link"
+        },
+        {
+          "id": "tmux",
+          "label": "tmux",
+          "method": "link"
+        },
+        {
+          "id": "pi",
+          "label": "pi",
+          "method": "custom"
+        }
+      ],
+      "mirrors": {
+        "default": "global",
+        "proxy": "",
+        "fields": [
+          {
+            "id": "github",
+            "label": "GitHub proxy",
+            "type": "list"
+          },
+          {
+            "id": "npm",
+            "label": "npm registry",
+            "type": "text"
+          },
+          {
+            "id": "pypi",
+            "label": "PyPI index",
+            "type": "list"
+          },
+          {
+            "id": "go",
+            "label": "Go GOPROXY",
+            "type": "text"
+          }
+        ],
+        "profiles": {
+          "global": {
+            "github": [],
+            "npm": "",
+            "pypi": [],
+            "go": ""
+          },
+          "cn": {
+            "github": [
+              "https://gh-proxy.com/"
+            ],
+            "npm": "https://registry.npmmirror.com",
+            "pypi": [
+              "https://pypi.tuna.tsinghua.edu.cn/simple",
+              "https://mirrors.ustc.edu.cn/pypi/simple"
+            ],
+            "go": "https://goproxy.cn,direct"
+          }
+        }
+      }
+    },
+    "debian": {
+      "schema": 7,
+      "os": "debian",
+      "apps": [
+        {
+          "id": "pkg:zsh",
+          "source": "apt",
+          "name": "zsh",
+          "label": "zsh"
+        },
+        {
+          "id": "pkg:zsh-autosuggestions",
+          "source": "apt",
+          "name": "zsh-autosuggestions",
+          "label": "zsh-autosuggestions"
+        },
+        {
+          "id": "pkg:zsh-syntax-highlighting",
+          "source": "apt",
+          "name": "zsh-syntax-highlighting",
+          "label": "zsh-syntax-highlighting"
+        },
+        {
+          "id": "pkg:curl",
+          "source": "apt",
+          "name": "curl",
+          "label": "curl"
+        },
+        {
+          "id": "pkg:eza",
+          "source": "apt",
+          "name": "eza",
+          "label": "eza"
+        },
+        {
+          "id": "pkg:zoxide",
+          "source": "apt",
+          "name": "zoxide",
+          "label": "zoxide"
+        },
+        {
+          "id": "pkg:fzf",
+          "source": "apt",
+          "name": "fzf",
+          "label": "fzf"
+        },
+        {
+          "id": "pkg:bat",
+          "source": "apt",
+          "name": "bat",
+          "label": "bat"
+        },
+        {
+          "id": "pkg:fd-find",
+          "source": "apt",
+          "name": "fd-find",
+          "label": "fd-find"
+        },
+        {
+          "id": "pkg:ripgrep",
+          "source": "apt",
+          "name": "ripgrep",
+          "label": "ripgrep"
+        },
+        {
+          "id": "pkg:gh",
+          "source": "apt",
+          "name": "gh",
+          "label": "gh"
+        },
+        {
+          "id": "pkg:jq",
+          "source": "apt",
+          "name": "jq",
+          "label": "jq"
+        },
+        {
+          "id": "pkg:tealdeer",
+          "source": "apt",
+          "name": "tealdeer",
+          "label": "tealdeer"
+        },
+        {
+          "id": "pkg:nodejs",
+          "source": "apt",
+          "name": "nodejs",
+          "label": "nodejs"
+        },
+        {
+          "id": "pkg:python3",
+          "source": "apt",
+          "name": "python3",
+          "label": "python3"
+        },
+        {
+          "id": "pkg:unzip",
+          "source": "apt",
+          "name": "unzip",
+          "label": "unzip"
+        },
+        {
+          "id": "pkg:vim",
+          "source": "apt",
+          "name": "vim",
+          "label": "vim"
+        },
+        {
+          "id": "pkg:git",
+          "source": "apt",
+          "name": "git",
+          "label": "git"
+        },
+        {
+          "id": "pkg:lazygit",
+          "source": "apt",
+          "name": "lazygit",
+          "label": "lazygit"
+        },
+        {
+          "id": "pkg:tmux",
+          "source": "apt",
+          "name": "tmux",
+          "label": "tmux"
+        },
+        {
+          "id": "pkg:fastfetch",
+          "source": "apt",
+          "name": "fastfetch",
+          "label": "fastfetch"
+        },
+        {
+          "id": "pkg:btop",
+          "source": "apt",
+          "name": "btop",
+          "label": "btop"
+        },
+        {
+          "id": "font:MapleMono-NF-CN",
+          "source": "font",
+          "name": "MapleMono-NF-CN",
+          "label": "MapleMono-NF-CN"
+        }
+      ],
+      "configs": [
+        {
+          "id": "zshrc",
+          "label": "zshrc",
+          "method": "link"
+        },
+        {
+          "id": "vimrc",
+          "label": "vimrc",
+          "method": "link"
+        },
+        {
+          "id": "btop-conf",
+          "label": "btop-conf",
+          "method": "copy"
+        },
+        {
+          "id": "fastfetch",
+          "label": "fastfetch",
+          "method": "link"
+        },
+        {
+          "id": "tmux",
+          "label": "tmux",
+          "method": "link"
+        }
+      ],
+      "mirrors": {
+        "default": "global",
+        "proxy": "",
+        "fields": [
+          {
+            "id": "github",
+            "label": "GitHub proxy",
+            "type": "list"
+          },
+          {
+            "id": "npm",
+            "label": "npm registry",
+            "type": "text"
+          },
+          {
+            "id": "pypi",
+            "label": "PyPI index",
+            "type": "list"
+          },
+          {
+            "id": "go",
+            "label": "Go GOPROXY",
+            "type": "text"
+          }
+        ],
+        "profiles": {
+          "global": {
+            "github": [],
+            "npm": "",
+            "pypi": [],
+            "go": ""
+          },
+          "cn": {
+            "github": [
+              "https://gh-proxy.com/"
+            ],
+            "npm": "https://registry.npmmirror.com",
+            "pypi": [
+              "https://pypi.tuna.tsinghua.edu.cn/simple",
+              "https://mirrors.ustc.edu.cn/pypi/simple"
+            ],
+            "go": "https://goproxy.cn,direct"
+          }
+        }
+      }
+    },
+    "fedora": {
+      "schema": 7,
+      "os": "fedora",
+      "apps": [
+        {
+          "id": "pkg:zsh",
+          "source": "dnf",
+          "name": "zsh",
+          "label": "zsh"
+        },
+        {
+          "id": "pkg:zsh-autosuggestions",
+          "source": "dnf",
+          "name": "zsh-autosuggestions",
+          "label": "zsh-autosuggestions"
+        },
+        {
+          "id": "pkg:zsh-syntax-highlighting",
+          "source": "dnf",
+          "name": "zsh-syntax-highlighting",
+          "label": "zsh-syntax-highlighting"
+        },
+        {
+          "id": "pkg:curl",
+          "source": "dnf",
+          "name": "curl",
+          "label": "curl"
+        },
+        {
+          "id": "pkg:eza",
+          "source": "dnf",
+          "name": "eza",
+          "label": "eza"
+        },
+        {
+          "id": "pkg:zoxide",
+          "source": "dnf",
+          "name": "zoxide",
+          "label": "zoxide"
+        },
+        {
+          "id": "pkg:fzf",
+          "source": "dnf",
+          "name": "fzf",
+          "label": "fzf"
+        },
+        {
+          "id": "pkg:bat",
+          "source": "dnf",
+          "name": "bat",
+          "label": "bat"
+        },
+        {
+          "id": "pkg:fd-find",
+          "source": "dnf",
+          "name": "fd-find",
+          "label": "fd-find"
+        },
+        {
+          "id": "pkg:ripgrep",
+          "source": "dnf",
+          "name": "ripgrep",
+          "label": "ripgrep"
+        },
+        {
+          "id": "pkg:diff-so-fancy",
+          "source": "dnf",
+          "name": "diff-so-fancy",
+          "label": "diff-so-fancy"
+        },
+        {
+          "id": "pkg:gh",
+          "source": "dnf",
+          "name": "gh",
+          "label": "gh"
+        },
+        {
+          "id": "pkg:lazygit",
+          "source": "dnf",
+          "name": "lazygit",
+          "label": "lazygit"
+        },
+        {
+          "id": "pkg:jq",
+          "source": "dnf",
+          "name": "jq",
+          "label": "jq"
+        },
+        {
+          "id": "pkg:tldr",
+          "source": "dnf",
+          "name": "tldr",
+          "label": "tldr"
+        },
+        {
+          "id": "pkg:nodejs",
+          "source": "dnf",
+          "name": "nodejs",
+          "label": "nodejs"
+        },
+        {
+          "id": "pkg:npm",
+          "source": "dnf",
+          "name": "npm",
+          "label": "npm"
+        },
+        {
+          "id": "pkg:python3",
+          "source": "dnf",
+          "name": "python3",
+          "label": "python3"
+        },
+        {
+          "id": "pkg:python3-pip",
+          "source": "dnf",
+          "name": "python3-pip",
+          "label": "python3-pip"
+        },
+        {
+          "id": "pkg:pipx",
+          "source": "dnf",
+          "name": "pipx",
+          "label": "pipx"
+        },
+        {
+          "id": "pkg:uv",
+          "source": "dnf",
+          "name": "uv",
+          "label": "uv"
+        },
+        {
+          "id": "pkg:file",
+          "source": "dnf",
+          "name": "file",
+          "label": "file"
+        },
+        {
+          "id": "pkg:chafa",
+          "source": "dnf",
+          "name": "chafa",
+          "label": "chafa"
+        },
+        {
+          "id": "pkg:ImageMagick",
+          "source": "dnf",
+          "name": "ImageMagick",
+          "label": "ImageMagick"
+        },
+        {
+          "id": "pkg:poppler-utils",
+          "source": "dnf",
+          "name": "poppler-utils",
+          "label": "poppler-utils"
+        },
+        {
+          "id": "pkg:ffmpeg-free",
+          "source": "dnf",
+          "name": "ffmpeg-free",
+          "label": "ffmpeg-free"
+        },
+        {
+          "id": "pkg:sox",
+          "source": "dnf",
+          "name": "sox",
+          "label": "sox"
+        },
+        {
+          "id": "pkg:7zip",
+          "source": "dnf",
+          "name": "7zip",
+          "label": "7zip"
+        },
+        {
+          "id": "pkg:unar",
+          "source": "dnf",
+          "name": "unar",
+          "label": "unar"
+        },
+        {
+          "id": "pkg:perl-Image-ExifTool",
+          "source": "dnf",
+          "name": "perl-Image-ExifTool",
+          "label": "perl-Image-ExifTool"
+        },
+        {
+          "id": "pkg:mediainfo",
+          "source": "dnf",
+          "name": "mediainfo",
+          "label": "mediainfo"
+        },
+        {
+          "id": "pkg:zathura",
+          "source": "dnf",
+          "name": "zathura",
+          "label": "zathura"
+        },
+        {
+          "id": "pkg:zathura-pdf-poppler",
+          "source": "dnf",
+          "name": "zathura-pdf-poppler",
+          "label": "zathura-pdf-poppler"
+        },
+        {
+          "id": "pkg:miller",
+          "source": "dnf",
+          "name": "miller",
+          "label": "miller"
+        },
+        {
+          "id": "pkg:xdg-utils",
+          "source": "dnf",
+          "name": "xdg-utils",
+          "label": "xdg-utils"
+        },
+        {
+          "id": "pkg:xclip",
+          "source": "dnf",
+          "name": "xclip",
+          "label": "xclip"
+        },
+        {
+          "id": "pkg:wl-clipboard",
+          "source": "dnf",
+          "name": "wl-clipboard",
+          "label": "wl-clipboard"
+        },
+        {
+          "id": "pkg:vim-enhanced",
+          "source": "dnf",
+          "name": "vim-enhanced",
+          "label": "vim-enhanced"
+        },
+        {
+          "id": "pkg:git",
+          "source": "dnf",
+          "name": "git",
+          "label": "git"
+        },
+        {
+          "id": "pkg:unzip",
+          "source": "dnf",
+          "name": "unzip",
+          "label": "unzip"
+        },
+        {
+          "id": "pkg:tmux",
+          "source": "dnf",
+          "name": "tmux",
+          "label": "tmux"
+        },
+        {
+          "id": "pkg:fastfetch",
+          "source": "dnf",
+          "name": "fastfetch",
+          "label": "fastfetch"
+        },
+        {
+          "id": "pkg:btop",
+          "source": "dnf",
+          "name": "btop",
+          "label": "btop"
+        },
+        {
+          "id": "font:MapleMono-NF-CN",
+          "source": "font",
+          "name": "MapleMono-NF-CN",
+          "label": "MapleMono-NF-CN"
+        },
+        {
+          "id": "npm:@earendil-works/pi-coding-agent",
+          "source": "npm",
+          "name": "@earendil-works/pi-coding-agent",
+          "label": "@earendil-works/pi-coding-agent"
+        },
+        {
+          "id": "npm:@antfu/ni",
+          "source": "npm",
+          "name": "@antfu/ni",
+          "label": "@antfu/ni"
+        },
+        {
+          "id": "npm:live-server",
+          "source": "npm",
+          "name": "live-server",
+          "label": "live-server"
+        }
+      ],
+      "configs": [
+        {
+          "id": "zshrc",
+          "label": "zshrc",
+          "method": "link"
+        },
+        {
+          "id": "vimrc",
+          "label": "vimrc",
+          "method": "link"
+        },
+        {
+          "id": "btop-conf",
+          "label": "btop-conf",
+          "method": "copy"
+        },
+        {
+          "id": "btop-themes",
+          "label": "btop-themes",
+          "method": "link"
+        },
+        {
+          "id": "fastfetch",
+          "label": "fastfetch",
+          "method": "link"
+        },
+        {
+          "id": "tmux",
+          "label": "tmux",
+          "method": "link"
+        },
+        {
+          "id": "pi",
+          "label": "pi",
+          "method": "custom"
+        }
+      ],
+      "mirrors": {
+        "default": "global",
+        "proxy": "",
+        "fields": [
+          {
+            "id": "github",
+            "label": "GitHub proxy",
+            "type": "list"
+          },
+          {
+            "id": "npm",
+            "label": "npm registry",
+            "type": "text"
+          },
+          {
+            "id": "pypi",
+            "label": "PyPI index",
+            "type": "list"
+          },
+          {
+            "id": "go",
+            "label": "Go GOPROXY",
+            "type": "text"
+          }
+        ],
+        "profiles": {
+          "global": {
+            "github": [],
+            "npm": "",
+            "pypi": [],
+            "go": ""
+          },
+          "cn": {
+            "github": [
+              "https://gh-proxy.com/"
+            ],
+            "npm": "https://registry.npmmirror.com",
+            "pypi": [
+              "https://pypi.tuna.tsinghua.edu.cn/simple",
+              "https://mirrors.ustc.edu.cn/pypi/simple"
+            ],
+            "go": "https://goproxy.cn,direct"
+          }
+        }
+      }
+    },
+    "termux": {
+      "schema": 7,
+      "os": "termux",
+      "apps": [
+        {
+          "id": "pkg:zsh",
+          "source": "pkg",
+          "name": "zsh",
+          "label": "zsh"
+        },
+        {
+          "id": "pkg:eza",
+          "source": "pkg",
+          "name": "eza",
+          "label": "eza"
+        },
+        {
+          "id": "pkg:zoxide",
+          "source": "pkg",
+          "name": "zoxide",
+          "label": "zoxide"
+        },
+        {
+          "id": "pkg:curl",
+          "source": "pkg",
+          "name": "curl",
+          "label": "curl"
+        },
+        {
+          "id": "pkg:fzf",
+          "source": "pkg",
+          "name": "fzf",
+          "label": "fzf"
+        },
+        {
+          "id": "pkg:bat",
+          "source": "pkg",
+          "name": "bat",
+          "label": "bat"
+        },
+        {
+          "id": "pkg:fd",
+          "source": "pkg",
+          "name": "fd",
+          "label": "fd"
+        },
+        {
+          "id": "pkg:ripgrep",
+          "source": "pkg",
+          "name": "ripgrep",
+          "label": "ripgrep"
+        },
+        {
+          "id": "pkg:diff-so-fancy",
+          "source": "pkg",
+          "name": "diff-so-fancy",
+          "label": "diff-so-fancy"
+        },
+        {
+          "id": "pkg:gh",
+          "source": "pkg",
+          "name": "gh",
+          "label": "gh"
+        },
+        {
+          "id": "pkg:lazygit",
+          "source": "pkg",
+          "name": "lazygit",
+          "label": "lazygit"
+        },
+        {
+          "id": "pkg:jq",
+          "source": "pkg",
+          "name": "jq",
+          "label": "jq"
+        },
+        {
+          "id": "pkg:tealdeer",
+          "source": "pkg",
+          "name": "tealdeer",
+          "label": "tealdeer"
+        },
+        {
+          "id": "pkg:nodejs",
+          "source": "pkg",
+          "name": "nodejs",
+          "label": "nodejs"
+        },
+        {
+          "id": "pkg:python",
+          "source": "pkg",
+          "name": "python",
+          "label": "python"
+        },
+        {
+          "id": "pkg:yazi",
+          "source": "pkg",
+          "name": "yazi",
+          "label": "yazi"
+        },
+        {
+          "id": "pkg:file",
+          "source": "pkg",
+          "name": "file",
+          "label": "file"
+        },
+        {
+          "id": "pkg:chafa",
+          "source": "pkg",
+          "name": "chafa",
+          "label": "chafa"
+        },
+        {
+          "id": "pkg:imagemagick",
+          "source": "pkg",
+          "name": "imagemagick",
+          "label": "imagemagick"
+        },
+        {
+          "id": "pkg:poppler",
+          "source": "pkg",
+          "name": "poppler",
+          "label": "poppler"
+        },
+        {
+          "id": "pkg:ffmpeg",
+          "source": "pkg",
+          "name": "ffmpeg",
+          "label": "ffmpeg"
+        },
+        {
+          "id": "pkg:7zip",
+          "source": "pkg",
+          "name": "7zip",
+          "label": "7zip"
+        },
+        {
+          "id": "pkg:unar",
+          "source": "pkg",
+          "name": "unar",
+          "label": "unar"
+        },
+        {
+          "id": "pkg:exiftool",
+          "source": "pkg",
+          "name": "exiftool",
+          "label": "exiftool"
+        },
+        {
+          "id": "pkg:mediainfo",
+          "source": "pkg",
+          "name": "mediainfo",
+          "label": "mediainfo"
+        },
+        {
+          "id": "pkg:miller",
+          "source": "pkg",
+          "name": "miller",
+          "label": "miller"
+        },
+        {
+          "id": "pkg:git",
+          "source": "pkg",
+          "name": "git",
+          "label": "git"
+        },
+        {
+          "id": "pkg:clang",
+          "source": "pkg",
+          "name": "clang",
+          "label": "clang"
+        },
+        {
+          "id": "pkg:make",
+          "source": "pkg",
+          "name": "make",
+          "label": "make"
+        },
+        {
+          "id": "pkg:unzip",
+          "source": "pkg",
+          "name": "unzip",
+          "label": "unzip"
+        },
+        {
+          "id": "pkg:tree-sitter",
+          "source": "pkg",
+          "name": "tree-sitter",
+          "label": "tree-sitter"
+        },
+        {
+          "id": "pkg:tmux",
+          "source": "pkg",
+          "name": "tmux",
+          "label": "tmux"
+        },
+        {
+          "id": "pkg:fastfetch",
+          "source": "pkg",
+          "name": "fastfetch",
+          "label": "fastfetch"
+        },
+        {
+          "id": "pkg:htop",
+          "source": "pkg",
+          "name": "htop",
+          "label": "htop"
+        },
+        {
+          "id": "pkg:termux-api",
+          "source": "pkg",
+          "name": "termux-api",
+          "label": "termux-api"
+        },
+        {
+          "id": "font:MapleMono-NF-CN",
+          "source": "font",
+          "name": "MapleMono-NF-CN",
+          "label": "MapleMono-NF-CN"
+        },
+        {
+          "id": "npm:@earendil-works/pi-coding-agent",
+          "source": "npm",
+          "name": "@earendil-works/pi-coding-agent",
+          "label": "@earendil-works/pi-coding-agent"
+        },
+        {
+          "id": "npm:@antfu/ni",
+          "source": "npm",
+          "name": "@antfu/ni",
+          "label": "@antfu/ni"
+        },
+        {
+          "id": "npm:live-server",
+          "source": "npm",
+          "name": "live-server",
+          "label": "live-server"
+        }
+      ],
+      "configs": [
+        {
+          "id": "zshrc",
+          "label": "zshrc",
+          "method": "link"
+        },
+        {
+          "id": "vimrc",
+          "label": "vimrc",
+          "method": "link"
+        },
+        {
+          "id": "fastfetch",
+          "label": "fastfetch",
+          "method": "link"
+        },
+        {
+          "id": "yazi",
+          "label": "yazi",
+          "method": "link"
+        },
+        {
+          "id": "tmux",
+          "label": "tmux",
+          "method": "link"
+        },
+        {
+          "id": "pi",
+          "label": "pi",
+          "method": "custom"
+        }
+      ],
+      "mirrors": {
+        "default": "global",
+        "proxy": "",
+        "fields": [
+          {
+            "id": "github",
+            "label": "GitHub proxy",
+            "type": "list"
+          },
+          {
+            "id": "npm",
+            "label": "npm registry",
+            "type": "text"
+          },
+          {
+            "id": "pypi",
+            "label": "PyPI index",
+            "type": "list"
+          },
+          {
+            "id": "go",
+            "label": "Go GOPROXY",
+            "type": "text"
+          }
+        ],
+        "profiles": {
+          "global": {
+            "github": [],
+            "npm": "",
+            "pypi": [],
+            "go": ""
+          },
+          "cn": {
+            "github": [
+              "https://gh-proxy.com/"
+            ],
+            "npm": "https://registry.npmmirror.com",
+            "pypi": [
+              "https://pypi.tuna.tsinghua.edu.cn/simple",
+              "https://mirrors.ustc.edu.cn/pypi/simple"
+            ],
+            "go": "https://goproxy.cn,direct"
+          }
+        }
+      }
+    },
+    "windows": {
+      "schema": 7,
+      "os": "windows",
+      "apps": [
+        {
+          "id": "winget:Microsoft.PowerShell",
+          "source": "winget",
+          "name": "Microsoft.PowerShell",
+          "label": "Microsoft.PowerShell"
+        },
+        {
+          "id": "winget:Git.Git",
+          "source": "winget",
+          "name": "Git.Git",
+          "label": "Git.Git"
+        },
+        {
+          "id": "winget:JanDeDobbeleer.OhMyPosh",
+          "source": "winget",
+          "name": "JanDeDobbeleer.OhMyPosh",
+          "label": "JanDeDobbeleer.OhMyPosh"
+        },
+        {
+          "id": "winget:GitHub.cli",
+          "source": "winget",
+          "name": "GitHub.cli",
+          "label": "GitHub.cli"
+        },
+        {
+          "id": "winget:Fastfetch-cli.Fastfetch",
+          "source": "winget",
+          "name": "Fastfetch-cli.Fastfetch",
+          "label": "Fastfetch-cli.Fastfetch"
+        },
+        {
+          "id": "winget:sxyazi.yazi",
+          "source": "winget",
+          "name": "sxyazi.yazi",
+          "label": "sxyazi.yazi"
+        },
+        {
+          "id": "winget:Gyan.FFmpeg",
+          "source": "winget",
+          "name": "Gyan.FFmpeg",
+          "label": "Gyan.FFmpeg"
+        },
+        {
+          "id": "winget:7zip.7zip",
+          "source": "winget",
+          "name": "7zip.7zip",
+          "label": "7zip.7zip"
+        },
+        {
+          "id": "winget:jqlang.jq",
+          "source": "winget",
+          "name": "jqlang.jq",
+          "label": "jqlang.jq"
+        },
+        {
+          "id": "winget:oschwartz10612.Poppler",
+          "source": "winget",
+          "name": "oschwartz10612.Poppler",
+          "label": "oschwartz10612.Poppler"
+        },
+        {
+          "id": "winget:sharkdp.fd",
+          "source": "winget",
+          "name": "sharkdp.fd",
+          "label": "sharkdp.fd"
+        },
+        {
+          "id": "winget:BurntSushi.ripgrep.MSVC",
+          "source": "winget",
+          "name": "BurntSushi.ripgrep.MSVC",
+          "label": "BurntSushi.ripgrep.MSVC"
+        },
+        {
+          "id": "winget:junegunn.fzf",
+          "source": "winget",
+          "name": "junegunn.fzf",
+          "label": "junegunn.fzf"
+        },
+        {
+          "id": "winget:ajeetdsouza.zoxide",
+          "source": "winget",
+          "name": "ajeetdsouza.zoxide",
+          "label": "ajeetdsouza.zoxide"
+        },
+        {
+          "id": "winget:ImageMagick.ImageMagick",
+          "source": "winget",
+          "name": "ImageMagick.ImageMagick",
+          "label": "ImageMagick.ImageMagick"
+        },
+        {
+          "id": "winget:sharkdp.bat",
+          "source": "winget",
+          "name": "sharkdp.bat",
+          "label": "sharkdp.bat"
+        },
+        {
+          "id": "winget:tldr-pages.tlrc",
+          "source": "winget",
+          "name": "tldr-pages.tlrc",
+          "label": "tldr-pages.tlrc"
+        },
+        {
+          "id": "scoop:aria2",
+          "source": "scoop",
+          "name": "aria2",
+          "label": "aria2"
+        },
+        {
+          "id": "scoop:vim",
+          "source": "scoop",
+          "name": "vim",
+          "label": "vim"
+        },
+        {
+          "id": "scoop:nodejs-lts",
+          "source": "scoop",
+          "name": "nodejs-lts",
+          "label": "nodejs-lts"
+        },
+        {
+          "id": "scoop:sox",
+          "source": "scoop",
+          "name": "sox",
+          "label": "sox"
+        },
+        {
+          "id": "scoop:curl",
+          "source": "scoop",
+          "name": "curl",
+          "label": "curl"
+        },
+        {
+          "id": "font:Maple-Mono-NF-CN",
+          "source": "font",
+          "name": "Maple-Mono-NF-CN",
+          "label": "Maple-Mono-NF-CN"
+        },
+        {
+          "id": "scoop:btop",
+          "source": "scoop",
+          "name": "btop",
+          "label": "btop"
+        },
+        {
+          "id": "scoop:zellij",
+          "source": "scoop",
+          "name": "zellij",
+          "label": "zellij"
+        },
+        {
+          "id": "scoop:notepad3",
+          "source": "scoop",
+          "name": "notepad3",
+          "label": "notepad3"
+        },
+        {
+          "id": "scoop:vscode",
+          "source": "scoop",
+          "name": "vscode",
+          "label": "vscode"
+        },
+        {
+          "id": "scoop:eza",
+          "source": "scoop",
+          "name": "eza",
+          "label": "eza"
+        },
+        {
+          "id": "scoop:uv",
+          "source": "scoop",
+          "name": "uv",
+          "label": "uv"
+        },
+        {
+          "id": "scoop:lazygit",
+          "source": "scoop",
+          "name": "lazygit",
+          "label": "lazygit"
+        },
+        {
+          "id": "npm:@earendil-works/pi-coding-agent",
+          "source": "npm",
+          "name": "@earendil-works/pi-coding-agent",
+          "label": "@earendil-works/pi-coding-agent"
+        },
+        {
+          "id": "npm:@antfu/ni",
+          "source": "npm",
+          "name": "@antfu/ni",
+          "label": "@antfu/ni"
+        },
+        {
+          "id": "npm:live-server",
+          "source": "npm",
+          "name": "live-server",
+          "label": "live-server"
+        }
+      ],
+      "configs": [
+        {
+          "id": "vimrc",
+          "label": "vimrc",
+          "method": "copy"
+        },
+        {
+          "id": "powershell",
+          "label": "powershell",
+          "method": "copy"
+        },
+        {
+          "id": "zellij",
+          "label": "zellij",
+          "method": "copy"
+        },
+        {
+          "id": "yazi",
+          "label": "yazi",
+          "method": "copy"
+        },
+        {
+          "id": "fastfetch",
+          "label": "fastfetch",
+          "method": "copy"
+        },
+        {
+          "id": "btop-persist-conf",
+          "label": "btop-persist-conf",
+          "method": "copy"
+        },
+        {
+          "id": "btop-persist-themes",
+          "label": "btop-persist-themes",
+          "method": "copy"
+        },
+        {
+          "id": "code-resources",
+          "label": "code-resources",
+          "method": "copy"
+        },
+        {
+          "id": "code-settings",
+          "label": "code-settings",
+          "method": "copy"
+        },
+        {
+          "id": "windows-terminal-settings",
+          "label": "windows-terminal-settings",
+          "method": "custom"
+        },
+        {
+          "id": "pi",
+          "label": "pi",
+          "method": "custom"
+        }
+      ],
+      "mirrors": {
+        "default": "global",
+        "proxy": "",
+        "fields": [
+          {
+            "id": "github",
+            "label": "GitHub proxy",
+            "type": "list"
+          },
+          {
+            "id": "npm",
+            "label": "npm registry",
+            "type": "text"
+          },
+          {
+            "id": "pypi",
+            "label": "PyPI index",
+            "type": "list"
+          },
+          {
+            "id": "go",
+            "label": "Go GOPROXY",
+            "type": "text"
+          },
+          {
+            "id": "scoop",
+            "label": "Scoop buckets",
+            "type": "list"
+          }
+        ],
+        "profiles": {
+          "global": {
+            "github": [],
+            "npm": "",
+            "pypi": [],
+            "go": "",
+            "scoop": []
+          },
+          "cn": {
+            "github": [
+              "https://gh-proxy.com/"
+            ],
+            "npm": "https://registry.npmmirror.com",
+            "pypi": [
+              "https://pypi.tuna.tsinghua.edu.cn/simple",
+              "https://mirrors.ustc.edu.cn/pypi/simple"
+            ],
+            "go": "https://goproxy.cn,direct",
+            "scoop": [
+              "main = https://mirror.nju.edu.cn/git/scoop-main.git",
+              "extras = https://mirror.nju.edu.cn/git/scoop-extras.git",
+              "versions = https://mirror.nju.edu.cn/git/scoop-versions.git",
+              "nerd-fonts = https://mirror.nju.edu.cn/git/scoop-nerd-fonts.git/",
+              "dorado = https://github.com/chawyehsu/dorado"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Compile
+        run: python -m compileall -q scripts
+
+      - name: Unit tests
+        run: python -m unittest discover -s scripts/tests -v
+
+      - name: Catalog is up to date
+        run: python scripts/gen_catalog.py --check
+
+      - name: CLI smoke tests
+        run: |
+          python scripts/main.py --help > /dev/null
+          python scripts/main.py --catalog --os arch > /dev/null
+          python scripts/main.py -a -y --os arch --dry-run > /dev/null
+          python scripts/main.py -a -y --os windows --dry-run > /dev/null
+
+      - name: Shell syntax
+        run: sh -n install.sh
+
+  worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Syntax
+        run: |
+          node --check worker/index.js
+          node --check worker/public/app.js
+
+      - name: Tests
+        run: node worker/test.mjs
