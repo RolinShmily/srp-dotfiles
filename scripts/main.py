@@ -280,7 +280,7 @@ def dispatch(entry: manifest_lib.ConfigEntry, ctx: Context, runner: Runner) -> N
     if entry.method == "custom":
         module_name = entry.name.replace("-", "_")
         try:
-            module = importlib.import_module(f"configs.{module_name}")
+            module = importlib.import_module(f"deployers.{module_name}")
         except ModuleNotFoundError:
             sysinfo.error(t("config.custom_missing", entry.name, module_name))
             return

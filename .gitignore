@@ -2,7 +2,7 @@
 .memory/
 .pi/
 .playwright-mcp/
-config/pi/settings.json
+configs/pi/settings.json
 
 # 日志与临时文件
 *.log
@@ -10,11 +10,11 @@ config/pi/settings.json
 *:Zone.Identifier
 
 # 本地私有 Zsh 配置 (若放置在 config/zsh 中)
-config/zsh/local.zsh
-config/zsh/*.local.zsh
+configs/zsh/local.zsh
+configs/zsh/*.local.zsh
 
 # skill
-config/pi/skills/browser-tools/package-lock.json
+configs/pi/skills/browser-tools/package-lock.json
 
 # Python
 __pycache__/

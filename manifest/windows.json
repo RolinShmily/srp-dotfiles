@@ -48,51 +48,51 @@
     {
       "name": "vimrc",
       "method": "copy",
-      "source": "config/vim/vimrc",
+      "source": "configs/vim/vimrc",
       "target": "~/_vimrc"
     },
     {
       "name": "powershell",
       "method": "copy",
-      "source": "config/powershell/profile.ps1",
+      "source": "configs/powershell/profile.ps1",
       "target": "$PROFILE"
     },
     {
       "name": "zellij",
       "method": "copy",
-      "source": "config/zellij",
+      "source": "configs/zellij",
       "target": "%APPDATA%/Zellij/config"
     },
     {
       "name": "yazi",
       "method": "copy",
-      "source": "config/yazi",
+      "source": "configs/yazi",
       "target": "%APPDATA%/yazi/config"
     },
     {
       "name": "fastfetch",
       "method": "copy",
-      "source": "config/fastfetch",
+      "source": "configs/fastfetch",
       "target": "~/.config/fastfetch"
     },
     {
       "name": "btop-persist-conf",
       "method": "copy",
-      "source": "config/btop/btop-win.conf",
+      "source": "configs/btop/btop-win.conf",
       "target": "$SCOOP/persist/btop/btop.conf",
       "when": "$SCOOP/persist/btop"
     },
     {
       "name": "btop-persist-themes",
       "method": "copy",
-      "source": "config/btop/themes",
+      "source": "configs/btop/themes",
       "target": "$SCOOP/persist/btop/themes",
       "when": "$SCOOP/persist/btop"
     },
     {
       "name": "code-resources",
       "method": "copy",
-      "source": "config/code",
+      "source": "configs/code",
       "exclude": [
         "settings.json.example"
       ],
@@ -101,7 +101,7 @@
     {
       "name": "code-settings",
       "method": "copy",
-      "source": "config/code/settings.json.example",
+      "source": "configs/code/settings.json.example",
       "target": "%APPDATA%/Code/User/settings.json"
     },
     {
@@ -118,7 +118,7 @@
     "packages": [],
     "extensions": [],
     "skills": [
-      "@repo/config/pi/skills"
+      "@repo/configs/pi/skills"
     ],
     "prompts": []
   }

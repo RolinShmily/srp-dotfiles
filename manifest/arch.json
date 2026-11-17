@@ -60,43 +60,43 @@
     {
       "name": "zshrc",
       "method": "link",
-      "source": "config/zsh/zshrc",
+      "source": "configs/zsh/zshrc",
       "target": "~/.zshrc"
     },
     {
       "name": "vimrc",
       "method": "link",
-      "source": "config/vim/vimrc",
+      "source": "configs/vim/vimrc",
       "target": "~/.vimrc"
     },
     {
       "name": "btop-conf",
       "method": "copy",
-      "source": "config/btop/btop-linux.conf",
+      "source": "configs/btop/btop-linux.conf",
       "target": "~/.config/btop/btop.conf"
     },
     {
       "name": "btop-themes",
       "method": "link",
-      "source": "config/btop/themes",
+      "source": "configs/btop/themes",
       "target": "~/.config/btop/themes"
     },
     {
       "name": "fastfetch",
       "method": "link",
-      "source": "config/fastfetch",
+      "source": "configs/fastfetch",
       "target": "~/.config/fastfetch"
     },
     {
       "name": "yazi",
       "method": "link",
-      "source": "config/yazi",
+      "source": "configs/yazi",
       "target": "~/.config/yazi"
     },
     {
       "name": "tmux",
       "method": "link",
-      "source": "config/tmux",
+      "source": "configs/tmux",
       "target": "~/.config/tmux"
     },
     {
@@ -108,7 +108,7 @@
     "packages": [],
     "extensions": [],
     "skills": [
-      "@repo/config/pi/skills"
+      "@repo/configs/pi/skills"
     ],
     "prompts": []
   }

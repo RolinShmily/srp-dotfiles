@@ -45,7 +45,7 @@ def _inject(settings_path: Path, ctx: Context) -> None:
 
 
 def run(ctx: Context) -> None:
-    source = ctx.repo / "config" / "pi"
+    source = ctx.repo / "configs" / "pi"
     target = sysinfo.home() / ".pi" / "agent"
     if not source.is_dir():
         sysinfo.warn(t("pi.missing", source))

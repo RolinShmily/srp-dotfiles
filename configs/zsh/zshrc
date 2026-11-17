@@ -1,4 +1,4 @@
-# zsh/zshrc - Dotfiles 模块化 Zsh 配置主入口 (软链至 ~/.zshrc)
+# configs/zsh/zshrc - Dotfiles 模块化 Zsh 配置主入口 (软链至 ~/.zshrc)
 
 # ------------------------------------------------------------------
 # 1. 解析 Dotfiles 所在物理目录
@@ -6,7 +6,7 @@
 if [ -n "$ZSH_DOTFILES_DIR" ]; then
     DOTFILES_DIR="$ZSH_DOTFILES_DIR"
 elif [ -L "$HOME/.zshrc" ]; then
-    # ~/.zshrc -> <repo>/config/zsh/zshrc，上溯两级即仓库根
+    # ~/.zshrc -> <repo>/configs/zsh/zshrc，上溯两级即仓库根
     _target="$(readlink "$HOME/.zshrc")"
     if [[ "$_target" = /* ]]; then
         DOTFILES_DIR="$(cd "$(dirname "$_target")/../.." && pwd)"
@@ -22,7 +22,7 @@ else
     DOTFILES_DIR="${${(%):-%N}:A:h:h:h}"
 fi
 
-DOTFILES_CONFIG="$DOTFILES_DIR/config"
+DOTFILES_CONFIG="$DOTFILES_DIR/configs"
 export DOTFILES_DIR DOTFILES_CONFIG
 
 # ------------------------------------------------------------------
