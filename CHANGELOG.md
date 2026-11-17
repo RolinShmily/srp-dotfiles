@@ -6,10 +6,13 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-11-17
+
 ### Added
 
 - `docs/` guides: development, architecture, design and references.
 - Bilingual language links at the top of both README files.
+- Inter and Source Han Sans SC fonts, registered through a shared font registry.
 
 ### Changed
 
