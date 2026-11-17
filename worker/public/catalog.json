@@ -562,6 +562,10 @@
           "label": "btop-conf"
         },
         {
+          "id": "btop-themes",
+          "label": "btop-themes"
+        },
+        {
           "id": "fastfetch",
           "label": "fastfetch"
         },

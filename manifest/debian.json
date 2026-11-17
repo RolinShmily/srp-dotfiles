@@ -48,6 +48,11 @@
       "target": "~/.config/btop/btop.conf"
     },
     {
+      "name": "btop-themes",
+      "source": "configs/btop/themes",
+      "target": "~/.config/btop/themes"
+    },
+    {
       "name": "fastfetch",
       "source": "configs/fastfetch",
       "target": "~/.config/fastfetch"
