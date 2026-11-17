@@ -1,5 +1,7 @@
 # SrP-Dotfiles
 
+[English](README.md) | **[简体中文](README_zh.md)**
+
 声明式跨平台 dotfiles。一个 Python 入口完成依赖安装与配置部署，支持 Arch / Debian / Fedora / Termux / Windows。
 
 ## 依赖
@@ -78,6 +80,10 @@ cd ~/Projects/srp-dotfiles
   `manifest/mirror.json` 的值。
 - 省略某个参数表示全选；传 `none` 表示全不选。
 
+## 文档
+
+完整指南见 [docs/](docs/README.md)：开发、架构、设计与参考规范。
+
 ## 目录
 
 ```text
@@ -86,13 +92,14 @@ cd ~/Projects/srp-dotfiles
 ├── scripts/
 │   ├── main.py                  # CLI、菜单、编排
 │   ├── lib/                     # 清单、镜像、网络、步骤器、部署、安装逻辑
-│   └── configs/                 # Python 编写的特殊部署步骤
+│   └── deployers/               # Python 编写的特殊部署模块
 ├── manifest/
 │   ├── arch|debian|fedora|termux|windows.json
 │   └── mirror.json              # 镜像与代理
-├── config/                      # 各软件配置
+├── configs/                     # 各软件配置
 │   └── zsh/ vim/ tmux/ powershell/ pi/ wezterm/ windows-terminal/ zellij/ yazi/ btop/ fastfetch/ code/
-└── worker/                      # 可选：Cloudflare Worker 安装入口
+├── worker/                      # 可选：Cloudflare Worker 安装入口
+└── docs/                        # 开发、架构、设计、参考规范
 ```
 
 ## 安装入口（可选）
@@ -199,14 +206,14 @@ pip（`~/.config/pip/pip.conf` / `%APPDATA%\pip\pip.ini`），并在检测到 `g
 **加配置项** — 追加到 `configs`：
 
 ```json
-{ "name": "starship", "method": "link", "source": "config/starship", "target": "~/.config/starship" }
+{ "name": "starship", "method": "link", "source": "configs/starship", "target": "~/.config/starship" }
 ```
 
 | `method` | 含义 | 必填 |
 | :--- | :--- | :--- |
 | `link` | 软链到仓库，改仓库即时生效；冲突归档到 `~/.dotfiles_backup_*` | `source` + `target`/`targets` |
 | `copy` | 覆盖式复制，不备份 | `source` + `target` |
-| `custom` | 执行 `scripts/configs/<name 中 - 换成 _>.py` 的 `run(ctx)` | — |
+| `custom` | 执行 `scripts/deployers/<name 中 - 换成 _>.py` 的 `run(ctx)` | — |
 
 可选字段：`targets`、`exclude`、`ifMissing`、`when`。
 路径占位符：`~`、`%APPDATA%`、`%LOCALAPPDATA%`、`$SCOOP`、`$PROFILE`。
@@ -222,7 +229,7 @@ pip（`~/.config/pip/pip.conf` / `%APPDATA%\pip\pip.ini`），并在检测到 `g
 ## 鸣谢与致敬
 
 - [KevinSilvester/wezterm-config](https://github.com/KevinSilvester/wezterm-config) — WezTerm 调优参考。
-- [Aikoyori/ProgrammingVTuberLogos](https://github.com/Aikoyori/ProgrammingVTuberLogos) — VS Code 素材（`config/code/VSCode-Thick.png`），遵循 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)。
+- [Aikoyori/ProgrammingVTuberLogos](https://github.com/Aikoyori/ProgrammingVTuberLogos) — VS Code 素材（`configs/code/VSCode-Thick.png`），遵循 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)。
 - [Xy (Pixiv 85385041)](https://www.pixiv.net/users/85385041) — 背景插画：
-  - `config/code/background.png`：[CSGO / Nightlight-Print&Asimov](https://www.pixiv.net/artworks/121230570)
-  - `config/wezterm/background.png`：[CSGO / Original Sin-Printstream](https://www.pixiv.net/artworks/121094692)
+  - `configs/code/background.png`：[CSGO / Nightlight-Print&Asimov](https://www.pixiv.net/artworks/121230570)
+  - `configs/wezterm/background.png`：[CSGO / Original Sin-Printstream](https://www.pixiv.net/artworks/121094692)

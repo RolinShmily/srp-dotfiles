@@ -6,8 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `docs/` guides: development, architecture, design and references.
+- Bilingual language links at the top of both README files.
+
 ### Changed
 
+- Repository layout: application configs moved from `config/` to `configs/`.
+- Custom deployment modules moved from `scripts/configs/` to `scripts/deployers/`.
 - Configurator mirror fields are spaced out for readability, and the "Go GOPROXY" label is now "Go proxy".
 
 ## [1.0.1] - 2026-11-17
@@ -33,9 +40,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
-- All application configs moved under `config/`.
+- All application configs moved under `configs/`.
 - README and installation docs rewritten for the Python installer, mirror profiles and Worker.
-- The zsh entrypoint now resolves the repository from `config/zsh/zshrc`.
+- The zsh entrypoint now resolves the repository from `configs/zsh/zshrc`.
 - Manifests describe concrete apps; Windows fonts are exposed as apps.
 
 ### Removed
@@ -47,7 +54,7 @@ All notable changes to this project are documented here. The format follows
 
 - GitHub font downloads work through the configured proxy.
 - Windows font installation works without Scoop when a GitHub mirror or proxy is configured.
-- Config deployment follows the new `config/` paths.
+- Config deployment follows the new `configs/` paths.
 
 ### Breaking
 

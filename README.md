@@ -1,5 +1,7 @@
 # SrP-Dotfiles
 
+**[English](README.md)** | [简体中文](README_zh.md)
+
 Declarative cross-platform dotfiles. One Python entry installs dependencies and deploys configs on
 Arch / Debian / Fedora / Termux / Windows.
 
@@ -80,6 +82,10 @@ Pick apps and configs explicitly; mirrors have their own profile/override flags:
   (`github`, `npm`, `pypi`, `go`, `scoop`); `--proxy <url>` overrides the proxy. `none` clears.
 - Omit a flag to select everything; pass `none` to select nothing.
 
+## Documentation
+
+Full guides live in [docs/](docs/README.md): development, architecture, design and reference schemas.
+
 ## Layout
 
 ```text
@@ -88,13 +94,14 @@ Pick apps and configs explicitly; mirrors have their own profile/override flags:
 ├── scripts/
 │   ├── main.py                  # CLI, menu, orchestration
 │   ├── lib/                     # manifest, mirrors, net, runner, deploy, installers
-│   └── configs/                 # custom steps written in Python
+│   └── deployers/               # custom deployment modules
 ├── manifest/
 │   ├── arch|debian|fedora|termux|windows.json
 │   └── mirror.json              # mirrors & proxy
-├── config/                      # application configs
+├── configs/                     # application configs
 │   └── zsh/ vim/ tmux/ powershell/ pi/ wezterm/ windows-terminal/ zellij/ yazi/ btop/ fastfetch/ code/
-└── worker/                      # optional Cloudflare Worker install endpoint
+├── worker/                      # optional Cloudflare Worker install endpoint
+└── docs/                        # development, architecture, design, references
 ```
 
 ## Install endpoint (optional)
@@ -205,14 +212,14 @@ is installed, Go (`go env -w`). Scoop cannot use path-prefix mirrors; with a Git
 **Add a config entry** — append to `configs`:
 
 ```json
-{ "name": "starship", "method": "link", "source": "config/starship", "target": "~/.config/starship" }
+{ "name": "starship", "method": "link", "source": "configs/starship", "target": "~/.config/starship" }
 ```
 
 | `method` | Meaning | Fields |
 | :--- | :--- | :--- |
 | `link` | Symlink into the repo (live edits); conflicts go to `~/.dotfiles_backup_*` | `source` + `target`/`targets` |
 | `copy` | Overwrite copy, no backup | `source` + `target` |
-| `custom` | Run `scripts/configs/<name with - as _>.py` (`run(ctx)`) | — |
+| `custom` | Run `scripts/deployers/<name with - as _>.py` (`run(ctx)`) | — |
 
 Optional fields: `targets`, `exclude`, `ifMissing`, `when`.
 Placeholders: `~`, `%APPDATA%`, `%LOCALAPPDATA%`, `$SCOOP`, `$PROFILE`.
@@ -229,7 +236,7 @@ only the fields the template declares and keeps `defaultProfile` / `profiles.lis
 ## Acknowledgements
 
 - [KevinSilvester/wezterm-config](https://github.com/KevinSilvester/wezterm-config) — WezTerm tuning reference.
-- [Aikoyori/ProgrammingVTuberLogos](https://github.com/Aikoyori/ProgrammingVTuberLogos) — VS Code artwork (`config/code/VSCode-Thick.png`), [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).
+- [Aikoyori/ProgrammingVTuberLogos](https://github.com/Aikoyori/ProgrammingVTuberLogos) — VS Code artwork (`configs/code/VSCode-Thick.png`), [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).
 - [Xy (Pixiv 85385041)](https://www.pixiv.net/users/85385041) — background artwork:
-  - `config/code/background.png`: [CSGO / Nightlight-Print&Asimov](https://www.pixiv.net/artworks/121230570)
-  - `config/wezterm/background.png`: [CSGO / Original Sin-Printstream](https://www.pixiv.net/artworks/121094692)
+  - `configs/code/background.png`: [CSGO / Nightlight-Print&Asimov](https://www.pixiv.net/artworks/121230570)
+  - `configs/wezterm/background.png`: [CSGO / Original Sin-Printstream](https://www.pixiv.net/artworks/121094692)
