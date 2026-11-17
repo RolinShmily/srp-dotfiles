@@ -173,7 +173,7 @@ Manifest entry:
 { "name": "my-app", "method": "custom" }
 ```
 
-`Context` exposes `repo`, `os_name`, `manifest`, `mirrors`, `backup_dir`, `force` and `runner`.
+`Context` exposes `repo`, `os_name`, `manifest`, `mirrors`, `backup_dir` and `runner`.
 Reuse `lib.deploy` for copy semantics.
 
 ## Mirrors while testing

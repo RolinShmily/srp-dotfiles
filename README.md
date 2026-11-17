@@ -62,7 +62,7 @@ cd ~/Projects/srp-dotfiles
 ./install.sh                  # interactive menu
 ./install.sh -a -y            # install + deploy, no prompts
 ./install.sh -i -y            # dependencies only
-./install.sh -c -f            # configs only, no backup
+./install.sh -c               # configs only
 ./install.sh --os arch        # pick a target explicitly
 ./install.sh --dry-run -a -y  # print the plan only
 ```
@@ -72,7 +72,7 @@ cd ~/Projects/srp-dotfiles
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 .\install.ps1              # interactive menu
 .\install.ps1 -a -y        # install + deploy
-.\install.ps1 -c -f        # configs only
+.\install.ps1 -c           # configs only
 .\install.ps1 -a -y -Lang zh
 ```
 
@@ -87,7 +87,7 @@ If GitHub is unreachable, the bootstrap falls back to the Worker tarball, then `
 `gh-proxy.com`, then direct. Override with `SRP_GH_PROXY`, `SRP_REPO_URL` or `SRP_REPO_TARBALL`.
 
 Configs are deployed by **copy**, so the machine does not depend on the clone afterwards. Existing
-targets are archived to `~/.dotfiles_backup_*` before being replaced (`--force` skips the backup).
+targets are archived to `~/.dotfiles_backup_*` before being replaced.
 A missing source fails the step and the installer exits non-zero.
 
 ## Selective install
@@ -269,14 +269,14 @@ scoop bucket rm <name>      # then re-add the default bucket
 
 | `method` | Meaning | Fields |
 | :--- | :--- | :--- |
-| `copy` | Copy into place; the previous target is archived to `~/.dotfiles_backup_*` (`--force` skips) | `source` + `target`/`targets` |
+| `copy` | Copy into place; the previous target is archived to `~/.dotfiles_backup_*` | `source` + `target`/`targets` |
 | `custom` | Run `scripts/deployers/<name with - as _>.py` (`run(ctx)`) | — |
 
 Optional fields: `targets`, `exclude`, `ifMissing`, `when`.
 Placeholders: `~`, `%APPDATA%`, `%LOCALAPPDATA%`, `$SCOOP`, `$PROFILE`.
 
 Custom modules receive a context with `repo`, `os_name`, `manifest`, `mirrors`, `backup_dir`,
-`force`, `runner`, and can call `lib.deploy` helpers. Windows Terminal is such a module: it merges
+`runner`, and can call `lib.deploy` helpers. Windows Terminal is such a module: it merges
 only the fields the template declares and keeps `defaultProfile` / `profiles.list`.
 
 ## Font

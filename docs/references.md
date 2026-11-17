@@ -16,7 +16,6 @@ Schemas, IDs and operational contracts.
 | `-i, --install` | install only |
 | `-c, --config` | deploy only |
 | `-y, --yes` | required when stdin is not a TTY |
-| `-f, --force` | skip backup, overwrite targets |
 | `--os` | `arch` / `debian` / `fedora` / `termux` / `windows` |
 | `--lang` | `en` / `zh` |
 | `--dry-run` | no side effects |
@@ -68,7 +67,7 @@ unquoted `a,b` is parsed as an array, so the configurator always quotes these va
 | `source` | copy | Repository-relative, normally `configs/...` |
 | `target` / `targets` | copy | One or many destinations |
 | `exclude` | no | Top-level names to skip |
-| `ifMissing` | no | Skip existing copy target unless `--force` |
+| `ifMissing` | no | Skip an existing copy target |
 | `when` | no | Skip when this path does not exist |
 
 Placeholders: `~`, `%APPDATA%`, `%LOCALAPPDATA%`, `$SCOOP`, `$PROFILE`.
@@ -134,7 +133,7 @@ Persisted values are not reverted when the selected profile becomes empty; remov
 ## Deployment durability
 
 Configs are copied, so the deployed files no longer depend on the clone. Existing targets are
-archived to `~/.dotfiles_backup_*` unless `--force` is used. A missing source fails the step and the
+archived to `~/.dotfiles_backup_*` before being replaced. A missing source fails the step and the
 installer exits non-zero.
 
 Environment exports during install:

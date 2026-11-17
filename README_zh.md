@@ -60,7 +60,7 @@ cd ~/Projects/srp-dotfiles
 ./install.sh                  # 交互菜单
 ./install.sh -a -y            # 安装 + 部署，全部自动确认
 ./install.sh -i -y            # 仅安装依赖
-./install.sh -c -f            # 仅部署配置，不备份
+./install.sh -c               # 仅部署配置
 ./install.sh --os arch        # 显式指定目标
 ./install.sh --dry-run -a -y  # 只打印计划
 ```
@@ -70,7 +70,7 @@ cd ~/Projects/srp-dotfiles
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 .\install.ps1              # 交互菜单
 .\install.ps1 -a -y        # 安装 + 部署
-.\install.ps1 -c -f        # 仅部署配置
+.\install.ps1 -c           # 仅部署配置
 .\install.ps1 -a -y -Lang zh
 ```
 
@@ -81,7 +81,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 
 GitHub 不可达时，引导脚本会依次回退到 Worker 的仓库归档、`ghfast.top` / `gh-proxy.com`，最后才直连；可用 `SRP_GH_PROXY`、`SRP_REPO_URL`、`SRP_REPO_TARBALL` 指定。
 
-配置一律用 **复制** 部署，之后不再依赖仓库。目标已存在时先归档到 `~/.dotfiles_backup_*`（`--force` 跳过备份）。源缺失会让该步骤失败，安装器以非零码退出。
+配置一律用 **复制** 部署，之后不再依赖仓库。目标已存在时先归档到 `~/.dotfiles_backup_*`。源缺失会让该步骤失败，安装器以非零码退出。
 
 ## 选择性安装
 
@@ -258,13 +258,13 @@ scoop bucket rm <name>      # 再重新添加默认 bucket
 
 | `method` | 含义 | 必填 |
 | :--- | :--- | :--- |
-| `copy` | 复制到目标；旧内容归档到 `~/.dotfiles_backup_*`（`--force` 跳过） | `source` + `target`/`targets` |
+| `copy` | 复制到目标；旧内容归档到 `~/.dotfiles_backup_*` | `source` + `target`/`targets` |
 | `custom` | 执行 `scripts/deployers/<name 中 - 换成 _>.py` 的 `run(ctx)` | — |
 
 可选字段：`targets`、`exclude`、`ifMissing`、`when`。
 路径占位符：`~`、`%APPDATA%`、`%LOCALAPPDATA%`、`$SCOOP`、`$PROFILE`。
 
-自定义模块会收到包含 `repo`、`os_name`、`manifest`、`mirrors`、`backup_dir`、`force`、`runner`
+自定义模块会收到包含 `repo`、`os_name`、`manifest`、`mirrors`、`backup_dir`、`runner`
 的上下文，可直接调用 `lib.deploy`。Windows Terminal 就是这样的模块：只覆盖模板声明的字段，
 保留 `defaultProfile` / `profiles.list`。
 

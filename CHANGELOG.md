@@ -19,8 +19,7 @@ All notable changes to this project are documented here. The format follows
 ### Changed
 
 - Config deployment is copy-only: `link` was removed because a symlink breaks as soon as the clone
-  disappears. Existing targets are archived to `~/.dotfiles_backup_*` before being replaced, and
-  `--force` still skips the backup.
+  disappears. Existing targets are archived to `~/.dotfiles_backup_*` before being replaced.
 - A missing config source now fails the step instead of being skipped silently, and the installer
   exits non-zero when anything failed.
 
@@ -28,6 +27,7 @@ All notable changes to this project are documented here. The format follows
 
 - `method: "link"` is gone; use `method: "copy"`. `--copy` and `SRP_DEPLOY_METHOD` were removed since
   copy is now the only method.
+- `-f / --force` was removed: copy always archives the previous target, so the flag had no purpose.
 - `.example` templates are gone. `configs/pi/{settings,mcp,keybindings}.json`,
   `configs/code/settings.json` and `configs/windows-terminal/settings.json` are deployed like any
   other config: the previous target is archived to `~/.dotfiles_backup_*` before being replaced.
