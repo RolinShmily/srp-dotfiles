@@ -36,7 +36,7 @@ this file describes intent and trade-offs.
 
 - Config selection: `--configs` > all.
 - Apps: `--apps` > all.
-- Mirrors: file profile → `--mirror-profile` → `--mirror-*` / `--proxy`.
+- Mirrors: file profile → `--mirror` → `--mirror-*` / `--proxy`.
 
 ## Extension rules
 

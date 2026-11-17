@@ -5,23 +5,21 @@ Schemas, IDs and operational contracts.
 ## CLI
 
 ```bash
-./install.sh [-a|-i|-c] [-y] [-f] [--os NAME] [--lang zh|en] [--dry-run]
-             [--apps IDS] [--configs NAMES] [--mirror-profile NAME]
+./install.sh [-i|-c] [-y] [--os NAME] [--dry-run]
+             [--apps IDS] [--configs NAMES] [--mirror NAME]
              [--mirror-NAME VALUE] [--proxy URL] [--catalog]
 ```
 
 | Flag | Notes |
 | :--- | :--- |
-| `-a, --all` | install + deploy |
 | `-i, --install` | install only |
 | `-c, --config` | deploy only |
 | `-y, --yes` | required when stdin is not a TTY |
 | `--os` | `arch` / `debian` / `fedora` / `termux` / `windows` |
-| `--lang` | `en` / `zh` |
 | `--dry-run` | no side effects |
 | `--apps` | comma-separated app IDs; `none` |
 | `--configs` | comma-separated config names; `none` |
-| `--mirror-profile` | profile key from `mirror.json` |
+| `--mirror` | profile key from `mirror.json` |
 | `--mirror-<name>` | `github`, `npm`, `pypi`, `go`, `scoop`; `none` clears |
 | `--proxy` | `socks5://…` or `http(s)://…`; `none` clears |
 | `--catalog` | print JSON and exit |
@@ -97,9 +95,9 @@ Placeholders: `~`, `%APPDATA%`, `%LOCALAPPDATA%`, `$SCOOP`, `$PROFILE`.
 | `goProxy` | string | Written to `GOPROXY` |
 | `scoopBuckets` | array/object | `name = url` entries |
 
-Precedence: file profile → `--mirror-profile` → `--mirror-*` / `--proxy`.
+Precedence: file profile → `--mirror` → `--mirror-*` / `--proxy`.
 
-Side effects on disk (only during `install`, i.e. `-a` / `-i`):
+Side effects on disk (only during `install`, i.e. `-i`):
 
 | Setting | Written to | Persistent |
 | :--- | :--- | :--- |

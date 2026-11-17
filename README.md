@@ -44,13 +44,13 @@ print these options and exit.
 Online (clones the repo to `~/.srp-dotfiles` when needed):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/RolinShmily/srp-dotfiles/main/install.sh | sh -s -- -a -y
+curl -fsSL https://raw.githubusercontent.com/RolinShmily/srp-dotfiles/main/install.sh | sh -s -- -y
 ```
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force;
 irm https://raw.githubusercontent.com/RolinShmily/srp-dotfiles/main/install.ps1 -OutFile install.ps1;
-.\install.ps1 -a -y
+.\install.ps1 -y
 ```
 
 Local:
@@ -59,21 +59,20 @@ Local:
 git clone https://github.com/RolinShmily/srp-dotfiles.git ~/Projects/srp-dotfiles
 cd ~/Projects/srp-dotfiles
 
-./install.sh                  # interactive menu
-./install.sh -a -y            # install + deploy, no prompts
+./install.sh                  # prompts, installs and deploys everything
+./install.sh -y               # same, no prompts
 ./install.sh -i -y            # dependencies only
 ./install.sh -c               # configs only
 ./install.sh --os arch        # pick a target explicitly
-./install.sh --dry-run -a -y  # print the plan only
+./install.sh --dry-run -y     # print the plan only
 ```
 
 ```powershell
 # Windows PowerShell 5.1 defaults to Restricted; relax it for this session:
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
-.\install.ps1              # interactive menu
-.\install.ps1 -a -y        # install + deploy
+.\install.ps1              # prompts, installs and deploys everything
+.\install.ps1 -y           # same, no prompts
 .\install.ps1 -c           # configs only
-.\install.ps1 -a -y -Lang zh
 ```
 
 `install` also sets `RemoteSigned` for the current user, so later sessions can run
@@ -101,12 +100,12 @@ A missing source fails the step and the installer exits non-zero.
 Pick apps and configs explicitly; mirrors have their own profile/override flags:
 
 ```bash
-./install.sh -a -y --apps pkg:zsh,font:MapleMono-NF-CN --configs zshrc,tmux --mirror-profile cn
+./install.sh -y --apps pkg:zsh,font:MapleMono-NF-CN --configs zshrc,tmux --mirror cn
 ```
 
 - App IDs: `pkg:<name>` (Unix), `winget:<id>`, `scoop:<name>`, `font:<name>`, `npm:<name>`, `skill:<item>`.
 - Config IDs are the `name` fields from `manifest/<os>.json`.
-- Mirrors: `--mirror-profile cn` picks a preset; `--mirror-<name> <value>` overrides one field
+- Mirrors: `--mirror cn` picks a preset; `--mirror-<name> <value>` overrides one field
   (`github`, `npm`, `pypi`, `go`, `scoop`); `--proxy <url>` overrides the proxy. `none` clears.
 - Omit a flag to select everything; pass `none` to select nothing.
 
@@ -120,7 +119,7 @@ Full guides live in [docs/](docs/README.md): development, architecture, design a
 .
 ├── install.sh / install.ps1     # minimal launchers: check Python -> scripts/main.py
 ├── scripts/
-│   ├── main.py                  # CLI, menu, orchestration
+│   ├── main.py                  # CLI and orchestration
 │   ├── lib/                     # manifest, mirrors, net, runner, deploy, installers
 ├── manifest/
 │   ├── arch|debian|fedora|termux|windows.json
@@ -152,18 +151,18 @@ npx wrangler@4 deploy
 ```
 
 ```bash
-curl -fsSL https://dot.srprolin.com | sh -s -- -a -y
+curl -fsSL https://dot.srprolin.com | sh -s -- -y
 ```
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force;
 irm https://dot.srprolin.com/install.ps1 -OutFile install.ps1;
-.\install.ps1 -a -y
+.\install.ps1 -y
 ```
 
 The page is a thin client: it builds `--apps/--configs/--mirror-*` and nothing else; installation
 and validation stay in `scripts/main.py`. The Mirrors section has a profile dropdown plus editable
-fields: switching profiles adds `--mirror-profile`, editing a field adds `--mirror-<name>`, and
+fields: switching profiles adds `--mirror`, editing a field adds `--mirror-<name>`, and
 unchanged values stay in `manifest/mirror.json` on the target machine. The scripts fetched by the
 Worker still clone the repo locally; set `SRP_REPO_URL` when using a Git mirror.
 
@@ -213,7 +212,7 @@ Run `python scripts/gen_catalog.py` after changing the manifests, otherwise CI/d
 
 - `global` is the default and empty, i.e. system/upstream defaults.
 - `cn` ships with GitHub / npm / pip / Go / Scoop presets.
-- Pick one with `--mirror-profile cn`; `profile` in the file sets the default.
+- Pick one with `--mirror cn`; `profile` in the file sets the default.
 - Override single fields with `--mirror-<name>` (`github`, `npm`, `pypi`, `go`, `scoop`) or
   `--proxy <url>`. Lists are comma separated; `none` clears a field.
 
@@ -242,7 +241,7 @@ directly instead of through Scoop.
 | `goProxy` | `go env -w GOPROXY` (`%APPDATA%\go\env`) | **yes**, if `go` exists |
 | `scoopBuckets` | `scoop bucket rm/add` | **yes** |
 
-Persistence happens on `install` (`-a` / `-i`) whenever the selected profile has a value — it is not
+Persistence happens on `install` (`-i`) whenever the selected profile has a value — it is not
 tied to `--apps`, so `--apps none` still updates `pip.conf`. Picking an empty profile later does
 **not** revert these files; clean up manually:
 

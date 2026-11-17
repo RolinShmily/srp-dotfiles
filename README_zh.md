@@ -42,13 +42,13 @@ powershell -c "irm https://astral.sh/uv/install.ps1 | iex"; uv python install 3.
 在线执行（缺少仓库时自动克隆到 `~/.srp-dotfiles`）：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/RolinShmily/srp-dotfiles/main/install.sh | sh -s -- -a -y
+curl -fsSL https://raw.githubusercontent.com/RolinShmily/srp-dotfiles/main/install.sh | sh -s -- -y
 ```
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force;
 irm https://raw.githubusercontent.com/RolinShmily/srp-dotfiles/main/install.ps1 -OutFile install.ps1;
-.\install.ps1 -a -y
+.\install.ps1 -y
 ```
 
 本地执行：
@@ -57,21 +57,20 @@ irm https://raw.githubusercontent.com/RolinShmily/srp-dotfiles/main/install.ps1 
 git clone https://github.com/RolinShmily/srp-dotfiles.git ~/Projects/srp-dotfiles
 cd ~/Projects/srp-dotfiles
 
-./install.sh                  # 交互菜单
-./install.sh -a -y            # 安装 + 部署，全部自动确认
+./install.sh                  # 逐项确认，安装并部署全部
+./install.sh -y               # 同上，全部自动确认
 ./install.sh -i -y            # 仅安装依赖
 ./install.sh -c               # 仅部署配置
 ./install.sh --os arch        # 显式指定目标
-./install.sh --dry-run -a -y  # 只打印计划
+./install.sh --dry-run -y     # 只打印计划
 ```
 
 ```powershell
 # Windows PowerShell 5.1 默认 Restricted，先只对当前会话放开：
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
-.\install.ps1              # 交互菜单
-.\install.ps1 -a -y        # 安装 + 部署
+.\install.ps1              # 逐项确认，安装并部署全部
+.\install.ps1 -y           # 同上，全部自动确认
 .\install.ps1 -c           # 仅部署配置
-.\install.ps1 -a -y -Lang zh
 ```
 
 `install` 阶段还会把当前用户策略设为 `RemoteSigned`，之后新开的会话可直接运行 `.\install.ps1`。
@@ -94,12 +93,12 @@ GitHub 不可达时，引导脚本会依次回退到 Worker 的仓库归档、`g
 用 `--apps`、`--configs` 精确选择；镜像有自己的 profile 与覆盖参数：
 
 ```bash
-./install.sh -a -y --apps pkg:zsh,font:MapleMono-NF-CN --configs zshrc,tmux --mirror-profile cn
+./install.sh -y --apps pkg:zsh,font:MapleMono-NF-CN --configs zshrc,tmux --mirror cn
 ```
 
 - App ID：`pkg:<name>`（Unix）、`winget:<id>`、`scoop:<name>`、`font:<name>`、`npm:<name>`、`skill:<item>`。
 - Config ID 就是 `manifest/<os>.json` 里的 `name`。
-- 镜像：`--mirror-profile cn` 选择预设；`--mirror-<name> <value>` 覆盖单项（`github`、`npm`、
+- 镜像：`--mirror cn` 选择预设；`--mirror-<name> <value>` 覆盖单项（`github`、`npm`、
   `pypi`、`go`、`scoop`），`--proxy <url>` 覆盖代理；`none` 清空。未覆盖时仍使用
   `manifest/mirror.json` 的值。
 - 省略某个参数表示全选；传 `none` 表示全不选。
@@ -114,7 +113,7 @@ GitHub 不可达时，引导脚本会依次回退到 Worker 的仓库归档、`g
 .
 ├── install.sh / install.ps1     # 极简入口：检查 Python -> scripts/main.py
 ├── scripts/
-│   ├── main.py                  # CLI、菜单、编排
+│   ├── main.py                  # CLI 与编排
 │   ├── lib/                     # 清单、镜像、网络、步骤器、部署、安装逻辑
 ├── manifest/
 │   ├── arch|debian|fedora|termux|windows.json
@@ -146,17 +145,17 @@ npx wrangler@4 deploy
 ```
 
 ```bash
-curl -fsSL https://dot.srprolin.com | sh -s -- -a -y
+curl -fsSL https://dot.srprolin.com | sh -s -- -y
 ```
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force;
 irm https://dot.srprolin.com/install.ps1 -OutFile install.ps1;
-.\install.ps1 -a -y
+.\install.ps1 -y
 ```
 
 页面只是参数生成器：只拼 `--apps/--configs/--mirror-*`，安装与校验仍在 `scripts/main.py`。
-Mirrors 区有 profile 下拉与可编辑输入框：切 profile 生成 `--mirror-profile`，改字段生成
+Mirrors 区有 profile 下拉与可编辑输入框：切 profile 生成 `--mirror`，改字段生成
 `--mirror-<name>`，未修改的值仍使用目标机器的 `manifest/mirror.json`。Worker 拉取的脚本仍会在
 目标机器克隆仓库；需要 Git 镜像时用 `SRP_REPO_URL`。
 
@@ -204,7 +203,7 @@ node worker/test.mjs
 
 - `global` 是默认 profile，留空即系统/上游默认。
 - `cn` 预置 GitHub / npm / pip / Go / Scoop 镜像。
-- 用 `--mirror-profile cn` 切换；文件里的 `profile` 决定默认值。
+- 用 `--mirror cn` 切换；文件里的 `profile` 决定默认值。
 - 用 `--mirror-<name>` 覆盖单项（`github`、`npm`、`pypi`、`go`、`scoop`）或 `--proxy <url>`
   覆盖代理。列表用逗号分隔，`none` 表示清空。
 
@@ -232,7 +231,7 @@ node worker/test.mjs
 | `goProxy` | `go env -w GOPROXY`（`%APPDATA%\go\env`） | **是**（装了 go 时） |
 | `scoopBuckets` | `scoop bucket rm/add` | **是** |
 
-持久化发生在 `install`（`-a` / `-i`）阶段，只取决于所选 profile 是否有值，**与 `--apps` 无关**：
+持久化发生在 `install`（`-i`）阶段，只取决于所选 profile 是否有值，**与 `--apps` 无关**：
 即使 `--apps none` 也会更新 `pip.conf`。之后改用空 profile 不会自动回滚，需要手动清理：
 
 ```bash

@@ -23,7 +23,7 @@ cd srp-dotfiles
 ```bash
 python scripts/main.py --help
 python scripts/main.py --catalog --os arch
-python scripts/main.py -a -y --os arch --dry-run
+python scripts/main.py -y --os arch --dry-run
 python scripts/main.py -c -y --os arch
 ```
 
@@ -32,7 +32,7 @@ engine:
 
 ```bash
 ./install.sh --help
-./install.sh --dry-run -a -y
+./install.sh --dry-run -y
 ```
 
 `--dry-run` prints every step without executing it and is the safest way to inspect a change.
@@ -44,7 +44,7 @@ with "running scripts is disabled on this system". Relax it for the current sess
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
-.\install.ps1 -a -y
+.\install.ps1 -y
 ```
 
 `-Scope Process` only affects the current shell and needs no admin rights. The `install` step also
@@ -55,14 +55,14 @@ Remote one-liner (same shape as the configurator output):
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force;
 irm https://dot.srprolin.com/install.ps1 -OutFile install.ps1;
-.\install.ps1 -a -y
+.\install.ps1 -y
 ```
 
 Fallbacks when a group policy pins the execution policy:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -a -y
-& ([scriptblock]::Create((irm https://dot.srprolin.com/install.ps1))) -a -y
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -y
+& ([scriptblock]::Create((irm https://dot.srprolin.com/install.ps1))) -y
 Get-Content .\install.ps1 -Raw | Invoke-Expression
 ```
 
@@ -152,9 +152,9 @@ Regenerate the catalog, then test with `--catalog` and `--dry-run`.
 ## Mirrors while testing
 
 ```bash
-python scripts/main.py -a -y --dry-run --mirror-profile cn
-python scripts/main.py -a -y --dry-run --mirror-npm none
-python scripts/main.py -a -y --dry-run --proxy socks5://127.0.0.1:1080
+python scripts/main.py -y --dry-run --mirror cn
+python scripts/main.py -y --dry-run --mirror-npm none
+python scripts/main.py -y --dry-run --proxy socks5://127.0.0.1:1080
 ```
 
 Schema and precedence are in [References](references.md#mirror-schema).

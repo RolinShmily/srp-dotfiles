@@ -6,6 +6,13 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- `-a / --all` is gone: running the installer without `-i` or `-c` installs and deploys everything.
+- `i18n.py` was replaced by a single-language `messages.py`; `--lang`, `-Lang`, `DF_LANG`/`SRP_LANG`
+  and the interactive menu (with its language switch) were removed.
+- `--mirror-profile` is now `--mirror`, matching `--proxy`; per-field overrides stay `--mirror-<name>`.
+
 ### Added
 
 - Mirror-aware bootstrap: `install.sh` / `install.ps1` fall back from `git clone` to the Worker

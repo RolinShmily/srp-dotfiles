@@ -9,7 +9,7 @@ single Python engine executes it. There is no package list or platform branch hi
 .
 ├── install.sh / install.ps1     # thin launchers (check Python, locate repo)
 ├── scripts/
-│   ├── main.py                  # CLI, menu, orchestration
+│   ├── main.py                  # CLI and orchestration
 │   ├── changelog.py             # CHANGELOG.md section extractor (release workflow)
 │   ├── gen_catalog.py           # build worker/public/catalog.json
 │   ├── lib/
@@ -39,7 +39,7 @@ install.sh / install.ps1
         ▼
 scripts/main.py
         │  parse flags, load manifest/<os>.json + mirror.json
-        │  resolve --apps / --configs / --mirror-profile / --mirror-*
+        │  resolve --apps / --configs / --mirror / --mirror-*
         ▼
 scripts/lib/runner.py  ── per-step confirm, retry/skip/abort, audit report
         │
