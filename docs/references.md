@@ -5,14 +5,13 @@ Schemas, IDs and operational contracts.
 ## CLI
 
 ```bash
-./install.sh [-i|-c] [-y] [--os NAME] [--dry-run]
+./install.sh [-c] [-y] [--os NAME] [--dry-run]
              [--apps IDS] [--configs NAMES] [--mirror NAME]
              [--mirror-NAME VALUE] [--proxy URL] [--catalog]
 ```
 
 | Flag | Notes |
 | :--- | :--- |
-| `-i, --install` | install only |
 | `-c, --config` | deploy only |
 | `-y, --yes` | required when stdin is not a TTY |
 | `--os` | `arch` / `debian` / `fedora` / `termux` / `windows` |
@@ -97,7 +96,7 @@ Placeholders: `~`, `%APPDATA%`, `%LOCALAPPDATA%`, `$SCOOP`, `$PROFILE`.
 
 Precedence: file profile → `--mirror` → `--mirror-*` / `--proxy`.
 
-Side effects on disk (only during `install`, i.e. `-i`):
+Side effects on disk (only during a full run, i.e. without `-c`):
 
 | Setting | Written to | Persistent |
 | :--- | :--- | :--- |

@@ -8,7 +8,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
-- `-a / --all` is gone: running the installer without `-i` or `-c` installs and deploys everything.
+- `-a / --all` and `-i / --install` are gone: without `-c` the installer installs dependencies and
+  deploys configs; `-c` remains for config-only runs.
 - `i18n.py` was replaced by a single-language `messages.py`; `--lang`, `-Lang`, `DF_LANG`/`SRP_LANG`
   and the interactive menu (with its language switch) were removed.
 - `--mirror-profile` is now `--mirror`, matching `--proxy`; per-field overrides stay `--mirror-<name>`.

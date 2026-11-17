@@ -59,7 +59,6 @@ cd ~/Projects/srp-dotfiles
 
 ./install.sh                  # 逐项确认，安装并部署全部
 ./install.sh -y               # 同上，全部自动确认
-./install.sh -i -y            # 仅安装依赖
 ./install.sh -c               # 仅部署配置
 ./install.sh --os arch        # 显式指定目标
 ./install.sh --dry-run -y     # 只打印计划
@@ -231,7 +230,7 @@ node worker/test.mjs
 | `goProxy` | `go env -w GOPROXY`（`%APPDATA%\go\env`） | **是**（装了 go 时） |
 | `scoopBuckets` | `scoop bucket rm/add` | **是** |
 
-持久化发生在 `install`（`-i`）阶段，只取决于所选 profile 是否有值，**与 `--apps` 无关**：
+持久化只发生在默认全量运行时，取决于所选 profile 是否有值，**与 `--apps` 无关**：
 即使 `--apps none` 也会更新 `pip.conf`。之后改用空 profile 不会自动回滚，需要手动清理：
 
 ```bash

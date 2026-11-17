@@ -61,7 +61,6 @@ cd ~/Projects/srp-dotfiles
 
 ./install.sh                  # prompts, installs and deploys everything
 ./install.sh -y               # same, no prompts
-./install.sh -i -y            # dependencies only
 ./install.sh -c               # configs only
 ./install.sh --os arch        # pick a target explicitly
 ./install.sh --dry-run -y     # print the plan only
@@ -241,7 +240,7 @@ directly instead of through Scoop.
 | `goProxy` | `go env -w GOPROXY` (`%APPDATA%\go\env`) | **yes**, if `go` exists |
 | `scoopBuckets` | `scoop bucket rm/add` | **yes** |
 
-Persistence happens on `install` (`-i`) whenever the selected profile has a value — it is not
+Persistence happens during a full run whenever the selected profile has a value — it is not
 tied to `--apps`, so `--apps none` still updates `pip.conf`. Picking an empty profile later does
 **not** revert these files; clean up manually:
 
