@@ -52,7 +52,6 @@ unquoted `a,b` is parsed as an array, so the configurator always quotes these va
 | `configs` | object[] | All |
 | `wingetPackages` | string[] | Windows |
 | `scoopPackages` | string[] | Windows |
-| `pythonManager` | string | Windows (`uv`) |
 
 ### Config entry
 
@@ -151,11 +150,11 @@ are installed directly from their GitHub assets.
 | `/repo.zip` | repository zip (bootstrap fallback) |
 | `/health` | `ok` |
 
-### Catalog (schema 7)
+### Catalog (schema 8)
 
 ```json
 {
-  "schema": 7,
+  "schema": 8,
   "catalogs": {
     "arch": {
       "apps": [{ "id": "pkg:zsh", "source": "pacman", "name": "zsh", "label": "zsh" }],

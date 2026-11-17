@@ -74,7 +74,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 .\install.ps1 -c           # configs only
 ```
 
-`install` also sets `RemoteSigned` for the current user, so later sessions can run
+A full run also sets `RemoteSigned` for the current user, so later sessions can run
 `.\install.ps1` without the `Set-ExecutionPolicy` line.
 
 Every step is confirmed individually (core / optional label shown). `-y` approves everything and is
@@ -167,7 +167,7 @@ Worker still clone the repo locally; set `SRP_REPO_URL` when using a Git mirror.
 
 ## CI & deployment
 
-Two GitHub Actions workflows live in `.github/workflows/`:
+Three GitHub Actions workflows live in `.github/workflows/`:
 
 - `ci.yml` — Python 3.9/3.12 compile + unit tests + catalog check + CLI dry-runs, plus Worker syntax
   and route tests.

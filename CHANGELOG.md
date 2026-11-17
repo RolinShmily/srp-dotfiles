@@ -6,50 +6,45 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
-### Changed
-
-- `-a / --all` and `-i / --install` are gone: without `-c` the installer installs dependencies and
-  deploys configs; `-c` remains for config-only runs.
-- `i18n.py` was replaced by a single-language `messages.py`; `--lang`, `-Lang`, `DF_LANG`/`SRP_LANG`
-  and the interactive menu (with its language switch) were removed.
-- `--mirror-profile` is now `--mirror`, matching `--proxy`; per-field overrides stay `--mirror-<name>`.
-- `proxy` accepts `host:port`: the installer probes the port and adds `socks5://` or `http://`
-  (explicit schemes are kept), so only the address and port need to be configured.
-
 ### Added
 
-- Mirror-aware bootstrap: `install.sh` / `install.ps1` fall back from `git clone` to the Worker
-  repository archive, `ghfast.top` / `gh-proxy.com`, then direct GitHub, with `SRP_REPO_URL`,
-  `SRP_GH_PROXY`, `SRP_REPO_TARBALL`, `SRP_REPO_REF` and `SRP_INSTALL_ORIGIN` overrides.
-- Worker routes `/repo.tar.gz` and `/repo.zip` so the repository can be fetched when git and GitHub
-  are both unreachable.
-- `--copy` (or `SRP_DEPLOY_METHOD=copy`) materialises `link` entries, producing a deployment that
-  does not depend on the clone.
+- Mirror-aware bootstrap: `install.sh` / `install.ps1` try `git clone` (via `SRP_REPO_URL`, then
+  `SRP_GH_PROXY`, `ghfast.top`, `gh-proxy.com`, then direct) and fall back to a repository archive
+  (`<origin>/repo.tar.gz`, `SRP_REPO_TARBALL`, codeload). `SRP_REPO_REF` and `SRP_INSTALL_ORIGIN`
+  are also honoured.
+- Worker routes `/repo.tar.gz` and `/repo.zip`, so the repository can still be fetched when git and
+  GitHub are unreachable.
+- `proxy` accepts `host:port`: the installer probes the port once and adds `socks5://` or `http://`;
+  an explicit scheme is kept verbatim.
 
 ### Changed
 
-- Config deployment is copy-only: `link` was removed because a symlink breaks as soon as the clone
-  disappears. Existing targets are archived to `~/.dotfiles_backup_*` before being replaced.
-- A missing config source now fails the step instead of being skipped silently, and the installer
-  exits non-zero when anything failed.
+- Only `-c / --config` remains. Running the installer without it installs dependencies and deploys
+  configs; `-a / --all` and `-i / --install` were removed.
+- Config deployment is copy-only: every entry copies its source over the target, archiving the
+  previous content to `~/.dotfiles_backup_*`. `link`, `.example` templates and `-f / --force` are
+  gone, and `--copy`/`SRP_DEPLOY_METHOD` were dropped along with `link`.
+- Manifests no longer have a `method` field, custom deployers (`scripts/deployers/`) or
+  `piResources`: `~/.pi/agent` is a plain directory copy and Pi discovers `skills/` itself.
+- `i18n.py` became a single-language `messages.py`; `--lang`, `-Lang`, `DF_LANG`/`SRP_LANG` and the
+  interactive menu were removed.
+- `--mirror-profile` became `--mirror`; per-field overrides stay `--mirror-<name>`.
+- A missing config source fails the step instead of being skipped, and the installer exits non-zero
+  when a step failed.
+- Bootstrap scripts were simplified: `install.sh` rewritten without temp files, both headers trimmed.
+- CI also parses `install.ps1` and runs a config-only smoke test.
 
-### Breaking
+### Fixed
 
-- The `method` field is gone: every `configs` entry is a copy with backup. The `custom` deployers
-  (`scripts/deployers/`), `piResources` and the `.example` templates were removed; `~/.pi/agent` is
-  a plain directory copy relying on Pi's own `skills/` discovery, and Windows Terminal settings are
-  replaced wholesale (the previous file, including `defaultProfile` / `profiles.list`, is archived).
-- `method: "link"` is gone; use `method: "copy"`. `--copy` and `SRP_DEPLOY_METHOD` were removed since
-  copy is now the only method.
-- `-f / --force` was removed: copy always archives the previous target, so the flag had no purpose.
-- `.example` templates are gone. `configs/pi/{settings,mcp,keybindings}.json`,
-  `configs/code/settings.json` and `configs/windows-terminal/settings.json` are deployed like any
-  other config: the previous target is archived to `~/.dotfiles_backup_*` before being replaced.
+- `scoop.missing` was referenced but never defined, so a failed Scoop install printed the key name.
+- The worker repository-archive error response contained a stray newline, and CI now parses
+  `install.ps1` as well.
+- Docs still advertised catalog schema 7 and the removed `pythonManager` manifest key.
 
 ### Documented
 
-- Spell out which mirror settings persist (pip config, `go env`, Scoop buckets) versus which are
-  process-scoped (`proxy`, `githubProxy`, `npmRegistry`), and how to revert them.
+- Which mirror settings persist (pip config, `go env`, Scoop buckets) versus which are
+  process-scoped, and how to revert them.
 
 ## [1.0.4] - 2026-11-17
 

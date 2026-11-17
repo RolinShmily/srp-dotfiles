@@ -56,7 +56,9 @@ jobs:
       - name: Smoke test deployed endpoint
         run: |
           for attempt in 1 2 3 4 5; do
-            if curl -fsS https://dot.srprolin.com/health > /dev/null               && curl -fsS https://dot.srprolin.com/config > /dev/null               && curl -fsS https://dot.srprolin.com/api/catalog > /dev/null; then
+            if curl -fsS https://dot.srprolin.com/health > /dev/null &&
+              curl -fsS https://dot.srprolin.com/config > /dev/null &&
+              curl -fsS https://dot.srprolin.com/api/catalog > /dev/null; then
               echo "smoke test OK"
               exit 0
             fi

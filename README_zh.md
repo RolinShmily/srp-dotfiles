@@ -72,7 +72,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 .\install.ps1 -c           # 仅部署配置
 ```
 
-`install` 阶段还会把当前用户策略设为 `RemoteSigned`，之后新开的会话可直接运行 `.\install.ps1`。
+默认全量运行还会把当前用户策略设为 `RemoteSigned`，之后新开的会话可直接运行 `.\install.ps1`。
 
 默认逐个步骤确认（显示“核心 / 可选”标记）；`-y` 一键同意，标准输入不是终端时必须显式指定。
 缺少依赖的步骤（npm、skills 等）会提示并跳过，不会中断整体流程。
@@ -160,7 +160,7 @@ Mirrors 区有 profile 下拉与可编辑输入框：切 profile 生成 `--mirro
 
 ## CI 与部署
 
-`.github/workflows/` 下有两个工作流：
+`.github/workflows/` 下有三个工作流：
 
 - `ci.yml` — Python 3.9/3.12 编译、单测、catalog 校验、CLI dry-run，以及 Worker 语法与路由测试。
 - `deploy.yml` — push 到 `main` 且改动 `worker/**`、`scripts/**` 或 `manifest/**` 时（或手动触发）：

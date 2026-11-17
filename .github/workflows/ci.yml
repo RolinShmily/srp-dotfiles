@@ -48,6 +48,10 @@ jobs:
       - name: Shell syntax
         run: sh -n install.sh
 
+      - name: PowerShell syntax
+        run: |
+          pwsh -NoProfile -Command '$e = $null; [void][System.Management.Automation.Language.Parser]::ParseFile("$PWD/install.ps1", [ref]$null, [ref]$e); if ($e) { $e | ForEach-Object { Write-Error $_.Message }; exit 1 }'
+
   worker:
     runs-on: ubuntu-latest
     timeout-minutes: 10
