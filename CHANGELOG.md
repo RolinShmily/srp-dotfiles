@@ -28,6 +28,9 @@ All notable changes to this project are documented here. The format follows
 
 - `method: "link"` is gone; use `method: "copy"`. `--copy` and `SRP_DEPLOY_METHOD` were removed since
   copy is now the only method.
+- `.example` templates are gone. `configs/pi/{settings,mcp,keybindings}.json`,
+  `configs/code/settings.json` and `configs/windows-terminal/settings.json` are deployed like any
+  other config: the previous target is archived to `~/.dotfiles_backup_*` before being replaced.
 
 ### Documented
 
