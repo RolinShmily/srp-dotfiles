@@ -6,6 +6,8 @@
  *   GET /api/catalog      unit catalog JSON (assets)
  *   GET /install.sh       Unix bootstrap
  *   GET /install.ps1      Windows bootstrap
+ *   GET /repo.tar.gz      repository tarball (bootstrap mirror)
+ *   GET /repo.zip         repository zip (bootstrap mirror)
  *   GET /health           health probe
  *
  * Windows clients (PowerShell / Windows UA) get install.ps1, everything else
@@ -15,8 +17,20 @@
  *
  *   npx wrangler deploy
  */
-const SOURCE = "https://raw.githubusercontent.com/RolinShmily/srp-dotfiles/main";
+const REPO = "RolinShmily/srp-dotfiles";
+const REF = "main";
+const SOURCE = `https://raw.githubusercontent.com/${REPO}/${REF}`;
 const CACHE_SECONDS = 300;
+const REPO_ARCHIVES = {
+  "/repo.tar.gz": {
+    url: `https://codeload.github.com/${REPO}/tar.gz/refs/heads/${REF}`,
+    type: "application/gzip",
+  },
+  "/repo.zip": {
+    url: `https://codeload.github.com/${REPO}/zip/refs/heads/${REF}`,
+    type: "application/zip",
+  },
+};
 
 const TEXT_HEADERS = {
   "content-type": "text/plain; charset=utf-8",
@@ -68,6 +82,28 @@ export default {
     }
     if (url.pathname === "/api/catalog") {
       return serveAsset(request, env, "/catalog.json", JSON_HEADERS);
+    }
+
+    const archive = REPO_ARCHIVES[url.pathname];
+    if (archive) {
+      const upstream = await fetch(archive.url, {
+        cf: { cacheEverything: true, cacheTtl: CACHE_SECONDS },
+      });
+      if (!upstream.ok) {
+        return new Response(`Repository archive unavailable (${upstream.status})
+`, {
+          status: 502,
+          headers: TEXT_HEADERS,
+        });
+      }
+      return new Response(upstream.body, {
+        status: 200,
+        headers: {
+          "content-type": archive.type,
+          "cache-control": `public, max-age=${CACHE_SECONDS}`,
+          "x-content-type-options": "nosniff",
+        },
+      });
     }
 
     let name;

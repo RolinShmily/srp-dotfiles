@@ -60,6 +60,16 @@ assert.equal(result.body.trim(), "ok");
 result = await call("/missing");
 assert.equal(result.status, 404);
 
+for (const [path, upstreamUrl, type] of [
+  ["/repo.tar.gz", "codeload.github.com/", "application/gzip"],
+  ["/repo.zip", "codeload.github.com/", "application/zip"],
+]) {
+  result = await call(path);
+  assert.equal(result.status, 200);
+  assert.match(result.headers.get("content-type"), new RegExp(type));
+  assert.ok(upstream.includes(upstreamUrl));
+}
+
 const noAssets = await worker.fetch(new Request("https://worker.test/config"), {});
 assert.equal(noAssets.status, 500);
 

@@ -56,17 +56,70 @@ if (-not $python) {
 $repo = if ($PSScriptRoot) { $PSScriptRoot } else { (Get-Location).Path }
 if (-not (Test-Path (Join-Path $repo "scripts\main.py"))) {
     $repo = if ($env:SRP_DOTFILES_DIR) { $env:SRP_DOTFILES_DIR } else { Join-Path $env:USERPROFILE ".srp-dotfiles" }
-    if (-not (Test-Path (Join-Path $repo "scripts\main.py"))) {
-        $repoUrl = if ($env:SRP_REPO_URL) { $env:SRP_REPO_URL } else { "https://github.com/RolinShmily/srp-dotfiles.git" }
-        if (Get-Command git -ErrorAction SilentlyContinue) {
-            git clone --depth=1 $repoUrl $repo
-        } else {
-            $zip = Join-Path $env:TEMP "srp-dotfiles.zip"
-            $extract = Join-Path $env:TEMP "srp-dotfiles-extract"
-            Invoke-WebRequest -Uri "https://codeload.github.com/RolinShmily/srp-dotfiles/zip/refs/heads/main" -OutFile $zip
-            Expand-Archive -Path $zip -DestinationPath $extract -Force
-            Move-Item (Join-Path $extract "srp-dotfiles-main") $repo
+}
+
+# The mirror settings live inside the repository, so fetching it cannot rely
+# on them. Try git through known proxies first, then a tarball (Worker, then
+# GitHub directly).
+$repoSlug = "RolinShmily/srp-dotfiles"
+$repoRef = if ($env:SRP_REPO_REF) { $env:SRP_REPO_REF } else { "main" }
+$installOrigin = if ($env:SRP_INSTALL_ORIGIN) { $env:SRP_INSTALL_ORIGIN } else { "https://dot.srprolin.com" }
+$githubUrl = "https://github.com/$repoSlug.git"
+
+$prefixes = @()
+if ($env:SRP_GH_PROXY) { $prefixes += $env:SRP_GH_PROXY }
+$prefixes += "https://ghfast.top/", "https://gh-proxy.com/", ""
+
+function Get-Repo {
+    param([string]$Target)
+
+    if (Get-Command git -ErrorAction SilentlyContinue) {
+        $cloneUrls = if ($env:SRP_REPO_URL) { @($env:SRP_REPO_URL) } else { $prefixes | ForEach-Object { "$_$githubUrl" } }
+        foreach ($url in $cloneUrls) {
+            Remove-Item $Target -Recurse -Force -ErrorAction SilentlyContinue
+            git clone --depth=1 $url $Target 2>$null | Out-Null
+            if (Test-Path (Join-Path $Target "scripts\main.py")) {
+                Write-Host "Repository: $url"
+                return $true
+            }
         }
+    }
+
+    $zipUrls = @("$installOrigin/repo.zip")
+    if ($env:SRP_REPO_TARBALL) { $zipUrls += $env:SRP_REPO_TARBALL }
+    $zipUrls += "https://codeload.github.com/$repoSlug/zip/refs/heads/$repoRef"
+    foreach ($prefix in $prefixes) {
+        if ($prefix) {
+            $zipUrls += $prefix + "https://codeload.github.com/$repoSlug/zip/refs/heads/$repoRef"
+        }
+    }
+
+    $zip = Join-Path $env:TEMP "srp-dotfiles.zip"
+    $extract = Join-Path $env:TEMP "srp-dotfiles-extract"
+    foreach ($url in $zipUrls) {
+        try {
+            Invoke-WebRequest -Uri $url -OutFile $zip -ErrorAction Stop
+            Remove-Item $extract -Recurse -Force -ErrorAction SilentlyContinue
+            Expand-Archive -Path $zip -DestinationPath $extract -Force
+            Remove-Item $Target -Recurse -Force -ErrorAction SilentlyContinue
+            Move-Item (Join-Path $extract "srp-dotfiles-$repoRef") $Target -Force
+            if (Test-Path (Join-Path $Target "scripts\main.py")) {
+                Write-Host "Repository: $url"
+                return $true
+            }
+        } catch { }
+    }
+    return $false
+}
+
+if (-not (Test-Path (Join-Path $repo "scripts\main.py"))) {
+    if (-not (Get-Repo -Target $repo)) {
+        Write-Host "Could not fetch $repoSlug." -ForegroundColor Red
+        Write-Host "Try one of:"
+        Write-Host "  `$env:SRP_REPO_URL = '<git mirror url>'; .\install.ps1 -a -y"
+        Write-Host "  `$env:SRP_GH_PROXY = 'https://ghfast.top/'; .\install.ps1 -a -y"
+        Write-Host "  git clone $githubUrl $repo"
+        throw "Could not fetch $repoSlug"
     }
 }
 
