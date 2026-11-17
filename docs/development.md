@@ -37,6 +37,35 @@ engine:
 
 `--dry-run` prints every step without executing it and is the safest way to inspect a change.
 
+### Windows PowerShell 5.1
+
+The default execution policy on Windows 10/11 is `Restricted`, so running a local `.ps1` file fails
+with "running scripts is disabled on this system". Relax it for the current session first:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+.\install.ps1 -a -y
+```
+
+`-Scope Process` only affects the current shell and needs no admin rights. The `install` step also
+sets `RemoteSigned` for the current user, so new sessions can run `.\install.ps1` directly.
+
+Remote one-liner (same shape as the configurator output):
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force;
+irm https://dot.srprolin.com/install.ps1 -OutFile install.ps1;
+.\install.ps1 -a -y
+```
+
+Fallbacks when a group policy pins the execution policy:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -a -y
+& ([scriptblock]::Create((irm https://dot.srprolin.com/install.ps1))) -a -y
+Get-Content .\install.ps1 -Raw | Invoke-Expression
+```
+
 ## Tests and checks
 
 ```bash

@@ -34,7 +34,9 @@ curl -fsSL https://raw.githubusercontent.com/RolinShmily/srp-dotfiles/main/insta
 ```
 
 ```powershell
-irm https://raw.githubusercontent.com/RolinShmily/srp-dotfiles/main/install.ps1 | iex
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force;
+irm https://raw.githubusercontent.com/RolinShmily/srp-dotfiles/main/install.ps1 -OutFile install.ps1;
+.\install.ps1 -a -y
 ```
 
 Local:
@@ -52,11 +54,16 @@ cd ~/Projects/srp-dotfiles
 ```
 
 ```powershell
-.\install.ps1                 # interactive menu
-.\install.ps1 -a -y           # install + deploy
-.\install.ps1 -c -f           # configs only
-.\install.ps1 -a -y -Lang zh  # Chinese UI (default: en)
+# Windows PowerShell 5.1 defaults to Restricted; relax it for this session:
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+.\install.ps1              # interactive menu
+.\install.ps1 -a -y        # install + deploy
+.\install.ps1 -c -f        # configs only
+.\install.ps1 -a -y -Lang zh
 ```
+
+`install` also sets `RemoteSigned` for the current user, so later sessions can run
+`.\install.ps1` without the `Set-ExecutionPolicy` line.
 
 Every step is confirmed individually (core / optional label shown). `-y` approves everything and is
 required when stdin is not a TTY. Steps whose dependencies are missing (npm, skills, brew-like tools)
@@ -128,7 +135,9 @@ curl -fsSL https://dot.srprolin.com | sh -s -- -a -y
 ```
 
 ```powershell
-irm https://dot.srprolin.com | iex
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force;
+irm https://dot.srprolin.com/install.ps1 -OutFile install.ps1;
+.\install.ps1 -a -y
 ```
 
 The page is a thin client: it builds `--apps/--configs/--mirror-*` and nothing else; installation

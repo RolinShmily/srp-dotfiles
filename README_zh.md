@@ -32,7 +32,9 @@ curl -fsSL https://raw.githubusercontent.com/RolinShmily/srp-dotfiles/main/insta
 ```
 
 ```powershell
-irm https://raw.githubusercontent.com/RolinShmily/srp-dotfiles/main/install.ps1 | iex
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force;
+irm https://raw.githubusercontent.com/RolinShmily/srp-dotfiles/main/install.ps1 -OutFile install.ps1;
+.\install.ps1 -a -y
 ```
 
 本地执行：
@@ -50,11 +52,15 @@ cd ~/Projects/srp-dotfiles
 ```
 
 ```powershell
-.\install.ps1                 # 交互菜单
-.\install.ps1 -a -y           # 安装 + 部署
-.\install.ps1 -c -f           # 仅部署配置
-.\install.ps1 -a -y -Lang zh  # 中文界面（默认英文）
+# Windows PowerShell 5.1 默认 Restricted，先只对当前会话放开：
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+.\install.ps1              # 交互菜单
+.\install.ps1 -a -y        # 安装 + 部署
+.\install.ps1 -c -f        # 仅部署配置
+.\install.ps1 -a -y -Lang zh
 ```
+
+`install` 阶段还会把当前用户策略设为 `RemoteSigned`，之后新开的会话可直接运行 `.\install.ps1`。
 
 默认逐个步骤确认（显示“核心 / 可选”标记）；`-y` 一键同意，标准输入不是终端时必须显式指定。
 缺少依赖的步骤（npm、skills 等）会提示并跳过，不会中断整体流程。
@@ -126,7 +132,9 @@ curl -fsSL https://dot.srprolin.com | sh -s -- -a -y
 ```
 
 ```powershell
-irm https://dot.srprolin.com | iex
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force;
+irm https://dot.srprolin.com/install.ps1 -OutFile install.ps1;
+.\install.ps1 -a -y
 ```
 
 页面只是参数生成器：只拼 `--apps/--configs/--mirror-*`，安装与校验仍在 `scripts/main.py`。

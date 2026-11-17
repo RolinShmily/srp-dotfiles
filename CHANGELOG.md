@@ -6,6 +6,16 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-11-17
+
+### Fixed
+
+- Windows PowerShell 5.1 blocked `install.ps1` under the default `Restricted` policy. The
+  configurator now prefixes `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force`, and
+  the docs use the same form for local runs.
+- The Windows execution-policy step warns instead of failing when the policy is pinned by a group
+  policy or `Set-ExecutionPolicy` is unavailable.
+
 ## [1.0.2] - 2026-11-17
 
 ### Added
