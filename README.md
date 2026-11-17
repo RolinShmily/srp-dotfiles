@@ -22,8 +22,22 @@ pkg install python
 winget install Python.Python.3.12
 ```
 
+On Windows, `winget` comes from App Installer. It is absent on LTSC images, Windows Sandbox and
+Server; install it from the Microsoft Store:
+
+```text
+https://apps.microsoft.com/detail/9NBLGGH4NNS1
+```
+
+Without the Store, use the `winget-cli` releases, or skip winget entirely with
+[python.org](https://www.python.org/downloads/windows/), `scoop install python`, or uv:
+
+```powershell
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"; uv python install 3.12
+```
+
 `install.sh` / `install.ps1` only check Python and start `scripts/main.py`; if Python is missing they
-print these commands and exit.
+print these options and exit.
 
 ## Quick start
 

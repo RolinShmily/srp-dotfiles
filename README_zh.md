@@ -21,7 +21,21 @@ pkg install python
 winget install Python.Python.3.12
 ```
 
-`install.sh` / `install.ps1` 只检查 Python 并启动 `scripts/main.py`；缺失时打印上述命令后退出。
+Windows 上 `winget` 由「应用安装程序 (App Installer)」提供，LTSC、Windows Sandbox 与 Server 默认没有；
+可从 Microsoft Store 安装：
+
+```text
+https://apps.microsoft.com/detail/9NBLGGH4NNS1
+```
+
+没有 Store 时，用 `winget-cli` 的 release，或完全绕开 winget：
+[python.org](https://www.python.org/downloads/windows/)、`scoop install python`、uv：
+
+```powershell
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"; uv python install 3.12
+```
+
+`install.sh` / `install.ps1` 只检查 Python 并启动 `scripts/main.py`；缺失时打印这些选项后退出。
 
 ## 快速开始
 

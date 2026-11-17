@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-11-17
+
+### Changed
+
+- `install.ps1` and the READMEs now explain how to get `winget` (Microsoft Store link for App
+  Installer) and list winget-free ways to install Python. A missing Python now prints the
+  environment-appropriate options instead of always pointing at winget.
+
 ## [1.0.3] - 2026-11-17
 
 ### Fixed

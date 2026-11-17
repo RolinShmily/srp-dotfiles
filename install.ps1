@@ -4,6 +4,16 @@
 # Python is the only hard requirement:
 #   winget install Python.Python.3.12
 #
+# winget ships with App Installer, which is missing on LTSC images, Windows
+# Sandbox and Server. Install it from the Microsoft Store:
+#   https://apps.microsoft.com/detail/9NBLGGH4NNS1
+# Without the Store (LTSC/Server), download App Installer and its dependencies:
+#   https://github.com/microsoft/winget-cli/releases
+# winget-free alternatives for Python:
+#   https://www.python.org/downloads/windows/
+#   irm get.scoop.sh | iex ; scoop install python
+#   powershell -c "irm https://astral.sh/uv/install.ps1 | iex" ; uv python install 3.12
+#
 # Usage:
 #   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force; .\install.ps1 -a -y
 #   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force;
@@ -30,7 +40,16 @@ function Find-Python {
 $python = Find-Python
 if (-not $python) {
     Write-Host "Python 3.9+ is required but was not found." -ForegroundColor Red
-    Write-Host "Install it first: winget install Python.Python.3.12"
+    if (Get-Command winget -ErrorAction SilentlyContinue) {
+        Write-Host "Install it first: winget install Python.Python.3.12"
+    } else {
+        Write-Host "winget is not available on this machine."
+        Write-Host "  App Installer (provides winget): https://apps.microsoft.com/detail/9NBLGGH4NNS1"
+        Write-Host "  Or without winget:"
+        Write-Host "    https://www.python.org/downloads/windows/"
+        Write-Host "    irm get.scoop.sh | iex ; scoop install python"
+        Write-Host '    powershell -c "irm https://astral.sh/uv/install.ps1 | iex" ; uv python install 3.12'
+    }
     throw "Python 3.9+ is required"
 }
 
