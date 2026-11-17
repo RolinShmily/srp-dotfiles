@@ -20,7 +20,7 @@ this file describes intent and trade-offs.
    fetch itself falls back across the Worker archive and GitHub proxies before giving up.
 7. **Steps are explicit.** Every step confirms, can be retried/skipped/aborted, and is visible in the
    audit report. `--dry-run` prints the plan without side effects.
-8. **Deploy verbs are limited.** `link`, `copy` and `custom` cover normal configs; anything else is a
+8. **Deploy verbs are limited.** `copy` and `custom` cover normal configs; anything else is a
    deployer module. Copy is destructive by design; `ifMissing` is the explicit exception.
 9. **Stable IDs.** App and config IDs are part of the public CLI/Worker contract; renaming requires a
    changelog note and catalog regeneration.

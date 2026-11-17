@@ -25,7 +25,6 @@ Schemas, IDs and operational contracts.
 | `--mirror-profile` | profile key from `mirror.json` |
 | `--mirror-<name>` | `github`, `npm`, `pypi`, `go`, `scoop`; `none` clears |
 | `--proxy` | `socks5://…` or `http(s)://…`; `none` clears |
-| `--copy` | materialise `link` entries as copies (self-contained deployment) |
 | `--catalog` | print JSON and exit |
 
 List flags (`--apps`, `--configs`, `--mirror-*`) accept comma-separated values. On PowerShell an
@@ -65,9 +64,9 @@ unquoted `a,b` is parsed as an array, so the configurator always quotes these va
 | Field | Required | Meaning |
 | :--- | :--- | :--- |
 | `name` | yes | Stable ID |
-| `method` | yes | `link` / `copy` / `custom` |
-| `source` | link/copy | Repository-relative, normally `configs/...` |
-| `target` / `targets` | link/copy | One or many destinations |
+| `method` | yes | `copy` / `custom` |
+| `source` | copy | Repository-relative, normally `configs/...` |
+| `target` / `targets` | copy | One or many destinations |
 | `exclude` | no | Top-level names to skip |
 | `ifMissing` | no | Skip existing copy target unless `--force` |
 | `when` | no | Skip when this path does not exist |
@@ -134,9 +133,9 @@ Persisted values are not reverted when the selected profile becomes empty; remov
 
 ## Deployment durability
 
-`link` entries point into the repository, so the clone must stay in place. Use `--copy` (or
-`SRP_DEPLOY_METHOD=copy`) to materialise them instead. A missing source now fails the step, and the
-config stage verifies every deployed link, reporting dangling targets and exiting non-zero.
+Configs are copied, so the deployed files no longer depend on the clone. Existing targets are
+archived to `~/.dotfiles_backup_*` unless `--force` is used. A missing source fails the step and the
+installer exits non-zero.
 
 Environment exports during install:
 
@@ -181,7 +180,7 @@ are installed directly from their GitHub assets.
   "catalogs": {
     "arch": {
       "apps": [{ "id": "pkg:zsh", "source": "pacman", "name": "zsh", "label": "zsh" }],
-      "configs": [{ "id": "zshrc", "label": "zshrc", "method": "link" }],
+      "configs": [{ "id": "zshrc", "label": "zshrc", "method": "copy" }],
       "mirrors": {
         "default": "global",
         "proxy": "",

@@ -86,9 +86,9 @@ are skipped with a warning instead of failing the run.
 If GitHub is unreachable, the bootstrap falls back to the Worker tarball, then `ghfast.top` /
 `gh-proxy.com`, then direct. Override with `SRP_GH_PROXY`, `SRP_REPO_URL` or `SRP_REPO_TARBALL`.
 
-`link` entries point into the clone, so the repository must stay in place. Add `--copy` to deploy
-copies instead (the machine then works without the clone). A missing source fails the step, and the
-config stage verifies every link before reporting success.
+Configs are deployed by **copy**, so the machine does not depend on the clone afterwards. Existing
+targets are archived to `~/.dotfiles_backup_*` before being replaced (`--force` skips the backup).
+A missing source fails the step and the installer exits non-zero.
 
 ## Selective install
 
@@ -264,13 +264,12 @@ scoop bucket rm <name>      # then re-add the default bucket
 **Add a config entry** — append to `configs`:
 
 ```json
-{ "name": "starship", "method": "link", "source": "configs/starship", "target": "~/.config/starship" }
+{ "name": "starship", "method": "copy", "source": "configs/starship", "target": "~/.config/starship" }
 ```
 
 | `method` | Meaning | Fields |
 | :--- | :--- | :--- |
-| `link` | Symlink into the repo (live edits); conflicts go to `~/.dotfiles_backup_*` | `source` + `target`/`targets` |
-| `copy` | Overwrite copy, no backup | `source` + `target` |
+| `copy` | Copy into place; the previous target is archived to `~/.dotfiles_backup_*` (`--force` skips) | `source` + `target`/`targets` |
 | `custom` | Run `scripts/deployers/<name with - as _>.py` (`run(ctx)`) | — |
 
 Optional fields: `targets`, `exclude`, `ifMissing`, `when`.

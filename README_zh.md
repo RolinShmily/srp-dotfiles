@@ -81,7 +81,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 
 GitHub 不可达时，引导脚本会依次回退到 Worker 的仓库归档、`ghfast.top` / `gh-proxy.com`，最后才直连；可用 `SRP_GH_PROXY`、`SRP_REPO_URL`、`SRP_REPO_TARBALL` 指定。
 
-`link` 条目指向仓库，clone 必须保留。加 `--copy` 改为复制部署，之后不依赖仓库；源缺失会让该步骤失败，配置阶段还会校验每个链接，悬空即报错并以非零码退出。
+配置一律用 **复制** 部署，之后不再依赖仓库。目标已存在时先归档到 `~/.dotfiles_backup_*`（`--force` 跳过备份）。源缺失会让该步骤失败，安装器以非零码退出。
 
 ## 选择性安装
 
@@ -253,13 +253,12 @@ scoop bucket rm <name>      # 再重新添加默认 bucket
 **加配置项** — 追加到 `configs`：
 
 ```json
-{ "name": "starship", "method": "link", "source": "configs/starship", "target": "~/.config/starship" }
+{ "name": "starship", "method": "copy", "source": "configs/starship", "target": "~/.config/starship" }
 ```
 
 | `method` | 含义 | 必填 |
 | :--- | :--- | :--- |
-| `link` | 软链到仓库，改仓库即时生效；冲突归档到 `~/.dotfiles_backup_*` | `source` + `target`/`targets` |
-| `copy` | 覆盖式复制，不备份 | `source` + `target` |
+| `copy` | 复制到目标；旧内容归档到 `~/.dotfiles_backup_*`（`--force` 跳过） | `source` + `target`/`targets` |
 | `custom` | 执行 `scripts/deployers/<name 中 - 换成 _>.py` 的 `run(ctx)` | — |
 
 可选字段：`targets`、`exclude`、`ifMissing`、`when`。

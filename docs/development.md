@@ -142,7 +142,7 @@ Configs live under `configs/` and are declared in `configs`:
 ```json
 {
   "name": "starship",
-  "method": "link",
+  "method": "copy",
   "source": "configs/starship",
   "target": "~/.config/starship"
 }
@@ -174,7 +174,7 @@ Manifest entry:
 ```
 
 `Context` exposes `repo`, `os_name`, `manifest`, `mirrors`, `backup_dir`, `force` and `runner`.
-Reuse `lib.deploy` for link/copy semantics.
+Reuse `lib.deploy` for copy semantics.
 
 ## Mirrors while testing
 
