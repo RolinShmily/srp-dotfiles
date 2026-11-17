@@ -37,6 +37,7 @@ from lib import catalog  # noqa: E402
 from lib import deploy  # noqa: E402
 from lib import installers  # noqa: E402
 from lib import manifest as manifest_lib  # noqa: E402
+from lib import proxy as proxy_lib  # noqa: E402
 from lib import platform_info as sysinfo  # noqa: E402
 from lib.context import Context  # noqa: E402
 from lib.messages import t  # noqa: E402
@@ -375,6 +376,11 @@ def run_action(
         return 2
 
     mirrors = apply_mirror_overrides(raw_mirrors, mirror_overrides or {})
+    try:
+        mirrors.proxy = proxy_lib.normalize_proxy(mirrors.proxy)
+    except ValueError as exc:
+        sysinfo.error(str(exc))
+        return 2
     apply_mirror_env(mirrors)
 
     runner = Runner(assume_yes=assume_yes, dry_run=dry_run)

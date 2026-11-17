@@ -1,5 +1,5 @@
 {
-  "//": "profile selects defaults; --mirror-<name> overrides individual values. Empty values = system/upstream defaults.",
+  "//": "profile selects defaults; --mirror overrides the profile and --mirror-<name> single values. proxy takes host:port (scheme auto-detected) or a full URL.",
   "proxy": "",
   "profile": "global",
   "profiles": {
