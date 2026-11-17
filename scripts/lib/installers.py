@@ -346,23 +346,6 @@ def configure_aria2(manifest: Manifest) -> None:
         sysinfo.run(["scoop", "config", key, value], check=False)
 
 
-def install_uv(mirrors: Mirrors) -> None:
-    if sysinfo.which("uv"):
-        return
-    with tempfile.NamedTemporaryFile(suffix=".ps1", delete=False) as handle:
-        script = Path(handle.name)
-    try:
-        net.download(mirrors.uv_installer(), script, mirrors)
-        sysinfo.run(
-            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script)]
-        )
-    finally:
-        script.unlink(missing_ok=True)
-    sysinfo.refresh_windows_path()
-    if not sysinfo.which("uv"):
-        raise RuntimeError(t("uv.missing"))
-
-
 def install_uv_python() -> None:
     sysinfo.run(["uv", "python", "install"])
 
@@ -529,7 +512,6 @@ __all__ = [
     "install_scoop",
     "install_skill",
     "install_system_packages",
-    "install_uv",
     "npm_install",
     "configure_pypi_mirror",
     "configure_go_mirror",

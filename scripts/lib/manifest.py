@@ -105,12 +105,6 @@ class Mirrors:
             return [url]
         return [prefix.rstrip("/") + "/" + url for prefix in self.github_proxies]
 
-    def uv_installer(self) -> str:
-        official = "https://astral.sh/uv/install.ps1"
-        if self.github_proxies:
-            return self.github("https://raw.githubusercontent.com/astral-sh/uv/main/install.ps1")
-        return official
-
 
 def _text(value) -> str:
     if isinstance(value, list):

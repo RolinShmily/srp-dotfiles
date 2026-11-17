@@ -39,14 +39,3 @@ def download(url: str | list[str], dest: Path, mirrors: Mirrors) -> None:
             dest.unlink(missing_ok=True)
     if last_error is not None:
         raise last_error
-
-
-def download_text(url: str | list[str], mirrors: Mirrors) -> str:
-    suffix = ".txt"
-    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as handle:
-        temp = Path(handle.name)
-    try:
-        download(url, temp, mirrors)
-        return temp.read_text(encoding="utf-8", errors="replace")
-    finally:
-        temp.unlink(missing_ok=True)

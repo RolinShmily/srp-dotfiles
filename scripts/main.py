@@ -15,7 +15,6 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import importlib
 import json
 import os
 import sys
@@ -332,14 +331,7 @@ def run_config(
     elif "zshrc" in selected_configs:
         runner.run(t("step.omz_plugins"), lambda: installers.setup_omz_plugins(mirrors), core=True)
 
-    ctx = Context(
-        repo=repo,
-        os_name=os_name,
-        manifest=data,
-        mirrors=mirrors,
-        backup_dir=backup_dir,
-        runner=runner,
-    )
+    ctx = Context(repo=repo, backup_dir=backup_dir, runner=runner)
     for entry in data.configs():
         if entry.name not in selected_configs:
             continue

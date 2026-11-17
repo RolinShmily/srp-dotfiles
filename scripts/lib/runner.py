@@ -24,7 +24,6 @@ class Runner:
         self.dry_run = dry_run
         self.results = Results()
         self.last_interrupt = 0.0
-        self.os_name = ""
 
     def _ask(self, prompt: str, default: str) -> str:
         try:

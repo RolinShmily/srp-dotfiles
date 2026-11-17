@@ -3,7 +3,7 @@
  *
  *   GET /                 installer matching the client OS
  *   GET /config           HTML configurator (assets)
- *   GET /api/catalog      unit catalog JSON (assets)
+ *   GET /api/catalog      app/config/mirror catalog JSON (assets)
  *   GET /install.sh       Unix bootstrap
  *   GET /install.ps1      Windows bootstrap
  *   GET /repo.tar.gz      repository tarball (bootstrap mirror)
@@ -15,7 +15,7 @@
  *
  * Deploy from this directory:
  *
- *   npx wrangler deploy
+ *   npx wrangler@4 deploy
  */
 const REPO = "RolinShmily/srp-dotfiles";
 const REF = "main";

@@ -1,8 +1,4 @@
 {
-  "packageManagers": [
-    "winget",
-    "scoop"
-  ],
   "wingetPackages": [
     "Microsoft.PowerShell",
     "Git.Git",
@@ -42,7 +38,6 @@
     "@antfu/ni",
     "live-server"
   ],
-  "pythonManager": "uv",
   "skillsAdd": [],
   "configs": [
     {

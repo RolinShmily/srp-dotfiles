@@ -6,6 +6,7 @@
     "global": {},
     "cn": {
       "githubProxy": [
+        "https://ghfast.top/",
         "https://gh-proxy.com/"
       ],
       "npmRegistry": "https://registry.npmmirror.com",
