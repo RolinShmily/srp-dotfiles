@@ -230,8 +230,12 @@ only the fields the template declares and keeps `defaultProfile` / `profiles.lis
 
 ## Font
 
-[Maple Mono NF CN](https://github.com/subframe7536/maple-font) is installed automatically by
-`install` on both platforms; failures are non-fatal and point at `manifest/mirror.json`.
+`install` deploys [Maple Mono NF CN](https://github.com/subframe7536/maple-font) (terminal),
+[Inter](https://github.com/rsms/inter) (Latin UI) and
+[Source Han Sans SC](https://github.com/adobe-fonts/source-han-sans) (CJK UI) from their GitHub
+releases. All three are licensed under SIL OFL 1.1. Source Han Sans SC is a ~95 MB download.
+Termux keeps only Maple because it supports a single terminal font. Downloads use
+`githubProxy` / `proxy`; failures are non-fatal.
 
 ## Acknowledgements
 

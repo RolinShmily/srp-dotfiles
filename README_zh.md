@@ -224,7 +224,10 @@ pip（`~/.config/pip/pip.conf` / `%APPDATA%\pip\pip.ini`），并在检测到 `g
 
 ## 字体
 
-`install` 会在两个平台自动安装 [Maple Mono NF CN](https://github.com/subframe7536/maple-font)；失败不中断流程，并提示检查 `manifest/mirror.json`。
+`install` 会安装 [Maple Mono NF CN](https://github.com/subframe7536/maple-font)（终端）、
+[Inter](https://github.com/rsms/inter)（英文 UI）与
+[Source Han Sans SC](https://github.com/adobe-fonts/source-han-sans)（中文 UI），均使用 SIL OFL 1.1。Source Han Sans SC 下载约 95 MB。
+Termux 只保留 Maple，因为它只支持单个终端字体。下载遵循 `githubProxy` / `proxy`，失败不中断流程。
 
 ## 鸣谢与致敬
 

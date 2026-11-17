@@ -82,6 +82,20 @@ node worker/test.mjs
 `test.mjs` mocks the assets binding and script fetch, then checks routing, UA detection,
 `buildCommand`, `buildMirrorFlags` and `buildProxyFlag`.
 
+## Adding a font
+
+Fonts are defined in `FONT_SPECS` (`scripts/lib/installers.py`). Each entry carries the GitHub
+release URL, archive filename patterns, an install prefix and optionally a Termux member / Scoop
+fallback.
+
+To add one:
+
+1. add a `FontSpec` entry;
+2. append the ID to the relevant manifest `fonts` array (Windows also supports `fonts`);
+3. regenerate `worker/public/catalog.json`.
+
+Termux only installs fonts with a `termux_member`, because it supports a single terminal font.
+
 ## Adding an app or config
 
 Apps are declared in `manifest/<os>.json`:

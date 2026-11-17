@@ -121,5 +121,9 @@
       "@repo/configs/pi/skills"
     ],
     "prompts": []
-  }
+  },
+  "fonts": [
+    "Inter",
+    "SourceHanSansSC"
+  ]
 }

@@ -210,16 +210,17 @@ def run_install(
                 core=True,
             )
         for font in fonts:
-            if mirrors.github_proxy or mirrors.proxy:
+            spec = installers.FONT_SPECS.get(font)
+            if spec and spec.scoop_package and not (mirrors.github_proxy or mirrors.proxy):
                 runner.run(
-                    t("step.font", font),
-                    lambda name=font: installers.install_font_windows(name, mirrors),
+                    t("step.scoop_pkg", spec.scoop_package),
+                    lambda pkg=spec.scoop_package: installers.scoop_install(pkg),
                     core=False,
                 )
             else:
                 runner.run(
-                    t("step.scoop_pkg", font),
-                    lambda name=font: installers.scoop_install(name),
+                    t("step.font", font),
+                    lambda name=font: installers.install_font_windows(name, mirrors),
                     core=False,
                 )
         if "uv" in scoop:

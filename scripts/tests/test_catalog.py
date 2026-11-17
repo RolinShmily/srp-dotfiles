@@ -34,6 +34,36 @@ class CatalogTests(unittest.TestCase):
                         f"{os_name}: missing source {entry.source}",
                     )
 
+    def test_font_apps(self) -> None:
+        expected = {"font:MapleMono-NF-CN", "font:Inter", "font:SourceHanSansSC"}
+        for os_name in ("arch", "fedora"):
+            built = catalog.build_catalog(
+                manifest.Manifest(REPO_DIR, os_name),
+                manifest.load_mirrors(REPO_DIR),
+            )
+            ids = {app["id"] for app in built["apps"]}
+            self.assertTrue(expected <= ids, f"{os_name}: {expected - ids}")
+
+        windows = catalog.build_catalog(
+            manifest.Manifest(REPO_DIR, "windows"),
+            manifest.load_mirrors(REPO_DIR),
+        )
+        windows_ids = {app["id"] for app in windows["apps"]}
+        windows_expected = {
+            "font:Maple-Mono-NF-CN",
+            "font:Inter",
+            "font:SourceHanSansSC",
+        }
+        self.assertTrue(windows_expected <= windows_ids)
+
+        termux = catalog.build_catalog(
+            manifest.Manifest(REPO_DIR, "termux"),
+            manifest.load_mirrors(REPO_DIR),
+        )
+        termux_ids = {app["id"] for app in termux["apps"]}
+        self.assertIn("font:MapleMono-NF-CN", termux_ids)
+        self.assertNotIn("font:Inter", termux_ids)
+
     def test_mirror_fields(self) -> None:
         data = manifest.Manifest(REPO_DIR, "windows")
         built = catalog.build_catalog(data, manifest.load_mirrors(REPO_DIR))

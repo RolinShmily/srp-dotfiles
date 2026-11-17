@@ -1,7 +1,9 @@
 {
   "packageManager": "apt",
   "fonts": [
-    "MapleMono-NF-CN"
+    "MapleMono-NF-CN",
+    "Inter",
+    "SourceHanSansSC"
   ],
   "packages": [
     "zsh",

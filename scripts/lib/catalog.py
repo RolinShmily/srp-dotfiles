@@ -91,6 +91,8 @@ def build_catalog(manifest: Manifest, mirrors, profiles=None, default_profile=""
                 add(f"font:{name}", "font", name)
             else:
                 add(f"scoop:{name}", "scoop", name)
+        for font in manifest.array("fonts"):
+            add(f"font:{font}", "font", str(font))
     else:
         manager = manifest.value("packageManager") or manifest.os_name
         for package in manifest.array("packages"):

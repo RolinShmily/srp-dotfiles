@@ -282,6 +282,18 @@
           "label": "MapleMono-NF-CN"
         },
         {
+          "id": "font:Inter",
+          "source": "font",
+          "name": "Inter",
+          "label": "Inter"
+        },
+        {
+          "id": "font:SourceHanSansSC",
+          "source": "font",
+          "name": "SourceHanSansSC",
+          "label": "SourceHanSansSC"
+        },
+        {
           "id": "npm:@earendil-works/pi-coding-agent",
           "source": "npm",
           "name": "@earendil-works/pi-coding-agent",
@@ -529,6 +541,18 @@
           "source": "font",
           "name": "MapleMono-NF-CN",
           "label": "MapleMono-NF-CN"
+        },
+        {
+          "id": "font:Inter",
+          "source": "font",
+          "name": "Inter",
+          "label": "Inter"
+        },
+        {
+          "id": "font:SourceHanSansSC",
+          "source": "font",
+          "name": "SourceHanSansSC",
+          "label": "SourceHanSansSC"
         }
       ],
       "configs": [
@@ -871,6 +895,18 @@
           "source": "font",
           "name": "MapleMono-NF-CN",
           "label": "MapleMono-NF-CN"
+        },
+        {
+          "id": "font:Inter",
+          "source": "font",
+          "name": "Inter",
+          "label": "Inter"
+        },
+        {
+          "id": "font:SourceHanSansSC",
+          "source": "font",
+          "name": "SourceHanSansSC",
+          "label": "SourceHanSansSC"
         },
         {
           "id": "npm:@earendil-works/pi-coding-agent",
@@ -1474,6 +1510,18 @@
           "source": "scoop",
           "name": "lazygit",
           "label": "lazygit"
+        },
+        {
+          "id": "font:Inter",
+          "source": "font",
+          "name": "Inter",
+          "label": "Inter"
+        },
+        {
+          "id": "font:SourceHanSansSC",
+          "source": "font",
+          "name": "SourceHanSansSC",
+          "label": "SourceHanSansSC"
         },
         {
           "id": "npm:@earendil-works/pi-coding-agent",

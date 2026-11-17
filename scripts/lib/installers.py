@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import configparser
+import fnmatch
 import getpass
 import os
 import re
@@ -10,6 +11,7 @@ import shlex
 import shutil
 import tempfile
 import zipfile
+from dataclasses import dataclass
 from pathlib import Path
 
 from . import net
@@ -18,6 +20,44 @@ from .i18n import t
 from .manifest import Manifest, Mirrors
 
 MAPLE_URL = "https://github.com/subframe7536/maple-font/releases/latest/download/MapleMono-NF-CN.zip"
+
+FONT_SUFFIXES = (".ttf", ".otf", ".ttc")
+
+
+@dataclass(frozen=True)
+class FontSpec:
+    id: str
+    url: str
+    patterns: tuple[str, ...]
+    prefix: str
+    termux_member: str | None = None
+    scoop_package: str | None = None
+
+
+FONT_SPECS = {
+    "MapleMono-NF-CN": FontSpec(
+        id="MapleMono-NF-CN",
+        url=MAPLE_URL,
+        patterns=("*.ttf",),
+        prefix="MapleMono-NF-CN",
+        termux_member="MapleMono-NF-CN-Regular.ttf",
+        scoop_package="Maple-Mono-NF-CN",
+    ),
+    "Inter": FontSpec(
+        id="Inter",
+        url="https://github.com/rsms/inter/releases/download/v4.1/Inter-4.1.zip",
+        patterns=("InterVariable.ttf", "InterVariable-Italic.ttf"),
+        prefix="Inter",
+    ),
+    "SourceHanSansSC": FontSpec(
+        id="SourceHanSansSC",
+        url="https://github.com/adobe-fonts/source-han-sans/releases/download/2.005R/09_SourceHanSansSC.zip",
+        patterns=("*.otf",),
+        prefix="SourceHanSansSC",
+    ),
+}
+# The Windows manifest uses the hyphenated family name.
+FONT_SPECS["Maple-Mono-NF-CN"] = FONT_SPECS["MapleMono-NF-CN"]
 
 
 # --------------------------------------------------------------------- Unix
@@ -85,38 +125,70 @@ def install_omz(mirrors: Mirrors) -> None:
     sysinfo.success(t("omz.done"))
 
 
+def _has_fonts(font_dir: Path) -> bool:
+    return font_dir.is_dir() and any(
+        path.is_file() and path.suffix.lower() in FONT_SUFFIXES
+        for path in font_dir.iterdir()
+    )
+
+
+def _extract_fonts(archive: Path, target: Path, spec: FontSpec) -> int:
+    target.mkdir(parents=True, exist_ok=True)
+    count = 0
+    with zipfile.ZipFile(archive) as bundle:
+        for info in bundle.infolist():
+            if info.is_dir():
+                continue
+            name = Path(info.filename).name
+            if (
+                name.lower().endswith(FONT_SUFFIXES)
+                and any(fnmatch.fnmatch(name, pattern) for pattern in spec.patterns)
+            ):
+                (target / name).write_bytes(bundle.read(info))
+                count += 1
+    if count == 0:
+        raise RuntimeError(f"No font files in {archive.name} for {spec.id}")
+    return count
+
+
 def install_font(unix_os: str, font_name: str, mirrors: Mirrors) -> None:
-    if font_name not in ("MapleMono-NF-CN", "Maple-Mono-NF-CN"):
+    spec = FONT_SPECS.get(font_name)
+    if spec is None:
         sysinfo.warn(t("font.unknown", font_name))
         return
 
     with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as handle:
         archive = Path(handle.name)
+    extract_dir = Path(tempfile.mkdtemp(prefix="srp_font_"))
     try:
         if unix_os == "termux":
+            if spec.termux_member is None:
+                sysinfo.warn(t("font.termux_unsupported", font_name))
+                return
             target = sysinfo.home() / ".termux" / "font.ttf"
             if target.is_file():
                 sysinfo.info(t("font.already", font_name, target))
                 return
             target.parent.mkdir(parents=True, exist_ok=True)
             sysinfo.info(t("font.downloading", font_name))
-            net.download(mirrors.github_urls(MAPLE_URL), archive, mirrors)
+            net.download(mirrors.github_urls(spec.url), archive, mirrors)
             with zipfile.ZipFile(archive) as bundle:
-                target.write_bytes(bundle.read("MapleMono-NF-CN-Regular.ttf"))
+                target.write_bytes(bundle.read(spec.termux_member))
             if sysinfo.which("termux-reload-settings"):
                 sysinfo.run(["termux-reload-settings"], check=False)
             sysinfo.success(t("font.installed", font_name, target))
             return
 
-        font_dir = sysinfo.home() / ".local" / "share" / "fonts" / "MapleMono-NF-CN"
-        if font_dir.is_dir() and any(font_dir.glob("*.ttf")):
+        font_dir = sysinfo.home() / ".local" / "share" / "fonts" / spec.id
+        if _has_fonts(font_dir):
             sysinfo.info(t("font.already", font_name, font_dir))
             return
-        font_dir.mkdir(parents=True, exist_ok=True)
         sysinfo.info(t("font.downloading", font_name))
-        net.download(mirrors.github_urls(MAPLE_URL), archive, mirrors)
-        with zipfile.ZipFile(archive) as bundle:
-            bundle.extractall(font_dir)
+        net.download(mirrors.github_urls(spec.url), archive, mirrors)
+        _extract_fonts(archive, extract_dir, spec)
+        font_dir.mkdir(parents=True, exist_ok=True)
+        for font in extract_dir.iterdir():
+            shutil.copy2(font, font_dir / font.name)
         if sysinfo.which("fc-cache"):
             sysinfo.run(["fc-cache", "-f", str(font_dir)], check=False)
         sysinfo.success(t("font.installed", font_name, font_dir))
@@ -127,6 +199,7 @@ def install_font(unix_os: str, font_name: str, mirrors: Mirrors) -> None:
         raise
     finally:
         archive.unlink(missing_ok=True)
+        shutil.rmtree(extract_dir, ignore_errors=True)
 
 
 def npm_install(unix_os: str, package: str, mirrors: Mirrors) -> None:
@@ -284,12 +357,18 @@ def install_uv_python() -> None:
 
 
 def install_font_windows(font_name: str, mirrors: Mirrors) -> None:
-    if font_name not in ("MapleMono-NF-CN", "Maple-Mono-NF-CN"):
+    spec = FONT_SPECS.get(font_name)
+    if spec is None:
         sysinfo.warn(t("font.unknown", font_name))
         return
 
     font_dir = sysinfo.local_appdata() / "Microsoft" / "Windows" / "Fonts"
-    if font_dir.is_dir() and any(font_dir.glob("MapleMono-NF-CN*.ttf")):
+    if font_dir.is_dir() and any(
+        path.is_file()
+        and path.name.startswith(spec.prefix)
+        and path.suffix.lower() in FONT_SUFFIXES
+        for path in font_dir.iterdir()
+    ):
         sysinfo.info(t("font.already", font_name, font_dir))
         return
 
@@ -298,9 +377,8 @@ def install_font_windows(font_name: str, mirrors: Mirrors) -> None:
     extract_dir = Path(tempfile.mkdtemp(prefix="srp_font_"))
     try:
         sysinfo.info(t("font.downloading", font_name))
-        net.download(mirrors.github_urls(MAPLE_URL), archive, mirrors)
-        with zipfile.ZipFile(archive) as bundle:
-            bundle.extractall(extract_dir)
+        net.download(mirrors.github_urls(spec.url), archive, mirrors)
+        _extract_fonts(archive, extract_dir, spec)
         font_dir.mkdir(parents=True, exist_ok=True)
 
         try:
@@ -309,7 +387,9 @@ def install_font_windows(font_name: str, mirrors: Mirrors) -> None:
             winreg = None  # type: ignore[assignment]
 
         count = 0
-        for font in extract_dir.rglob("*.ttf"):
+        for font in extract_dir.iterdir():
+            if font.suffix.lower() not in FONT_SUFFIXES:
+                continue
             dest = font_dir / font.name
             shutil.copy2(font, dest)
             if winreg is not None:
@@ -322,7 +402,7 @@ def install_font_windows(font_name: str, mirrors: Mirrors) -> None:
                     winreg.SetValueEx(key, font.stem, 0, winreg.REG_SZ, str(dest))
             count += 1
         if count == 0:
-            raise RuntimeError(f"No ttf files in {font_name} archive")
+            raise RuntimeError(f"No font files for {font_name}")
         _broadcast_font_change()
         sysinfo.success(t("font.installed", font_name, font_dir))
     finally:

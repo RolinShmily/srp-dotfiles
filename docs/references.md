@@ -122,6 +122,18 @@ GOPROXY
 npm_config_registry
 ```
 
+## Fonts
+
+| ID | Source | Platform |
+| :--- | :--- | :--- |
+| `MapleMono-NF-CN` | `subframe7536/maple-font` latest release | Unix, Windows, Termux |
+| `Inter` | `rsms/inter` v4.1 | Unix, Windows |
+| `SourceHanSansSC` | `adobe-fonts/source-han-sans` 2.005R (SC OTF) | Unix, Windows |
+
+All three are SIL OFL 1.1. Termux installs only `MapleMono-NF-CN` because it supports a single
+`~/.termux/font.ttf`. Windows keeps a Scoop fallback for the Maple family; Inter and Source Han Sans
+are installed directly from their GitHub assets.
+
 ## Worker
 
 ### Routes
