@@ -363,7 +363,7 @@
           },
           {
             "id": "go",
-            "label": "Go GOPROXY",
+            "label": "Go proxy",
             "type": "text"
           }
         ],
@@ -579,7 +579,7 @@
           },
           {
             "id": "go",
-            "label": "Go GOPROXY",
+            "label": "Go proxy",
             "type": "text"
           }
         ],
@@ -949,7 +949,7 @@
           },
           {
             "id": "go",
-            "label": "Go GOPROXY",
+            "label": "Go proxy",
             "type": "text"
           }
         ],
@@ -1266,7 +1266,7 @@
           },
           {
             "id": "go",
-            "label": "Go GOPROXY",
+            "label": "Go proxy",
             "type": "text"
           }
         ],
@@ -1572,7 +1572,7 @@
           },
           {
             "id": "go",
-            "label": "Go GOPROXY",
+            "label": "Go proxy",
             "type": "text"
           },
           {

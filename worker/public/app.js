@@ -157,7 +157,7 @@ function renderMirrors() {
   const host = document.getElementById("mirrors");
   host.replaceChildren();
 
-  const proxyRow = document.createElement("div");
+  const proxyRow = document.createElement("p");
   proxyRow.className = "mirror-field";
   const proxyLabel = document.createElement("label");
   proxyLabel.textContent = "Proxy (all downloads)";
@@ -165,7 +165,7 @@ function renderMirrors() {
   const proxyInput = document.createElement("input");
   proxyInput.id = "mirror-proxy";
   proxyInput.type = "text";
-  proxyInput.size = 40;
+  proxyInput.size = 50;
   proxyInput.value = state.proxyValue;
   proxyInput.addEventListener("input", () => {
     state.proxyValue = proxyInput.value;
@@ -183,7 +183,7 @@ function renderMirrors() {
   host.append(proxyRow);
 
   for (const field of data.fields || []) {
-    const wrapper = document.createElement("div");
+    const wrapper = document.createElement("p");
     wrapper.className = "mirror-field";
 
     const label = document.createElement("label");
@@ -194,11 +194,13 @@ function renderMirrors() {
     control.id = `mirror-${field.id}`;
     control.value = state.mirrorValues[field.id] ?? fieldDisplay(field, profileValues()[field.id]);
     if (field.type === "list") {
-      control.rows = field.id === "scoop" ? 4 : 2;
+      const lines = control.value.split("\n").length;
+      control.rows = Math.min(Math.max(lines, 3), 8);
       control.cols = 50;
+      control.scrollTop = 0;
     } else {
       control.type = "text";
-      control.size = 40;
+      control.size = 50;
     }
     control.addEventListener("input", () => {
       state.mirrorValues[field.id] = control.value;

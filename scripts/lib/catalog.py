@@ -24,7 +24,7 @@ def mirror_fields(os_name: str) -> list[tuple[str, str, str]]:
         ("github", "GitHub proxy", "list"),
         ("npm", "npm registry", "text"),
         ("pypi", "PyPI index", "list"),
-        ("go", "Go GOPROXY", "text"),
+        ("go", "Go proxy", "text"),
     ]
     if os_name == "windows":
         fields.append(("scoop", "Scoop buckets", "list"))

@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Configurator mirror fields are spaced out for readability, and the "Go GOPROXY" label is now "Go proxy".
+
 ## [1.0.1] - 2026-11-17
 
 ### Fixed
