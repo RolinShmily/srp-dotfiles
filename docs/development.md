@@ -154,7 +154,7 @@ Regenerate the catalog, then test with `--catalog` and `--dry-run`.
 ```bash
 python scripts/main.py -y --dry-run --mirror cn
 python scripts/main.py -y --dry-run --mirror-npm none
-python scripts/main.py -y --dry-run --proxy socks5://127.0.0.1:1080
+python scripts/main.py -y --dry-run --proxy 127.0.0.1:7890
 ```
 
 Schema and precedence are in [References](references.md#mirror-schema).

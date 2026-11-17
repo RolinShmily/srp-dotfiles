@@ -214,7 +214,9 @@ node worker/test.mjs
 | `goProxy` | 字符串 | `GOPROXY`，可直接写 `...,direct` |
 | `scoopBuckets` | 数组或对象 | Scoop bucket（Windows） |
 
-顶层 `proxy` 对所有下载生效（`socks5://` 或 `http(s)://`），不属于 profile。
+顶层 `proxy` 对所有下载生效，不属于 profile。填 `host:port` 即可，协议头由安装器补：它会探测该端口，
+响应 SOCKS5 greeting 就用 `socks5://`，否则用 `http://`；显式写了 `http://`、`https://`、`socks5h://`
+等则原样保留。注意 npm 与 winget 不支持 SOCKS，优先用 `http://`（混合端口）。
 系统包管理器（`pacman` / `apt` / `dnf` / `pkg` / `winget`）不覆盖。Scoop 不支持路径前缀镜像，
 配置 GitHub 代理或 `proxy` 后 Maple 字体改为直接下载。
 

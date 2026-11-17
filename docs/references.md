@@ -20,7 +20,7 @@ Schemas, IDs and operational contracts.
 | `--configs` | comma-separated config names; `none` |
 | `--mirror` | profile key from `mirror.json` |
 | `--mirror-<name>` | `github`, `npm`, `pypi`, `go`, `scoop`; `none` clears |
-| `--proxy` | `socks5://…` or `http(s)://…`; `none` clears |
+| `--proxy` | `host:port` (scheme auto-detected) or an explicit proxy URL; `none` clears |
 | `--catalog` | print JSON and exit |
 
 List flags (`--apps`, `--configs`, `--mirror-*`) accept comma-separated values. On PowerShell an

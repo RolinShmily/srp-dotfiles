@@ -223,7 +223,11 @@ Run `python scripts/gen_catalog.py` after changing the manifests, otherwise CI/d
 | `goProxy` | string | `GOPROXY`, including CLI syntax such as `...,direct` |
 | `scoopBuckets` | array or object | Scoop buckets (Windows) |
 
-Top-level `proxy` applies to all downloads (`socks5://` or `http(s)://`) and is not a profile.
+Top-level `proxy` applies to all downloads and is not a profile. Give it as `host:port` and the
+installer adds the scheme: it probes the port once and picks `socks5://` when it answers the SOCKS5
+greeting, otherwise `http://`. An explicit scheme (`http://`, `https://`, `socks5h://`, …) is kept
+verbatim. Note that npm and winget have no SOCKS support, so `http://` (a mixed port) is the safest
+choice.
 System package managers (`pacman` / `apt` / `dnf` / `pkg` / `winget`) are never overridden.
 Scoop cannot use path-prefix mirrors; with a GitHub proxy or `proxy`, the Maple font is downloaded
 directly instead of through Scoop.

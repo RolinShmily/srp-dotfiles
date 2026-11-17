@@ -13,6 +13,8 @@ All notable changes to this project are documented here. The format follows
 - `i18n.py` was replaced by a single-language `messages.py`; `--lang`, `-Lang`, `DF_LANG`/`SRP_LANG`
   and the interactive menu (with its language switch) were removed.
 - `--mirror-profile` is now `--mirror`, matching `--proxy`; per-field overrides stay `--mirror-<name>`.
+- `proxy` accepts `host:port`: the installer probes the port and adds `socks5://` or `http://`
+  (explicit schemes are kept), so only the address and port need to be configured.
 
 ### Added
 
