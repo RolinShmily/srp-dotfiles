@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Documented
+
+- Spell out which mirror settings persist (pip config, `go env`, Scoop buckets) versus which are
+  process-scoped (`proxy`, `githubProxy`, `npmRegistry`), and how to revert them.
+
 ## [1.0.4] - 2026-11-17
 
 ### Changed

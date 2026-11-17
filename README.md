@@ -220,9 +220,30 @@ Run `python scripts/gen_catalog.py` after changing the manifests, otherwise CI/d
 
 Top-level `proxy` applies to all downloads (`socks5://` or `http(s)://`) and is not a profile.
 System package managers (`pacman` / `apt` / `dnf` / `pkg` / `winget`) are never overridden.
-`install` also persists pip (`~/.config/pip/pip.conf` / `%APPDATA%\pip\pip.ini`) and, when `go`
-is installed, Go (`go env -w`). Scoop cannot use path-prefix mirrors; with a GitHub proxy or
-`proxy`, the Maple font is downloaded directly instead of through Scoop.
+Scoop cannot use path-prefix mirrors; with a GitHub proxy or `proxy`, the Maple font is downloaded
+directly instead of through Scoop.
+
+### What gets written to disk
+
+| Setting | Effect | Persisted |
+| :--- | :--- | :--- |
+| `proxy` | process env only | no |
+| `githubProxy` | URL prefix at download time | no |
+| `npmRegistry` | process env + per-call `--registry` | no `.npmrc` write |
+| `pypiIndex` (env) | `PIP_*` / `UV_*` for this run | no |
+| `pypiIndex` (config) | `~/.config/pip/pip.conf` / `%APPDATA%\pip\pip.ini` | **yes** |
+| `goProxy` | `go env -w GOPROXY` (`%APPDATA%\go\env`) | **yes**, if `go` exists |
+| `scoopBuckets` | `scoop bucket rm/add` | **yes** |
+
+Persistence happens on `install` (`-a` / `-i`) whenever the selected profile has a value — it is not
+tied to `--apps`, so `--apps none` still updates `pip.conf`. Picking an empty profile later does
+**not** revert these files; clean up manually:
+
+```bash
+pip config unset global.index-url
+go env -w GOPROXY=          # or delete $GOENV
+scoop bucket rm <name>      # then re-add the default bucket
+```
 
 ## Customization
 

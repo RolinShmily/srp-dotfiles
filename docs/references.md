@@ -117,6 +117,20 @@ Placeholders: `~`, `%APPDATA%`, `%LOCALAPPDATA%`, `$SCOOP`, `$PROFILE`.
 
 Precedence: file profile → `--mirror-profile` → `--mirror-*` / `--proxy`.
 
+Side effects on disk (only during `install`, i.e. `-a` / `-i`):
+
+| Setting | Written to | Persistent |
+| :--- | :--- | :--- |
+| `proxy` | process env (`ALL_PROXY`, `HTTP(S)_PROXY`, `npm_config_proxy`) | no |
+| `githubProxy` | nowhere (used for URL building) | no |
+| `npmRegistry` | process env + `--registry` per npm call | no |
+| `pypiIndex` | `PIP_*` / `UV_*` env, plus `pip.conf` / `pip.ini` | **yes** (config file) |
+| `goProxy` | `GOPROXY` env, plus `go env -w` if `go` exists | **yes** (go env file) |
+| `scoopBuckets` | `scoop bucket` state | **yes** |
+
+Persisted values are not reverted when the selected profile becomes empty; remove them with
+`pip config unset global.index-url`, `go env -w GOPROXY=`, or `scoop bucket rm <name>`.
+
 Environment exports during install:
 
 ```text

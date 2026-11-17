@@ -53,6 +53,14 @@ this file describes intent and trade-offs.
 - Cross-platform abstraction for its own sake; platform-specific logic is allowed in
   `installers.py` and deployers when the behavior genuinely differs.
 
+## Side effects
+
+Mirror selection changes the process environment for the run and, for pip / Go / Scoop, writes
+user-level configuration so repeated installs stay fast. Nothing is written to system-wide paths, and
+`proxy` / `githubProxy` / `npmRegistry` never touch persistent files. The trade-off is asymmetry:
+`install` persists pip and Go settings even when no apps are selected, and an emptied profile does not
+revert them — documented in [References](references.md#mirror-schema).
+
 ## Trade-offs
 
 - The Python requirement breaks very minimal Unix installs, but removes the Node dependency for

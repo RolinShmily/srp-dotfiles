@@ -213,9 +213,29 @@ node worker/test.mjs
 | `scoopBuckets` | 数组或对象 | Scoop bucket（Windows） |
 
 顶层 `proxy` 对所有下载生效（`socks5://` 或 `http(s)://`），不属于 profile。
-系统包管理器（`pacman` / `apt` / `dnf` / `pkg` / `winget`）不覆盖。`install` 阶段还会持久化
-pip（`~/.config/pip/pip.conf` / `%APPDATA%\pip\pip.ini`），并在检测到 `go` 时写入
-`go env -w`。Scoop 不支持路径前缀镜像，配置 GitHub 代理或 `proxy` 后 Maple 字体改为直接下载。
+系统包管理器（`pacman` / `apt` / `dnf` / `pkg` / `winget`）不覆盖。Scoop 不支持路径前缀镜像，
+配置 GitHub 代理或 `proxy` 后 Maple 字体改为直接下载。
+
+### 哪些会写入磁盘
+
+| 配置 | 生效方式 | 是否持久 |
+| :--- | :--- | :--- |
+| `proxy` | 仅进程环境变量 | 否 |
+| `githubProxy` | 下载时拼 URL | 否 |
+| `npmRegistry` | 进程环境变量 + 每次 `--registry` | 不写 `.npmrc` |
+| `pypiIndex`（环境变量） | 本次运行的 `PIP_*` / `UV_*` | 否 |
+| `pypiIndex`（配置文件） | `~/.config/pip/pip.conf` / `%APPDATA%\pip\pip.ini` | **是** |
+| `goProxy` | `go env -w GOPROXY`（`%APPDATA%\go\env`） | **是**（装了 go 时） |
+| `scoopBuckets` | `scoop bucket rm/add` | **是** |
+
+持久化发生在 `install`（`-a` / `-i`）阶段，只取决于所选 profile 是否有值，**与 `--apps` 无关**：
+即使 `--apps none` 也会更新 `pip.conf`。之后改用空 profile 不会自动回滚，需要手动清理：
+
+```bash
+pip config unset global.index-url
+go env -w GOPROXY=          # 或删除 $GOENV
+scoop bucket rm <name>      # 再重新添加默认 bucket
+```
 
 ## 定制
 
