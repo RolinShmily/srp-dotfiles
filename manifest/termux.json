@@ -51,31 +51,31 @@
     {
       "name": "zshrc",
       "method": "link",
-      "source": "zsh/zshrc",
+      "source": "config/zsh/zshrc",
       "target": "~/.zshrc"
     },
     {
       "name": "vimrc",
       "method": "link",
-      "source": "vim/vimrc",
+      "source": "config/vim/vimrc",
       "target": "~/.vimrc"
     },
     {
       "name": "fastfetch",
       "method": "link",
-      "source": "fastfetch",
+      "source": "config/fastfetch",
       "target": "~/.config/fastfetch"
     },
     {
       "name": "yazi",
       "method": "link",
-      "source": "yazi",
+      "source": "config/yazi",
       "target": "~/.config/yazi"
     },
     {
       "name": "tmux",
       "method": "link",
-      "source": "tmux",
+      "source": "config/tmux",
       "target": "~/.config/tmux"
     },
     {
@@ -87,7 +87,7 @@
     "packages": [],
     "extensions": [],
     "skills": [
-      "@repo/pi/skills"
+      "@repo/config/pi/skills"
     ],
     "prompts": []
   }

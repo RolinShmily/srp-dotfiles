@@ -33,31 +33,31 @@
     {
       "name": "zshrc",
       "method": "link",
-      "source": "zsh/zshrc",
+      "source": "config/zsh/zshrc",
       "target": "~/.zshrc"
     },
     {
       "name": "vimrc",
       "method": "link",
-      "source": "vim/vimrc",
+      "source": "config/vim/vimrc",
       "target": "~/.vimrc"
     },
     {
       "name": "btop-conf",
       "method": "copy",
-      "source": "btop/btop-linux.conf",
+      "source": "config/btop/btop-linux.conf",
       "target": "~/.config/btop/btop.conf"
     },
     {
       "name": "fastfetch",
       "method": "link",
-      "source": "fastfetch",
+      "source": "config/fastfetch",
       "target": "~/.config/fastfetch"
     },
     {
       "name": "tmux",
       "method": "link",
-      "source": "tmux",
+      "source": "config/tmux",
       "target": "~/.config/tmux"
     }
   ],

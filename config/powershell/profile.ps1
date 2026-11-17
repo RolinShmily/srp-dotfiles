@@ -135,7 +135,7 @@ function cat {
 # Yazi 现代文件管理器 (退出时自动同步当前工作目录)
 function yz {
     if (-not (Get-Command "yazi" -ErrorAction SilentlyContinue)) {
-        Write-Warning "未检测到 Yazi，请先通过 'winget install sxyazi.yazi' 或 '.\start.ps1 install' 进行安装。"
+        Write-Warning "未检测到 Yazi，请先通过 'winget install sxyazi.yazi' 或 '.\install.ps1 -i' 进行安装。"
         return
     }
     $tmp = [System.IO.Path]::GetTempFileName()

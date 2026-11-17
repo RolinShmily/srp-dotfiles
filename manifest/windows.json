@@ -22,13 +22,6 @@
     "sharkdp.bat",
     "tldr-pages.tlrc"
   ],
-  "scoopBuckets": [
-    "main = https://mirror.nju.edu.cn/git/scoop-main.git",
-    "extras = https://mirror.nju.edu.cn/git/scoop-extras.git",
-    "versions = https://mirror.nju.edu.cn/git/scoop-versions.git",
-    "nerd-fonts = https://mirror.nju.edu.cn/git/scoop-nerd-fonts.git/",
-    "dorado = https://github.com/chawyehsu/dorado"
-  ],
   "scoopPackages": [
     "aria2",
     "vim",
@@ -55,51 +48,51 @@
     {
       "name": "vimrc",
       "method": "copy",
-      "source": "vim/vimrc",
+      "source": "config/vim/vimrc",
       "target": "~/_vimrc"
     },
     {
       "name": "powershell",
       "method": "copy",
-      "source": "powershell/profile.ps1",
+      "source": "config/powershell/profile.ps1",
       "target": "$PROFILE"
     },
     {
       "name": "zellij",
       "method": "copy",
-      "source": "zellij",
+      "source": "config/zellij",
       "target": "%APPDATA%/Zellij/config"
     },
     {
       "name": "yazi",
       "method": "copy",
-      "source": "yazi",
+      "source": "config/yazi",
       "target": "%APPDATA%/yazi/config"
     },
     {
       "name": "fastfetch",
       "method": "copy",
-      "source": "fastfetch",
+      "source": "config/fastfetch",
       "target": "~/.config/fastfetch"
     },
     {
       "name": "btop-persist-conf",
       "method": "copy",
-      "source": "btop/btop-win.conf",
+      "source": "config/btop/btop-win.conf",
       "target": "$SCOOP/persist/btop/btop.conf",
       "when": "$SCOOP/persist/btop"
     },
     {
       "name": "btop-persist-themes",
       "method": "copy",
-      "source": "btop/themes",
+      "source": "config/btop/themes",
       "target": "$SCOOP/persist/btop/themes",
       "when": "$SCOOP/persist/btop"
     },
     {
       "name": "code-resources",
       "method": "copy",
-      "source": "code",
+      "source": "config/code",
       "exclude": [
         "settings.json.example"
       ],
@@ -108,7 +101,7 @@
     {
       "name": "code-settings",
       "method": "copy",
-      "source": "code/settings.json.example",
+      "source": "config/code/settings.json.example",
       "target": "%APPDATA%/Code/User/settings.json"
     },
     {
@@ -125,7 +118,7 @@
     "packages": [],
     "extensions": [],
     "skills": [
-      "@repo/pi/skills"
+      "@repo/config/pi/skills"
     ],
     "prompts": []
   }
