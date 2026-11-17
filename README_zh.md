@@ -111,7 +111,7 @@ cd ~/Projects/srp-dotfiles
 ```bash
 python scripts/gen_catalog.py     # 根据 manifest 刷新 worker/public/catalog.json
 cd worker
-npx wrangler deploy
+npx wrangler@4 deploy
 ```
 
 ```bash

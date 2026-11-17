@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "deploy": "wrangler deploy",
+    "deploy": "npx wrangler@4 deploy",
     "dev": "wrangler dev",
     "catalog": "python ../scripts/gen_catalog.py",
     "catalog:check": "python ../scripts/gen_catalog.py --check",

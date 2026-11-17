@@ -113,7 +113,7 @@ Pick apps and configs explicitly; mirrors have their own profile/override flags:
 ```bash
 python scripts/gen_catalog.py     # refresh worker/public/catalog.json from manifests
 cd worker
-npx wrangler deploy
+npx wrangler@4 deploy
 ```
 
 ```bash
