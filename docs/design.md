@@ -16,11 +16,13 @@ this file describes intent and trade-offs.
    execute installs or duplicate package lists. Validation stays in `scripts/main.py`.
 5. **One engine, thin shims.** `install.sh` / `install.ps1` only bootstrap Python and locate the
    repository. Business logic lives in `scripts/`.
-6. **Steps are explicit.** Every step confirms, can be retried/skipped/aborted, and is visible in the
+6. **Bootstrap must not depend on the repository.** `mirror.json` lives inside the repo, so the
+   fetch itself falls back across the Worker archive and GitHub proxies before giving up.
+7. **Steps are explicit.** Every step confirms, can be retried/skipped/aborted, and is visible in the
    audit report. `--dry-run` prints the plan without side effects.
-7. **Deploy verbs are limited.** `link`, `copy` and `custom` cover normal configs; anything else is a
+8. **Deploy verbs are limited.** `link`, `copy` and `custom` cover normal configs; anything else is a
    deployer module. Copy is destructive by design; `ifMissing` is the explicit exception.
-8. **Stable IDs.** App and config IDs are part of the public CLI/Worker contract; renaming requires a
+9. **Stable IDs.** App and config IDs are part of the public CLI/Worker contract; renaming requires a
    changelog note and catalog regeneration.
 
 ## Layout conventions

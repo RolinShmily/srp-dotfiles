@@ -83,6 +83,13 @@ Every step is confirmed individually (core / optional label shown). `-y` approve
 required when stdin is not a TTY. Steps whose dependencies are missing (npm, skills, brew-like tools)
 are skipped with a warning instead of failing the run.
 
+If GitHub is unreachable, the bootstrap falls back to the Worker tarball, then `ghfast.top` /
+`gh-proxy.com`, then direct. Override with `SRP_GH_PROXY`, `SRP_REPO_URL` or `SRP_REPO_TARBALL`.
+
+`link` entries point into the clone, so the repository must stay in place. Add `--copy` to deploy
+copies instead (the machine then works without the clone). A missing source fails the step, and the
+config stage verifies every link before reporting success.
+
 ## Selective install
 
 `--catalog` prints the concrete apps, configs and mirror profiles as JSON:
@@ -136,6 +143,7 @@ Full guides live in [docs/](docs/README.md): development, architecture, design a
 | `/install.sh`, `/install.ps1` | explicit scripts (`?os=windows` / `?os=unix` forces a target) |
 | `/config` | checkbox configurator that generates the install command |
 | `/api/catalog` | app/config/mirror catalog consumed by the page (same schema as `--catalog`) |
+| `/repo.tar.gz`, `/repo.zip` | repository archive (bootstrap fallback) |
 | `/health` | health probe |
 
 ```bash

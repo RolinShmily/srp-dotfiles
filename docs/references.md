@@ -25,6 +25,7 @@ Schemas, IDs and operational contracts.
 | `--mirror-profile` | profile key from `mirror.json` |
 | `--mirror-<name>` | `github`, `npm`, `pypi`, `go`, `scoop`; `none` clears |
 | `--proxy` | `socks5://…` or `http(s)://…`; `none` clears |
+| `--copy` | materialise `link` entries as copies (self-contained deployment) |
 | `--catalog` | print JSON and exit |
 
 List flags (`--apps`, `--configs`, `--mirror-*`) accept comma-separated values. On PowerShell an
@@ -131,6 +132,12 @@ Side effects on disk (only during `install`, i.e. `-a` / `-i`):
 Persisted values are not reverted when the selected profile becomes empty; remove them with
 `pip config unset global.index-url`, `go env -w GOPROXY=`, or `scoop bucket rm <name>`.
 
+## Deployment durability
+
+`link` entries point into the repository, so the clone must stay in place. Use `--copy` (or
+`SRP_DEPLOY_METHOD=copy`) to materialise them instead. A missing source now fails the step, and the
+config stage verifies every deployed link, reporting dangling targets and exiting non-zero.
+
 Environment exports during install:
 
 ```text
@@ -162,6 +169,8 @@ are installed directly from their GitHub assets.
 | `/install.sh`, `/install.ps1` | Scripts |
 | `/config` | HTML configurator |
 | `/api/catalog` | Catalog JSON |
+| `/repo.tar.gz` | repository tarball (bootstrap fallback) |
+| `/repo.zip` | repository zip (bootstrap fallback) |
 | `/health` | `ok` |
 
 ### Catalog (schema 7)
@@ -185,6 +194,21 @@ are installed directly from their GitHub assets.
 ```
 
 `gen_catalog.py --check` fails if this file is stale.
+
+## Bootstrap
+
+`install.sh` / `install.ps1` fetch the repository without relying on `mirror.json` (which lives inside
+it). Order:
+
+1. `git clone` from `SRP_REPO_URL` when set; otherwise GitHub via `SRP_GH_PROXY`, `ghfast.top`,
+   `gh-proxy.com`, then direct.
+2. If git is unavailable or every clone fails: tarball/zip from `<origin>/repo.tar.gz`
+   (default `https://dot.srprolin.com`), then `SRP_REPO_TARBALL`, then codeload (direct and through
+   the same proxies).
+3. All candidates failed: exit 1 with the exact commands to retry manually.
+
+Environment: `SRP_REPO_URL`, `SRP_GH_PROXY`, `SRP_REPO_TARBALL`, `SRP_REPO_REF` (default `main`),
+`SRP_DOTFILES_DIR` (default `~/.srp-dotfiles`), `SRP_INSTALL_ORIGIN` (Worker base URL).
 
 ## CI/CD
 

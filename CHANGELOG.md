@@ -6,6 +6,21 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Mirror-aware bootstrap: `install.sh` / `install.ps1` fall back from `git clone` to the Worker
+  repository archive, `ghfast.top` / `gh-proxy.com`, then direct GitHub, with `SRP_REPO_URL`,
+  `SRP_GH_PROXY`, `SRP_REPO_TARBALL`, `SRP_REPO_REF` and `SRP_INSTALL_ORIGIN` overrides.
+- Worker routes `/repo.tar.gz` and `/repo.zip` so the repository can be fetched when git and GitHub
+  are both unreachable.
+- `--copy` (or `SRP_DEPLOY_METHOD=copy`) materialises `link` entries, producing a deployment that
+  does not depend on the clone.
+
+### Changed
+
+- A missing config source now fails the step instead of being skipped silently, the config stage
+  verifies every deployed link, and the installer exits non-zero when anything failed.
+
 ### Documented
 
 - Spell out which mirror settings persist (pip config, `go env`, Scoop buckets) versus which are

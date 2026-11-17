@@ -79,6 +79,10 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 默认逐个步骤确认（显示“核心 / 可选”标记）；`-y` 一键同意，标准输入不是终端时必须显式指定。
 缺少依赖的步骤（npm、skills 等）会提示并跳过，不会中断整体流程。
 
+GitHub 不可达时，引导脚本会依次回退到 Worker 的仓库归档、`ghfast.top` / `gh-proxy.com`，最后才直连；可用 `SRP_GH_PROXY`、`SRP_REPO_URL`、`SRP_REPO_TARBALL` 指定。
+
+`link` 条目指向仓库，clone 必须保留。加 `--copy` 改为复制部署，之后不依赖仓库；源缺失会让该步骤失败，配置阶段还会校验每个链接，悬空即报错并以非零码退出。
+
 ## 选择性安装
 
 `--catalog` 以 JSON 输出具体的 apps、configs 与镜像 profile：
@@ -133,6 +137,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 | `/install.sh`、`/install.ps1` | 显式脚本（`?os=windows` / `?os=unix` 强制目标） |
 | `/config` | 勾选组件并生成安装命令的页面 |
 | `/api/catalog` | 页面使用的 apps/configs/mirrors catalog（与 `--catalog` 同构） |
+| `/repo.tar.gz`、`/repo.zip` | 仓库归档（引导兜底） |
 | `/health` | 健康检查 |
 
 ```bash
