@@ -6,7 +6,7 @@ const app = await import(new URL("./public/app.js", import.meta.url).href);
 
 const files = new Map([
   ["/config.html", "<!doctype html><title>config</title>"],
-  ["/catalog.json", JSON.stringify({ schema: 7, catalogs: {} })],
+  ["/catalog.json", JSON.stringify({ schema: 8, catalogs: {} })],
 ]);
 const env = {
   ASSETS: {
@@ -39,7 +39,7 @@ assert.ok(result.headers.get("content-security-policy"));
 result = await call("/api/catalog");
 assert.equal(result.status, 200);
 assert.match(result.headers.get("content-type"), /application\/json/);
-assert.equal(JSON.parse(result.body).schema, 7);
+assert.equal(JSON.parse(result.body).schema, 8);
 
 result = await call("/");
 assert.equal(result.body, "script body");
@@ -74,7 +74,7 @@ const noAssets = await worker.fetch(new Request("https://worker.test/config"), {
 assert.equal(noAssets.status, 500);
 
 const catalog = JSON.parse(readFileSync(new URL("./public/catalog.json", import.meta.url)));
-assert.ok(catalog.schema >= 7);
+assert.ok(catalog.schema >= 8);
 assert.ok(catalog.catalogs.arch.mirrors.fields.some((field) => field.id === "pypi"));
 assert.ok(catalog.catalogs.windows.mirrors.fields.some((field) => field.id === "scoop"));
 

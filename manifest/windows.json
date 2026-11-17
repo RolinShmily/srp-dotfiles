@@ -47,51 +47,43 @@
   "configs": [
     {
       "name": "vimrc",
-      "method": "copy",
       "source": "configs/vim/vimrc",
       "target": "~/_vimrc"
     },
     {
       "name": "powershell",
-      "method": "copy",
       "source": "configs/powershell/profile.ps1",
       "target": "$PROFILE"
     },
     {
       "name": "zellij",
-      "method": "copy",
       "source": "configs/zellij",
       "target": "%APPDATA%/Zellij/config"
     },
     {
       "name": "yazi",
-      "method": "copy",
       "source": "configs/yazi",
       "target": "%APPDATA%/yazi/config"
     },
     {
       "name": "fastfetch",
-      "method": "copy",
       "source": "configs/fastfetch",
       "target": "~/.config/fastfetch"
     },
     {
       "name": "btop-persist-conf",
-      "method": "copy",
       "source": "configs/btop/btop-win.conf",
       "target": "$SCOOP/persist/btop/btop.conf",
       "when": "$SCOOP/persist/btop"
     },
     {
       "name": "btop-persist-themes",
-      "method": "copy",
       "source": "configs/btop/themes",
       "target": "$SCOOP/persist/btop/themes",
       "when": "$SCOOP/persist/btop"
     },
     {
       "name": "code-resources",
-      "method": "copy",
       "source": "configs/code",
       "exclude": [
         "settings.json"
@@ -100,28 +92,21 @@
     },
     {
       "name": "code-settings",
-      "method": "copy",
       "source": "configs/code/settings.json",
       "target": "%APPDATA%/Code/User/settings.json"
     },
     {
       "name": "windows-terminal-settings",
-      "method": "custom",
+      "source": "configs/windows-terminal/settings.json",
+      "target": "%LOCALAPPDATA%/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json",
       "when": "%LOCALAPPDATA%/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState"
     },
     {
       "name": "pi",
-      "method": "custom"
+      "source": "configs/pi",
+      "target": "~/.pi/agent"
     }
   ],
-  "piResources": {
-    "packages": [],
-    "extensions": [],
-    "skills": [
-      "@repo/configs/pi/skills"
-    ],
-    "prompts": []
-  },
   "fonts": [
     "Inter",
     "SourceHanSansSC"

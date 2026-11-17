@@ -1,8 +1,8 @@
 {
-  "schema": 7,
+  "schema": 8,
   "catalogs": {
     "arch": {
-      "schema": 7,
+      "schema": 8,
       "os": "arch",
       "apps": [
         {
@@ -315,43 +315,35 @@
       "configs": [
         {
           "id": "zshrc",
-          "label": "zshrc",
-          "method": "copy"
+          "label": "zshrc"
         },
         {
           "id": "vimrc",
-          "label": "vimrc",
-          "method": "copy"
+          "label": "vimrc"
         },
         {
           "id": "btop-conf",
-          "label": "btop-conf",
-          "method": "copy"
+          "label": "btop-conf"
         },
         {
           "id": "btop-themes",
-          "label": "btop-themes",
-          "method": "copy"
+          "label": "btop-themes"
         },
         {
           "id": "fastfetch",
-          "label": "fastfetch",
-          "method": "copy"
+          "label": "fastfetch"
         },
         {
           "id": "yazi",
-          "label": "yazi",
-          "method": "copy"
+          "label": "yazi"
         },
         {
           "id": "tmux",
-          "label": "tmux",
-          "method": "copy"
+          "label": "tmux"
         },
         {
           "id": "pi",
-          "label": "pi",
-          "method": "custom"
+          "label": "pi"
         }
       ],
       "mirrors": {
@@ -401,7 +393,7 @@
       }
     },
     "debian": {
-      "schema": 7,
+      "schema": 8,
       "os": "debian",
       "apps": [
         {
@@ -558,28 +550,23 @@
       "configs": [
         {
           "id": "zshrc",
-          "label": "zshrc",
-          "method": "copy"
+          "label": "zshrc"
         },
         {
           "id": "vimrc",
-          "label": "vimrc",
-          "method": "copy"
+          "label": "vimrc"
         },
         {
           "id": "btop-conf",
-          "label": "btop-conf",
-          "method": "copy"
+          "label": "btop-conf"
         },
         {
           "id": "fastfetch",
-          "label": "fastfetch",
-          "method": "copy"
+          "label": "fastfetch"
         },
         {
           "id": "tmux",
-          "label": "tmux",
-          "method": "copy"
+          "label": "tmux"
         }
       ],
       "mirrors": {
@@ -629,7 +616,7 @@
       }
     },
     "fedora": {
-      "schema": 7,
+      "schema": 8,
       "os": "fedora",
       "apps": [
         {
@@ -930,38 +917,31 @@
       "configs": [
         {
           "id": "zshrc",
-          "label": "zshrc",
-          "method": "copy"
+          "label": "zshrc"
         },
         {
           "id": "vimrc",
-          "label": "vimrc",
-          "method": "copy"
+          "label": "vimrc"
         },
         {
           "id": "btop-conf",
-          "label": "btop-conf",
-          "method": "copy"
+          "label": "btop-conf"
         },
         {
           "id": "btop-themes",
-          "label": "btop-themes",
-          "method": "copy"
+          "label": "btop-themes"
         },
         {
           "id": "fastfetch",
-          "label": "fastfetch",
-          "method": "copy"
+          "label": "fastfetch"
         },
         {
           "id": "tmux",
-          "label": "tmux",
-          "method": "copy"
+          "label": "tmux"
         },
         {
           "id": "pi",
-          "label": "pi",
-          "method": "custom"
+          "label": "pi"
         }
       ],
       "mirrors": {
@@ -1011,7 +991,7 @@
       }
     },
     "termux": {
-      "schema": 7,
+      "schema": 8,
       "os": "termux",
       "apps": [
         {
@@ -1252,33 +1232,27 @@
       "configs": [
         {
           "id": "zshrc",
-          "label": "zshrc",
-          "method": "copy"
+          "label": "zshrc"
         },
         {
           "id": "vimrc",
-          "label": "vimrc",
-          "method": "copy"
+          "label": "vimrc"
         },
         {
           "id": "fastfetch",
-          "label": "fastfetch",
-          "method": "copy"
+          "label": "fastfetch"
         },
         {
           "id": "yazi",
-          "label": "yazi",
-          "method": "copy"
+          "label": "yazi"
         },
         {
           "id": "tmux",
-          "label": "tmux",
-          "method": "copy"
+          "label": "tmux"
         },
         {
           "id": "pi",
-          "label": "pi",
-          "method": "custom"
+          "label": "pi"
         }
       ],
       "mirrors": {
@@ -1328,7 +1302,7 @@
       }
     },
     "windows": {
-      "schema": 7,
+      "schema": 8,
       "os": "windows",
       "apps": [
         {
@@ -1545,58 +1519,47 @@
       "configs": [
         {
           "id": "vimrc",
-          "label": "vimrc",
-          "method": "copy"
+          "label": "vimrc"
         },
         {
           "id": "powershell",
-          "label": "powershell",
-          "method": "copy"
+          "label": "powershell"
         },
         {
           "id": "zellij",
-          "label": "zellij",
-          "method": "copy"
+          "label": "zellij"
         },
         {
           "id": "yazi",
-          "label": "yazi",
-          "method": "copy"
+          "label": "yazi"
         },
         {
           "id": "fastfetch",
-          "label": "fastfetch",
-          "method": "copy"
+          "label": "fastfetch"
         },
         {
           "id": "btop-persist-conf",
-          "label": "btop-persist-conf",
-          "method": "copy"
+          "label": "btop-persist-conf"
         },
         {
           "id": "btop-persist-themes",
-          "label": "btop-persist-themes",
-          "method": "copy"
+          "label": "btop-persist-themes"
         },
         {
           "id": "code-resources",
-          "label": "code-resources",
-          "method": "copy"
+          "label": "code-resources"
         },
         {
           "id": "code-settings",
-          "label": "code-settings",
-          "method": "copy"
+          "label": "code-settings"
         },
         {
           "id": "windows-terminal-settings",
-          "label": "windows-terminal-settings",
-          "method": "custom"
+          "label": "windows-terminal-settings"
         },
         {
           "id": "pi",
-          "label": "pi",
-          "method": "custom"
+          "label": "pi"
         }
       ],
       "mirrors": {

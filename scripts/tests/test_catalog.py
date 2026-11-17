@@ -16,47 +16,24 @@ from lib import catalog, manifest  # noqa: E402
 PROFILES = ("arch", "debian", "fedora", "termux", "windows")
 
 
-class DeploymentMethodTests(unittest.TestCase):
-    def test_manifests_use_copy_only(self) -> None:
+class DeploymentEntryTests(unittest.TestCase):
+    def test_entries_have_source_and_no_method(self) -> None:
         for os_name in PROFILES:
             data = manifest.Manifest(REPO_DIR, os_name)
             for entry in data.configs():
-                self.assertIn(
-                    entry.method,
-                    ("copy", "custom"),
-                    f"{os_name}/{entry.name} still uses {entry.method}",
+                self.assertTrue(entry.source, f"{os_name}/{entry.name} has no source")
+                self.assertTrue(entry.targets, f"{os_name}/{entry.name} has no target")
+                self.assertTrue(
+                    (REPO_DIR / entry.source).exists(),
+                    f"{os_name}/{entry.name}: missing source {entry.source}",
                 )
 
-    def test_missing_source_fails(self) -> None:
-        import json
-        import tempfile
-
-        spec = importlib.util.spec_from_file_location("srp_main_d", SCRIPTS_DIR / "main.py")
-        main = importlib.util.module_from_spec(spec)
-        assert spec.loader is not None
-        spec.loader.exec_module(main)
-
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            (root / "manifest").mkdir()
-            (root / "manifest" / "arch.json").write_text(
-                json.dumps(
-                    {
-                        "configs": [
-                            {
-                                "name": "gone",
-                                "method": "copy",
-                                "source": "configs/gone",
-                                "target": str(root / "gone-target"),
-                            }
-                        ]
-                    }
-                ),
-                encoding="utf-8",
-            )
-            data = manifest.Manifest(root, "arch")
-            entry = data.configs()[0]
-            self.assertFalse((root / entry.source).exists())
+    def test_catalog_has_no_method(self) -> None:
+        built = catalog.build_catalog(
+            manifest.Manifest(REPO_DIR, "windows"), manifest.load_mirrors(REPO_DIR)
+        )
+        for entry in built["configs"]:
+            self.assertNotIn("method", entry)
 
 
 class ArgumentParsingTests(unittest.TestCase):
@@ -100,7 +77,7 @@ class CatalogTests(unittest.TestCase):
             self.assertEqual(len(config_ids), len(set(config_ids)))
             for entry in data.configs():
                 self.assertIn(entry.name, config_ids)
-                if entry.method == "copy":
+                if entry.source:
                     self.assertTrue(
                         (REPO_DIR / entry.source).exists(),
                         f"{os_name}: missing source {entry.source}",

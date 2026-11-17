@@ -16,7 +16,6 @@ class ManifestError(Exception):
 @dataclass
 class ConfigEntry:
     name: str
-    method: str
     source: str = ""
     targets: list[str] = field(default_factory=list)
     exclude: list[str] = field(default_factory=list)
@@ -56,8 +55,7 @@ class Manifest:
             if not isinstance(raw, dict):
                 continue
             name = str(raw.get("name") or "").strip()
-            method = str(raw.get("method") or "").strip()
-            if not name or not method:
+            if not name:
                 continue
             targets = raw.get("targets")
             if not isinstance(targets, list):
@@ -66,7 +64,6 @@ class Manifest:
             entries.append(
                 ConfigEntry(
                     name=name,
-                    method=method,
                     source=str(raw.get("source") or ""),
                     targets=[str(item) for item in targets],
                     exclude=[str(item) for item in exclude] if isinstance(exclude, list) else [],

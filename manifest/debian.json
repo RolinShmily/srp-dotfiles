@@ -34,39 +34,28 @@
   "configs": [
     {
       "name": "zshrc",
-      "method": "copy",
       "source": "configs/zsh/zshrc",
       "target": "~/.zshrc"
     },
     {
       "name": "vimrc",
-      "method": "copy",
       "source": "configs/vim/vimrc",
       "target": "~/.vimrc"
     },
     {
       "name": "btop-conf",
-      "method": "copy",
       "source": "configs/btop/btop-linux.conf",
       "target": "~/.config/btop/btop.conf"
     },
     {
       "name": "fastfetch",
-      "method": "copy",
       "source": "configs/fastfetch",
       "target": "~/.config/fastfetch"
     },
     {
       "name": "tmux",
-      "method": "copy",
       "source": "configs/tmux",
       "target": "~/.config/tmux"
     }
-  ],
-  "piResources": {
-    "packages": [],
-    "extensions": [],
-    "skills": [],
-    "prompts": []
-  }
+  ]
 }

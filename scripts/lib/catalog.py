@@ -16,7 +16,7 @@ from dataclasses import dataclass
 
 from .manifest import Manifest
 
-SCHEMA = 7
+SCHEMA = 8
 
 
 def mirror_fields(os_name: str) -> list[tuple[str, str, str]]:
@@ -112,10 +112,7 @@ def build_catalog(manifest: Manifest, mirrors, profiles=None, default_profile=""
             {"id": app.id, "source": app.source, "name": app.name, "label": app.name}
             for app in apps
         ],
-        "configs": [
-            {"id": entry.name, "label": entry.name, "method": entry.method}
-            for entry in manifest.configs()
-        ],
+        "configs": [{"id": entry.name, "label": entry.name} for entry in manifest.configs()],
         "mirrors": build_mirrors(mirrors, manifest.os_name, profiles, default_profile),
     }
 

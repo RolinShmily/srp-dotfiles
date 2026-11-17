@@ -61,57 +61,43 @@
   "configs": [
     {
       "name": "zshrc",
-      "method": "copy",
       "source": "configs/zsh/zshrc",
       "target": "~/.zshrc"
     },
     {
       "name": "vimrc",
-      "method": "copy",
       "source": "configs/vim/vimrc",
       "target": "~/.vimrc"
     },
     {
       "name": "btop-conf",
-      "method": "copy",
       "source": "configs/btop/btop-linux.conf",
       "target": "~/.config/btop/btop.conf"
     },
     {
       "name": "btop-themes",
-      "method": "copy",
       "source": "configs/btop/themes",
       "target": "~/.config/btop/themes"
     },
     {
       "name": "fastfetch",
-      "method": "copy",
       "source": "configs/fastfetch",
       "target": "~/.config/fastfetch"
     },
     {
       "name": "yazi",
-      "method": "copy",
       "source": "configs/yazi",
       "target": "~/.config/yazi"
     },
     {
       "name": "tmux",
-      "method": "copy",
       "source": "configs/tmux",
       "target": "~/.config/tmux"
     },
     {
       "name": "pi",
-      "method": "custom"
+      "source": "configs/pi",
+      "target": "~/.pi/agent"
     }
-  ],
-  "piResources": {
-    "packages": [],
-    "extensions": [],
-    "skills": [
-      "@repo/configs/pi/skills"
-    ],
-    "prompts": []
-  }
+  ]
 }

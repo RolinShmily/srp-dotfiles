@@ -287,27 +287,6 @@ def dispatch(entry: manifest_lib.ConfigEntry, ctx: Context, runner: Runner) -> N
             sysinfo.info(t("config.condition", entry.name, entry.when))
             return
 
-    if entry.method == "custom":
-        module_name = entry.name.replace("-", "_")
-        try:
-            module = importlib.import_module(f"deployers.{module_name}")
-        except ModuleNotFoundError:
-            sysinfo.error(t("config.custom_missing", entry.name, module_name))
-            return
-        runner.run(t("config.custom", entry.name), lambda: module.run(ctx), core=True)
-        return
-
-    if entry.method == "link":
-        def link_removed() -> None:
-            raise ValueError(t("config.link_removed", entry.name))
-
-        runner.run(t("step.copy", entry.name, entry.source), link_removed, core=True)
-        return
-
-    if entry.method != "copy":
-        sysinfo.warn(t("config.method_unknown", entry.name, entry.method))
-        return
-
     source = ctx.repo / entry.source
     if not source.exists():
         # A missing source means an incomplete deployment: fail the step
@@ -317,6 +296,7 @@ def dispatch(entry: manifest_lib.ConfigEntry, ctx: Context, runner: Runner) -> N
 
         runner.run(t("step.copy", entry.name, entry.source), missing_source, core=True)
         return
+
     if not entry.targets:
         def missing_target() -> None:
             raise FileNotFoundError(t("config.target_missing", entry.name))
