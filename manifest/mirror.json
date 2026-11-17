@@ -1,0 +1,26 @@
+{
+  "//": "profile selects defaults; --mirror-<name> overrides individual values. Empty values = system/upstream defaults.",
+  "proxy": "",
+  "profile": "global",
+  "profiles": {
+    "global": {},
+    "cn": {
+      "githubProxy": [
+        "https://gh-proxy.com/"
+      ],
+      "npmRegistry": "https://registry.npmmirror.com",
+      "pypiIndex": [
+        "https://pypi.tuna.tsinghua.edu.cn/simple",
+        "https://mirrors.ustc.edu.cn/pypi/simple"
+      ],
+      "goProxy": "https://goproxy.cn,direct",
+      "scoopBuckets": [
+        "main = https://mirror.nju.edu.cn/git/scoop-main.git",
+        "extras = https://mirror.nju.edu.cn/git/scoop-extras.git",
+        "versions = https://mirror.nju.edu.cn/git/scoop-versions.git",
+        "nerd-fonts = https://mirror.nju.edu.cn/git/scoop-nerd-fonts.git/",
+        "dorado = https://github.com/chawyehsu/dorado"
+      ]
+    }
+  }
+}
