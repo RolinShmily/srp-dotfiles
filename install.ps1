@@ -1,29 +1,19 @@
-# SrP-Dotfiles installer bootstrap.
-# Checks for Python 3.9+ and hands over to scripts\main.py.
+# SrP-Dotfiles bootstrap: check Python 3.9+, fetch the repository, run scripts\main.py.
 #
-# Python is the only hard requirement:
+# Python is the only requirement:
 #   winget install Python.Python.3.12
-#
-# winget ships with App Installer, which is missing on LTSC images, Windows
-# Sandbox and Server. Install it from the Microsoft Store:
+# winget comes from App Installer, which is absent on LTSC/Sandbox/Server:
 #   https://apps.microsoft.com/detail/9NBLGGH4NNS1
-# Without the Store (LTSC/Server), download App Installer and its dependencies:
-#   https://github.com/microsoft/winget-cli/releases
-# winget-free alternatives for Python:
-#   https://www.python.org/downloads/windows/
-#   irm get.scoop.sh | iex ; scoop install python
-#   powershell -c "irm https://astral.sh/uv/install.ps1 | iex" ; uv python install 3.12
+# Without winget: python.org, `scoop install python`, or
+#   powershell -c "irm https://astral.sh/uv/install.ps1 | iex"; uv python install 3.12
 #
-# Usage:
-#   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force; .\install.ps1 -y
-#   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force;
-#   irm https://raw.githubusercontent.com/RolinShmily/srp-dotfiles/main/install.ps1 -OutFile install.ps1;
+# Usage (PowerShell 5.1 blocks local scripts, so relax the policy for this process):
+#   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 #   .\install.ps1 -y
+#   irm https://raw.githubusercontent.com/RolinShmily/srp-dotfiles/main/install.ps1 -OutFile install.ps1; .\install.ps1 -y
 #
-# Note: Windows PowerShell 5.1 defaults to the Restricted policy, which blocks
-# local .ps1 files ("running scripts is disabled on this system"). Setting the
-# policy for the current process is enough; no admin rights are required.
-# The install step also sets RemoteSigned for the current user.
+# Fetch order: git clone (SRP_REPO_URL, then GitHub via SRP_GH_PROXY, ghfast.top,
+# gh-proxy.com, direct), then a zip (Worker /repo.zip, codeload).
 
 $ErrorActionPreference = "Stop"
 
@@ -58,9 +48,7 @@ if (-not (Test-Path (Join-Path $repo "scripts\main.py"))) {
     $repo = if ($env:SRP_DOTFILES_DIR) { $env:SRP_DOTFILES_DIR } else { Join-Path $env:USERPROFILE ".srp-dotfiles" }
 }
 
-# The mirror settings live inside the repository, so fetching it cannot rely
-# on them. Try git through known proxies first, then a tarball (Worker, then
-# GitHub directly).
+# Mirrors live inside the repository, so fetching it cannot use them yet.
 $repoSlug = "RolinShmily/srp-dotfiles"
 $repoRef = if ($env:SRP_REPO_REF) { $env:SRP_REPO_REF } else { "main" }
 $installOrigin = if ($env:SRP_INSTALL_ORIGIN) { $env:SRP_INSTALL_ORIGIN } else { "https://dot.srprolin.com" }

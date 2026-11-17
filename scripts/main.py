@@ -9,7 +9,7 @@ Requires Python 3.9 or newer. On a bare machine install it first:
   Windows: winget install Python.Python.3.12
 
 Usage:
-  python scripts/main.py [-a|--all] [-i|--install] [-c|--config] [-y] [-f]
+  python scripts/main.py [-c|--config] [-y]
 """
 
 from __future__ import annotations

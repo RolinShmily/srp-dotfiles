@@ -41,8 +41,9 @@ jobs:
         run: |
           python scripts/main.py --help > /dev/null
           python scripts/main.py --catalog --os arch > /dev/null
-          python scripts/main.py -a -y --os arch --dry-run > /dev/null
-          python scripts/main.py -a -y --os windows --dry-run > /dev/null
+          python scripts/main.py -c -y --os arch --dry-run > /dev/null
+          python scripts/main.py -y --os arch --dry-run > /dev/null
+          python scripts/main.py -y --os windows --dry-run > /dev/null
 
       - name: Shell syntax
         run: sh -n install.sh
