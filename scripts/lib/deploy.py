@@ -45,12 +45,9 @@ def _backup_path(dest: Path, backup_dir: Path) -> Path:
     return backup_dir / rel
 
 
-def _backup_existing(dest: Path, backup_dir: Path, force: bool) -> None:
-    """Keep the previous content before overwriting, unless --force is used."""
+def _backup_existing(dest: Path, backup_dir: Path) -> None:
+    """Keep the previous content before overwriting it."""
     if not dest.exists():
-        return
-    if force:
-        sysinfo.warn(t("deploy.force_delete", dest))
         return
 
     backup = _backup_path(dest, backup_dir)
@@ -77,7 +74,6 @@ def copy_item(
     src: Path,
     dest: Path,
     backup_dir: Path,
-    force: bool,
     exclude: list[str] | None = None,
     if_missing: bool = False,
 ) -> None:
@@ -86,7 +82,7 @@ def copy_item(
         sysinfo.warn(t("deploy.source_missing", dest.name, src))
         return
 
-    if if_missing and dest.exists() and not force:
+    if if_missing and dest.exists():
         sysinfo.info(t("deploy.if_missing", dest))
         return
 
@@ -97,12 +93,12 @@ def copy_item(
         _remove(dest)
 
     if src.is_file() and dest.is_file():
-        _backup_existing(dest, backup_dir, force)
+        _backup_existing(dest, backup_dir)
         shutil.copyfile(src, dest)
         sysinfo.success(t("deploy.overwrite_file", dest))
         return
 
-    _backup_existing(dest, backup_dir, force)
+    _backup_existing(dest, backup_dir)
 
     if src.is_dir() and exclude:
         _remove(dest)
@@ -111,7 +107,7 @@ def copy_item(
             if child.name in exclude:
                 sysinfo.info(t("deploy.exclude", child.name))
                 continue
-            copy_item(child, dest / child.name, backup_dir, force)
+            copy_item(child, dest / child.name, backup_dir)
         sysinfo.success(t("deploy.overwrite", dest))
         return
 

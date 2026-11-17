@@ -53,16 +53,15 @@ def run(ctx: Context) -> None:
 
     target.mkdir(parents=True, exist_ok=True)
     backup = ctx.backup_dir
-    force = ctx.force
 
     agents = source / "AGENTS.md"
     if agents.is_file():
-        deploy.copy_item(agents, target / "AGENTS.md", backup, force)
+        deploy.copy_item(agents, target / "AGENTS.md", backup)
 
     for name in ("settings.json", "mcp.json", "keybindings.json"):
         source_file = source / name
         if source_file.is_file():
-            deploy.copy_item(source_file, target / name, backup, force)
+            deploy.copy_item(source_file, target / name, backup)
 
     settings_target = target / "settings.json"
     if settings_target.is_file():

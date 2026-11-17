@@ -16,5 +16,4 @@ class Context:
     manifest: Manifest
     mirrors: Mirrors
     backup_dir: Path
-    force: bool
     runner: Runner

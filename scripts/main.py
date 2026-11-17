@@ -64,7 +64,6 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     actions.add_argument("-i", "--install", dest="do_install", action="store_true")
     actions.add_argument("-c", "--config", dest="do_config", action="store_true")
     parser.add_argument("-y", "--yes", action="store_true")
-    parser.add_argument("-f", "--force", "-Force", dest="force", action="store_true")
     # nargs="+" keeps "a,b" and PowerShell's unquoted "a b c" (which it turns
     # into an array) both working.
     parser.add_argument("--apps", nargs="+", default=None)
@@ -330,7 +329,7 @@ def dispatch(entry: manifest_lib.ConfigEntry, ctx: Context, runner: Runner) -> N
         runner.run(
             t("step.copy", entry.name, raw_target),
             lambda s=source, d=target: deploy.copy_item(
-                s, d, ctx.backup_dir, ctx.force, exclude=entry.exclude, if_missing=entry.if_missing
+                s, d, ctx.backup_dir, exclude=entry.exclude, if_missing=entry.if_missing
             ),
             core=True,
         )
@@ -342,7 +341,6 @@ def run_config(
     os_name: str,
     data: manifest_lib.Manifest,
     mirrors: manifest_lib.Mirrors,
-    force: bool,
     selected_configs: set[str],
 ) -> None:
     runner.stage(t("config.title", os_name))
@@ -364,7 +362,6 @@ def run_config(
         manifest=data,
         mirrors=mirrors,
         backup_dir=backup_dir,
-        force=force,
         runner=runner,
     )
     for entry in data.configs():
@@ -380,7 +377,6 @@ def run_action(
     repo: Path,
     os_name: str,
     assume_yes: bool,
-    force: bool,
     dry_run: bool,
     apps_spec: str | None = None,
     configs_spec: str | None = None,
@@ -418,7 +414,7 @@ def run_action(
                 selected_apps,
             )
         if action in ("all", "config"):
-            run_config(runner, repo, os_name, data, mirrors, force, selected_configs)
+            run_config(runner, repo, os_name, data, mirrors, selected_configs)
     finally:
         runner.report(os_name)
     return 1 if runner.results.failed else 0
@@ -428,7 +424,6 @@ def menu(
     repo: Path,
     os_name: str,
     assume_yes: bool,
-    force: bool,
     dry_run: bool,
     apps_spec: str | None,
     configs_spec: str | None,
@@ -454,11 +449,11 @@ def menu(
             return 0
 
         if choice in ("1", ""):
-            run_action("all", repo, os_name, assume_yes, force, dry_run, apps_spec, configs_spec, mirror_overrides, mirror_profile)
+            run_action("all", repo, os_name, assume_yes, dry_run, apps_spec, configs_spec, mirror_overrides, mirror_profile)
         elif choice == "2":
-            run_action("install", repo, os_name, assume_yes, force, dry_run, apps_spec, configs_spec, mirror_overrides, mirror_profile)
+            run_action("install", repo, os_name, assume_yes, dry_run, apps_spec, configs_spec, mirror_overrides, mirror_profile)
         elif choice == "3":
-            run_action("config", repo, os_name, assume_yes, force, dry_run, apps_spec, configs_spec, mirror_overrides, mirror_profile)
+            run_action("config", repo, os_name, assume_yes, dry_run, apps_spec, configs_spec, mirror_overrides, mirror_profile)
         elif choice == "4":
             i18n.set_language("en" if i18n.LANG == "zh" else "zh")
         elif choice == "0":
@@ -519,7 +514,6 @@ def main(argv: list[str]) -> int:
             REPO_DIR,
             os_name,
             args.yes,
-            args.force,
             args.dry_run,
             args.apps,
             args.configs,
@@ -538,7 +532,6 @@ def main(argv: list[str]) -> int:
         REPO_DIR,
         os_name,
         args.yes,
-        args.force,
         args.dry_run,
         args.apps,
         args.configs,

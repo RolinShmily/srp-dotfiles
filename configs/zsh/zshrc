@@ -1,4 +1,4 @@
-# configs/zsh/zshrc - Dotfiles 模块化 Zsh 配置主入口 (软链至 ~/.zshrc)
+# configs/zsh/zshrc - Dotfiles 模块化 Zsh 配置主入口 (部署至 ~/.zshrc)
 
 # ------------------------------------------------------------------
 # 1. 解析 Dotfiles 所在物理目录

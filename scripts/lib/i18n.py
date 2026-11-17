@@ -16,7 +16,6 @@ ZH = {
     ),
     "help.options": (
         "  -y, --yes          全部自动确认（非交互环境必须显式指定）\n"
-        "  -f, --force        配置覆盖时不备份\n"
         "      --apps <ids>      逗号分隔的应用 ID（pkg:/winget:/scoop:/font:/npm:/skill:）\n"
         "      --configs <names>  逗号分隔的配置项名称\n"
         "      --mirror-profile <name> 选择镜像预设（默认取 mirror.json 的 profile）\n"
@@ -30,7 +29,7 @@ ZH = {
     "help.examples": (
         "  ./install.sh                 # 交互菜单\n"
         "  ./install.sh -a -y           # 全自动\n"
-        "  ./install.sh -c --os arch -f"
+        "  ./install.sh -c --os arch"
     ),
     "menu.title": "SrP-Dotfiles 环境管理器",
     "menu.target": " 目标: {0} | 仓库: {1}",
@@ -108,7 +107,6 @@ ZH = {
     "deploy.overwrite": "已覆盖: {0}",
     "deploy.overwrite_file": "已原地覆盖: {0}",
     "deploy.backup": "旧文件已备份: {0} -> {1}",
-    "deploy.force_delete": "强制覆盖，已删除: {0}",
     "deploy.source_missing": "源不存在 [{0}]: {1}",
     "deploy.if_missing": "目标已存在，跳过: {0}",
     "deploy.exclude": "跳过排除项: {0}",
@@ -170,7 +168,6 @@ EN = {
     ),
     "help.options": (
         "  -y, --yes          approve every step (required when stdin is not a TTY)\n"
-        "  -f, --force        overwrite configs without backup\n"
         "      --apps <ids>   comma separated app IDs (pkg:/winget:/scoop:/font:/npm:/skill:)\n"
         "      --configs <names>  comma separated config names\n"
         "      --mirror-profile <name> select a mirror profile (default: mirror.json profile)\n"
@@ -184,7 +181,7 @@ EN = {
     "help.examples": (
         "  ./install.sh                 # interactive menu\n"
         "  ./install.sh -a -y           # fully automated\n"
-        "  ./install.sh -c --os arch -f"
+        "  ./install.sh -c --os arch"
     ),
     "menu.title": "SrP-Dotfiles environment manager",
     "menu.target": " Target: {0} | repo: {1}",
@@ -262,7 +259,6 @@ EN = {
     "deploy.overwrite": "Overwrote: {0}",
     "deploy.overwrite_file": "Overwrote in place: {0}",
     "deploy.backup": "Backed up: {0} -> {1}",
-    "deploy.force_delete": "Force mode, removed: {0}",
     "deploy.source_missing": "Source missing [{0}]: {1}",
     "deploy.if_missing": "Target exists, skipped: {0}",
     "deploy.exclude": "Excluded item: {0}",
