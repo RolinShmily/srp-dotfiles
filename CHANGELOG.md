@@ -25,6 +25,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Breaking
 
+- The `method` field is gone: every `configs` entry is a copy with backup. The `custom` deployers
+  (`scripts/deployers/`), `piResources` and the `.example` templates were removed; `~/.pi/agent` is
+  a plain directory copy relying on Pi's own `skills/` discovery, and Windows Terminal settings are
+  replaced wholesale (the previous file, including `defaultProfile` / `profiles.list`, is archived).
 - `method: "link"` is gone; use `method: "copy"`. `--copy` and `SRP_DEPLOY_METHOD` were removed since
   copy is now the only method.
 - `-f / --force` was removed: copy always archives the previous target, so the flag had no purpose.

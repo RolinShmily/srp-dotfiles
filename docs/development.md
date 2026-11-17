@@ -142,39 +142,12 @@ Configs live under `configs/` and are declared in `configs`:
 ```json
 {
   "name": "starship",
-  "method": "copy",
   "source": "configs/starship",
   "target": "~/.config/starship"
 }
 ```
 
 Regenerate the catalog, then test with `--catalog` and `--dry-run`.
-
-## Adding a deployer
-
-Create `scripts/deployers/<name>.py`, where `<name>` is the manifest name with `-` replaced by `_`:
-
-```python
-from lib import platform_info as sysinfo
-from lib.context import Context
-
-
-def run(ctx: Context) -> None:
-    source = ctx.repo / "configs" / "my-app"
-    target = sysinfo.home() / ".config" / "my-app"
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text((source / "config.toml").read_text(encoding="utf-8"), encoding="utf-8")
-    sysinfo.success(f"my-app deployed to {target}")
-```
-
-Manifest entry:
-
-```json
-{ "name": "my-app", "method": "custom" }
-```
-
-`Context` exposes `repo`, `os_name`, `manifest`, `mirrors`, `backup_dir` and `runner`.
-Reuse `lib.deploy` for copy semantics.
 
 ## Mirrors while testing
 

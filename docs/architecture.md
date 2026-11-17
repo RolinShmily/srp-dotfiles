@@ -20,8 +20,7 @@ single Python engine executes it. There is no package list or platform branch hi
 │   │   ├── runner.py            # confirmation, retry/skip/abort, report
 │   │   ├── deploy.py            # copy/backup verbs
 │   │   ├── installers.py        # package managers, fonts, npm, uv, scoop
-│   │   └── context.py           # context passed to deployers
-│   ├── deployers/               # custom deployment modules (pi, windows-terminal)
+│   │   └── context.py           # execution context for dispatch
 │   └── tests/                   # offline tests
 ├── manifest/
 │   ├── arch|debian|fedora|termux|windows.json
@@ -45,7 +44,7 @@ scripts/main.py
 scripts/lib/runner.py  ── per-step confirm, retry/skip/abort, audit report
         │
         ├── installers.py    pacman/apt/dnf/pkg, winget, scoop, fonts, npm, uv
-        └── deploy.py        copy (plus deployers/*.py)
+        └── deploy.py        copy
 ```
 
 The Worker is a separate consumer of the same manifests:

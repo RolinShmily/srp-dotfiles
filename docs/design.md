@@ -20,8 +20,8 @@ this file describes intent and trade-offs.
    fetch itself falls back across the Worker archive and GitHub proxies before giving up.
 7. **Steps are explicit.** Every step confirms, can be retried/skipped/aborted, and is visible in the
    audit report. `--dry-run` prints the plan without side effects.
-8. **Deploy verbs are limited.** `copy` and `custom` cover normal configs; anything else is a
-   deployer module. Copy is destructive by design; `ifMissing` is the explicit exception.
+8. **One deploy verb.** Everything is copied; the previous target is archived first. `ifMissing`
+   is the only exception and skips an existing target. No symlinks and no per-entry scripts.
 9. **Stable IDs.** App and config IDs are part of the public CLI/Worker contract; renaming requires a
    changelog note and catalog regeneration.
 
@@ -29,7 +29,6 @@ this file describes intent and trade-offs.
 
 - `configs/` — repository content deployed to the machine.
 - `scripts/lib/` — shared engine modules.
-- `scripts/deployers/` — custom deployment modules (`run(ctx)`).
 - `manifest/` — OS manifests and mirror profiles.
 - `worker/` — static assets, routing and the generated catalog.
 
@@ -42,7 +41,6 @@ this file describes intent and trade-offs.
 ## Extension rules
 
 - Adding an app or config changes only a manifest; regenerate `worker/public/catalog.json`.
-- Adding a custom deployer adds `scripts/deployers/<name>.py` and a `custom` manifest entry.
 - Adding an OS profile touches `manifest/<os>.json`, `PROFILES` lists and any new package-manager
   branch.
 - Any behavior change gets a `CHANGELOG.md` entry; tags drive releases.
@@ -53,7 +51,7 @@ this file describes intent and trade-offs.
 - Arbitrary commands from URL parameters; only whitelisted IDs are accepted.
 - Storing user mirror URLs or secrets in the Worker; they remain local to `manifest/mirror.json`.
 - Cross-platform abstraction for its own sake; platform-specific logic is allowed in
-  `installers.py` and deployers when the behavior genuinely differs.
+  `installers.py` when the behavior genuinely differs.
 
 ## Side effects
 

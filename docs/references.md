@@ -53,7 +53,6 @@ unquoted `a,b` is parsed as an array, so the configurator always quotes these va
 | `npmGlobals` | string[] | All |
 | `skillsAdd` | string[] | All |
 | `configs` | object[] | All |
-| `piResources` | object | All |
 | `wingetPackages` | string[] | Windows |
 | `scoopPackages` | string[] | Windows |
 | `pythonManager` | string | Windows (`uv`) |
@@ -63,29 +62,13 @@ unquoted `a,b` is parsed as an array, so the configurator always quotes these va
 | Field | Required | Meaning |
 | :--- | :--- | :--- |
 | `name` | yes | Stable ID |
-| `method` | yes | `copy` / `custom` |
-| `source` | copy | Repository-relative, normally `configs/...` |
-| `target` / `targets` | copy | One or many destinations |
+| `source` | yes | Repository-relative, normally `configs/...` |
+| `target` / `targets` | yes | One or many destinations |
 | `exclude` | no | Top-level names to skip |
 | `ifMissing` | no | Skip an existing copy target |
 | `when` | no | Skip when this path does not exist |
 
 Placeholders: `~`, `%APPDATA%`, `%LOCALAPPDATA%`, `$SCOOP`, `$PROFILE`.
-
-### Pi resources
-
-```json
-{
-  "piResources": {
-    "packages": [],
-    "extensions": [],
-    "skills": ["@repo/configs/pi/skills"],
-    "prompts": []
-  }
-}
-```
-
-`@repo/` resolves to the repository root.
 
 ## Mirror schema
 
@@ -179,7 +162,7 @@ are installed directly from their GitHub assets.
   "catalogs": {
     "arch": {
       "apps": [{ "id": "pkg:zsh", "source": "pacman", "name": "zsh", "label": "zsh" }],
-      "configs": [{ "id": "zshrc", "label": "zshrc", "method": "copy" }],
+      "configs": [{ "id": "zshrc", "label": "zshrc" }],
       "mirrors": {
         "default": "global",
         "proxy": "",

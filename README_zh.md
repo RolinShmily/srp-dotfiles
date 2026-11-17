@@ -116,7 +116,6 @@ GitHub 不可达时，引导脚本会依次回退到 Worker 的仓库归档、`g
 ├── scripts/
 │   ├── main.py                  # CLI、菜单、编排
 │   ├── lib/                     # 清单、镜像、网络、步骤器、部署、安装逻辑
-│   └── deployers/               # Python 编写的特殊部署模块
 ├── manifest/
 │   ├── arch|debian|fedora|termux|windows.json
 │   └── mirror.json              # 镜像与代理
@@ -253,20 +252,16 @@ scoop bucket rm <name>      # 再重新添加默认 bucket
 **加配置项** — 追加到 `configs`：
 
 ```json
-{ "name": "starship", "method": "copy", "source": "configs/starship", "target": "~/.config/starship" }
+{ "name": "starship", "source": "configs/starship", "target": "~/.config/starship" }
 ```
 
-| `method` | 含义 | 必填 |
-| :--- | :--- | :--- |
-| `copy` | 复制到目标；旧内容归档到 `~/.dotfiles_backup_*` | `source` + `target`/`targets` |
-| `custom` | 执行 `scripts/deployers/<name 中 - 换成 _>.py` 的 `run(ctx)` | — |
-
+所有条目都是 **复制**：旧目标先归档到 `~/.dotfiles_backup_*` 再替换，没有别的方式。
 可选字段：`targets`、`exclude`、`ifMissing`、`when`。
 路径占位符：`~`、`%APPDATA%`、`%LOCALAPPDATA%`、`$SCOOP`、`$PROFILE`。
 
-自定义模块会收到包含 `repo`、`os_name`、`manifest`、`mirrors`、`backup_dir`、`runner`
-的上下文，可直接调用 `lib.deploy`。Windows Terminal 就是这样的模块：只覆盖模板声明的字段，
-保留 `defaultProfile` / `profiles.list`。
+目录按整棵复制，`~/.pi/agent` 就是这样部署的（Pi 自己会发现 `~/.pi/agent/skills`）。
+Windows Terminal 也是普通文件复制：模板不含机器相关字段，所以旧的 `settings.json`
+（含 `defaultProfile` / `profiles.list`）会先归档，再被模板替换。
 
 ## 字体
 

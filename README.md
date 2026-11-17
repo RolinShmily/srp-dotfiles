@@ -122,7 +122,6 @@ Full guides live in [docs/](docs/README.md): development, architecture, design a
 ├── scripts/
 │   ├── main.py                  # CLI, menu, orchestration
 │   ├── lib/                     # manifest, mirrors, net, runner, deploy, installers
-│   └── deployers/               # custom deployment modules
 ├── manifest/
 │   ├── arch|debian|fedora|termux|windows.json
 │   └── mirror.json              # mirrors & proxy
@@ -264,20 +263,17 @@ scoop bucket rm <name>      # then re-add the default bucket
 **Add a config entry** — append to `configs`:
 
 ```json
-{ "name": "starship", "method": "copy", "source": "configs/starship", "target": "~/.config/starship" }
+{ "name": "starship", "source": "configs/starship", "target": "~/.config/starship" }
 ```
 
-| `method` | Meaning | Fields |
-| :--- | :--- | :--- |
-| `copy` | Copy into place; the previous target is archived to `~/.dotfiles_backup_*` | `source` + `target`/`targets` |
-| `custom` | Run `scripts/deployers/<name with - as _>.py` (`run(ctx)`) | — |
-
-Optional fields: `targets`, `exclude`, `ifMissing`, `when`.
+Every entry is a **copy**: the previous target is archived to `~/.dotfiles_backup_*` and replaced;
+there is no other method. Optional fields: `targets`, `exclude`, `ifMissing`, `when`.
 Placeholders: `~`, `%APPDATA%`, `%LOCALAPPDATA%`, `$SCOOP`, `$PROFILE`.
 
-Custom modules receive a context with `repo`, `os_name`, `manifest`, `mirrors`, `backup_dir`,
-`runner`, and can call `lib.deploy` helpers. Windows Terminal is such a module: it merges
-only the fields the template declares and keeps `defaultProfile` / `profiles.list`.
+Directories are copied as a whole, which is how `~/.pi/agent` is deployed (Pi discovers
+`~/.pi/agent/skills` on its own). Windows Terminal is a plain file copy too: the template has no
+machine-specific fields, so the previous `settings.json` — including `defaultProfile` /
+`profiles.list` — is archived before the template replaces it.
 
 ## Font
 
