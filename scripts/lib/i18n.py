@@ -22,7 +22,6 @@ ZH = {
         "      --mirror-profile <name> 选择镜像预设（默认取 mirror.json 的 profile）\n"
         "      --mirror-<name> <value> 覆盖单项镜像 (github/npm/pypi/go/scoop)，none 清空\n"
         "      --proxy <url>       所有下载的代理；none 清空\n"
-        "      --copy            把 link 条目改为复制（部署后不依赖仓库）\n"
         "      --catalog         输出完整 catalog JSON 后退出\n"
         "      --os <name>       指定目标: arch|debian|fedora|termux|windows\n"
         "      --lang <zh|en> 界面语言（默认 en）\n"
@@ -84,7 +83,6 @@ ZH = {
     "pypi.done": "PyPI 镜像已写入 {0}",
     "go.done": "GOPROXY 已写入 go env",
     "go.missing": "未检测到 go，仅本次运行导出 GOPROXY",
-    "step.link": "[{0}] 链接 -> {1}",
     "step.copy": "[{0}] 复制 -> {1}",
     "step.copy_example": "[{0}] 模板 -> {1}",
     "report.title": "安装与部署报告",
@@ -107,7 +105,6 @@ ZH = {
     "mirror.profile_missing": "镜像 profile 不存在: {0}",
     "selection.unknown": "未知选择项: {0}",
     "selection.available": "可用项: {0}",
-    "deploy.linked": "已链接: {0} -> {1}",
     "deploy.copied": "已复制: {0}",
     "deploy.overwrite": "已覆盖: {0}",
     "deploy.overwrite_file": "已原地覆盖: {0}",
@@ -118,9 +115,6 @@ ZH = {
     "deploy.exclude": "跳过排除项: {0}",
     "deploy.example_existing": "目标已存在，模板写入: {0}",
     "deploy.example_missing": "目标不存在，按模板创建: {0}",
-    "deploy.link_correct": "链接已正确: {0}",
-    "deploy.link_fallback": "已创建链接（回退方案）: {0} -> {1}",
-    "deploy.copy_fallback": "链接失败，已退化为复制: {0}",
     "shell.done": "默认 Shell 已设置为 zsh。",
     "shell.missing": "未找到 zsh，跳过 Shell 配置。",
     "omz.already": "Oh My Zsh 已安装，跳过。",
@@ -158,11 +152,10 @@ ZH = {
     "config.condition": "[{0}] 条件不满足，跳过 ({1})",
     "config.custom_missing": "[{0}] 自定义部署脚本不存在: {1}",
     "config.method_unknown": "[{0}] 未知 method: {1}",
+    "config.link_removed": "[{0}] 不再支持 link，请改用 copy",
     "config.source_missing": "[{0}] 源不存在: {1}",
     "config.target_missing": "[{0}] 未声明 target/targets，跳过。",
     "config.custom": "[{0}] 自定义部署",
-    "config.copy_mode": "复制模式：link 条目将以复制方式落地，部署后不再依赖仓库。",
-    "config.broken_link": "[{0}] 链接未生效或已悬空",
     "env.shell": "Windows 用户级 SHELL 环境变量。",
     "error.no_tty": "标准输入不是终端；请显式加 -y / --yes 以自动确认。",
     "error.python": "需要 Python 3.9+，当前版本过低。",
@@ -186,7 +179,6 @@ EN = {
         "      --mirror-profile <name> select a mirror profile (default: mirror.json profile)\n"
         "      --mirror-<name> <value> override one mirror (github/npm/pypi/go/scoop); none clears\n"
         "      --proxy <url>      proxy for all downloads; none clears\n"
-        "      --copy         materialise link entries as copies (no repo needed afterwards)\n"
         "      --catalog      print the full catalog JSON and exit\n"
         "      --os <name>    target: arch|debian|fedora|termux|windows\n"
         "      --lang <zh|en> UI language (default: en)\n"
@@ -248,7 +240,6 @@ EN = {
     "pypi.done": "PyPI mirror written to {0}",
     "go.done": "GOPROXY written to go env",
     "go.missing": "go not found; GOPROXY is only exported for this run",
-    "step.link": "[{0}] link -> {1}",
     "step.copy": "[{0}] copy -> {1}",
     "step.copy_example": "[{0}] template -> {1}",
     "report.title": "Installation & deployment report",
@@ -271,7 +262,6 @@ EN = {
     "mirror.profile_missing": "Mirror profile not found: {0}",
     "selection.unknown": "Unknown selection: {0}",
     "selection.available": "Available: {0}",
-    "deploy.linked": "Linked: {0} -> {1}",
     "deploy.copied": "Copied: {0}",
     "deploy.overwrite": "Overwrote: {0}",
     "deploy.overwrite_file": "Overwrote in place: {0}",
@@ -282,9 +272,6 @@ EN = {
     "deploy.exclude": "Excluded item: {0}",
     "deploy.example_existing": "Target exists; template written to: {0}",
     "deploy.example_missing": "Target missing; created from template: {0}",
-    "deploy.link_correct": "Link already correct: {0}",
-    "deploy.link_fallback": "Linked via fallback: {0} -> {1}",
-    "deploy.copy_fallback": "Link failed, fell back to copy: {0}",
     "shell.done": "Default shell set to zsh.",
     "shell.missing": "zsh not found; shell setup skipped.",
     "omz.already": "Oh My Zsh already installed; skipped.",
@@ -322,11 +309,10 @@ EN = {
     "config.condition": "[{0}] Condition not met; skipped ({1})",
     "config.custom_missing": "[{0}] Custom deploy module missing: {1}",
     "config.method_unknown": "[{0}] Unknown method: {1}",
+    "config.link_removed": "[{0}] link is no longer supported; use copy",
     "config.source_missing": "[{0}] Source missing: {1}",
     "config.target_missing": "[{0}] No target/targets declared; skipped.",
     "config.custom": "[{0}] custom deployment",
-    "config.copy_mode": "Copy mode: link entries are materialised, so the deployment no longer needs the repository.",
-    "config.broken_link": "[{0}] link missing or dangling",
     "env.shell": "Windows user-level SHELL environment.",
     "error.no_tty": "stdin is not a TTY; pass -y / --yes to approve steps automatically.",
     "error.python": "Python 3.9+ is required; current version is too old.",

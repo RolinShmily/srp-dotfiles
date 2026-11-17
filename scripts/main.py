@@ -77,7 +77,6 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
             default=None,
         )
     parser.add_argument("--proxy", default=None)
-    parser.add_argument("--copy", dest="copy_mode", action="store_true")
     parser.add_argument("--mirror-profile", dest="mirror_profile", default=None)
     parser.add_argument("--catalog", action="store_true")
     parser.add_argument("--os", dest="os_name", default="")
@@ -299,7 +298,14 @@ def dispatch(entry: manifest_lib.ConfigEntry, ctx: Context, runner: Runner) -> N
         runner.run(t("config.custom", entry.name), lambda: module.run(ctx), core=True)
         return
 
-    if entry.method not in ("link", "copy"):
+    if entry.method == "link":
+        def link_removed() -> None:
+            raise ValueError(t("config.link_removed", entry.name))
+
+        runner.run(t("step.copy", entry.name, entry.source), link_removed, core=True)
+        return
+
+    if entry.method != "copy":
         sysinfo.warn(t("config.method_unknown", entry.name, entry.method))
         return
 
@@ -310,27 +316,18 @@ def dispatch(entry: manifest_lib.ConfigEntry, ctx: Context, runner: Runner) -> N
         def missing_source() -> None:
             raise FileNotFoundError(t("config.source_missing", entry.name, entry.source))
 
-        runner.run(t("step.link", entry.name, entry.source), missing_source, core=True)
+        runner.run(t("step.copy", entry.name, entry.source), missing_source, core=True)
         return
     if not entry.targets:
         def missing_target() -> None:
             raise FileNotFoundError(t("config.target_missing", entry.name))
 
-        runner.run(t("step.link", entry.name, "-"), missing_target, core=True)
+        runner.run(t("step.copy", entry.name, "-"), missing_target, core=True)
         return
 
-    link_mode = entry.method == "link" and not ctx.copy_mode
     for raw_target in entry.targets:
         target = sysinfo.expand_path(raw_target)
-        if link_mode:
-            runner.run(
-                t("step.link", entry.name, raw_target),
-                lambda s=source, d=target: deploy.link_item(
-                    s, d, ctx.backup_dir, entry.exclude, ctx.force
-                ),
-                core=True,
-            )
-        elif entry.method == "copy" and entry.source.endswith(".example"):
+        if entry.source.endswith(".example"):
             runner.run(
                 t("step.copy_example", entry.name, raw_target),
                 lambda s=source, d=target: deploy.copy_example_item(
@@ -348,27 +345,6 @@ def dispatch(entry: manifest_lib.ConfigEntry, ctx: Context, runner: Runner) -> N
             )
 
 
-def verify_links(
-    repo: Path, data: manifest_lib.Manifest, selected: set[str], copy_mode: bool
-) -> list[str]:
-    """Return deployed link targets that do not resolve."""
-    if copy_mode:
-        return []
-    broken: list[str] = []
-    for entry in data.configs():
-        if entry.method != "link" or entry.name not in selected:
-            continue
-        if entry.when and not sysinfo.expand_path(entry.when).exists():
-            continue
-        if not (repo / entry.source).exists():
-            broken.append(f"{entry.name}: {entry.source}")
-            continue
-        for raw_target in entry.targets:
-            if not sysinfo.expand_path(raw_target).exists():
-                broken.append(f"{entry.name}: {raw_target}")
-    return broken
-
-
 def run_config(
     runner: Runner,
     repo: Path,
@@ -377,7 +353,6 @@ def run_config(
     mirrors: manifest_lib.Mirrors,
     force: bool,
     selected_configs: set[str],
-    copy_mode: bool = False,
 ) -> None:
     runner.stage(t("config.title", os_name))
     print_mirror_status(mirrors)
@@ -385,9 +360,6 @@ def run_config(
     backup_dir = sysinfo.home() / f".dotfiles_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     if not runner.dry_run:
         sysinfo.info(t("config.backup", backup_dir))
-
-    if copy_mode:
-        sysinfo.info(t("config.copy_mode"))
 
     if os_name == "windows":
         runner.run(t("step.env"), installers.configure_windows_environment, core=True)
@@ -403,17 +375,12 @@ def run_config(
         backup_dir=backup_dir,
         force=force,
         runner=runner,
-        copy_mode=copy_mode,
     )
     for entry in data.configs():
         if entry.name not in selected_configs:
             continue
         dispatch(entry, ctx, runner)
 
-    if not runner.dry_run:
-        for item in verify_links(repo, data, selected_configs, copy_mode):
-            sysinfo.error(t("config.broken_link", item))
-            runner.results.failed.append(t("config.broken_link", item))
     sysinfo.success(t("config.done"))
 
 
@@ -428,7 +395,6 @@ def run_action(
     configs_spec: str | None = None,
     mirror_overrides: dict[str, str | None] | None = None,
     mirror_profile: str | None = None,
-    copy_mode: bool = False,
 ) -> int:
     loaded = load(repo, os_name, mirror_profile or "")
     if loaded is None:
@@ -461,7 +427,7 @@ def run_action(
                 selected_apps,
             )
         if action in ("all", "config"):
-            run_config(runner, repo, os_name, data, mirrors, force, selected_configs, copy_mode)
+            run_config(runner, repo, os_name, data, mirrors, force, selected_configs)
     finally:
         runner.report(os_name)
     return 1 if runner.results.failed else 0
@@ -477,7 +443,6 @@ def menu(
     configs_spec: str | None,
     mirror_overrides: dict[str, str | None] | None,
     mirror_profile: str | None,
-    copy_mode: bool = False,
 ) -> int:
     while True:
         print()
@@ -498,11 +463,11 @@ def menu(
             return 0
 
         if choice in ("1", ""):
-            run_action("all", repo, os_name, assume_yes, force, dry_run, apps_spec, configs_spec, mirror_overrides, mirror_profile, copy_mode)
+            run_action("all", repo, os_name, assume_yes, force, dry_run, apps_spec, configs_spec, mirror_overrides, mirror_profile)
         elif choice == "2":
-            run_action("install", repo, os_name, assume_yes, force, dry_run, apps_spec, configs_spec, mirror_overrides, mirror_profile, copy_mode)
+            run_action("install", repo, os_name, assume_yes, force, dry_run, apps_spec, configs_spec, mirror_overrides, mirror_profile)
         elif choice == "3":
-            run_action("config", repo, os_name, assume_yes, force, dry_run, apps_spec, configs_spec, mirror_overrides, mirror_profile, copy_mode)
+            run_action("config", repo, os_name, assume_yes, force, dry_run, apps_spec, configs_spec, mirror_overrides, mirror_profile)
         elif choice == "4":
             i18n.set_language("en" if i18n.LANG == "zh" else "zh")
         elif choice == "0":
@@ -522,7 +487,6 @@ def main(argv: list[str]) -> int:
         for name in ("github", "npm", "pypi", "go", "scoop")
     }
     mirror_overrides["proxy"] = args.proxy
-    copy_mode = args.copy_mode or os.environ.get("SRP_DEPLOY_METHOD", "").lower() == "copy"
 
     if args.help:
         print_help()
@@ -570,7 +534,6 @@ def main(argv: list[str]) -> int:
             args.configs,
             mirror_overrides,
             args.mirror_profile,
-            copy_mode,
         )
 
     if not sys.stdin.isatty() and not args.yes and not args.dry_run:
@@ -590,7 +553,6 @@ def main(argv: list[str]) -> int:
         args.configs,
         mirror_overrides,
         args.mirror_profile,
-        copy_mode,
     )
 
 

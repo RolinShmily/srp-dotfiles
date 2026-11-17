@@ -16,12 +16,22 @@ from lib import catalog, manifest  # noqa: E402
 PROFILES = ("arch", "debian", "fedora", "termux", "windows")
 
 
-class LinkVerificationTests(unittest.TestCase):
-    def test_broken_links_are_reported(self) -> None:
+class DeploymentMethodTests(unittest.TestCase):
+    def test_manifests_use_copy_only(self) -> None:
+        for os_name in PROFILES:
+            data = manifest.Manifest(REPO_DIR, os_name)
+            for entry in data.configs():
+                self.assertIn(
+                    entry.method,
+                    ("copy", "custom"),
+                    f"{os_name}/{entry.name} still uses {entry.method}",
+                )
+
+    def test_missing_source_fails(self) -> None:
         import json
         import tempfile
 
-        spec = importlib.util.spec_from_file_location("srp_main_v", SCRIPTS_DIR / "main.py")
+        spec = importlib.util.spec_from_file_location("srp_main_d", SCRIPTS_DIR / "main.py")
         main = importlib.util.module_from_spec(spec)
         assert spec.loader is not None
         spec.loader.exec_module(main)
@@ -34,41 +44,19 @@ class LinkVerificationTests(unittest.TestCase):
                     {
                         "configs": [
                             {
-                                "name": "ok",
-                                "method": "link",
-                                "source": "configs/ok",
-                                "target": str(root / "ok-target"),
-                            },
-                            {
                                 "name": "gone",
-                                "method": "link",
+                                "method": "copy",
                                 "source": "configs/gone",
                                 "target": str(root / "gone-target"),
-                            },
+                            }
                         ]
                     }
                 ),
                 encoding="utf-8",
             )
-            (root / "configs" / "ok").mkdir(parents=True)
-            (root / "ok-target").mkdir()
             data = manifest.Manifest(root, "arch")
-
-            broken = main.verify_links(root, data, {"ok", "gone"}, copy_mode=False)
-            self.assertEqual(len(broken), 1)
-            self.assertIn("gone", broken[0])
-
-            self.assertEqual(main.verify_links(root, data, {"ok", "gone"}, copy_mode=True), [])
-
-    def test_copy_flag(self) -> None:
-        import importlib.util as util
-
-        spec = util.spec_from_file_location("srp_main_c", SCRIPTS_DIR / "main.py")
-        main = util.module_from_spec(spec)
-        assert spec.loader is not None
-        spec.loader.exec_module(main)
-        self.assertTrue(main.parse_args(["-c", "--copy"]).copy_mode)
-        self.assertFalse(main.parse_args(["-c"]).copy_mode)
+            entry = data.configs()[0]
+            self.assertFalse((root / entry.source).exists())
 
 
 class ArgumentParsingTests(unittest.TestCase):
@@ -112,7 +100,7 @@ class CatalogTests(unittest.TestCase):
             self.assertEqual(len(config_ids), len(set(config_ids)))
             for entry in data.configs():
                 self.assertIn(entry.name, config_ids)
-                if entry.method in ("link", "copy"):
+                if entry.method == "copy":
                     self.assertTrue(
                         (REPO_DIR / entry.source).exists(),
                         f"{os_name}: missing source {entry.source}",

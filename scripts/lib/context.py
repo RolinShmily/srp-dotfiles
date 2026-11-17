@@ -18,4 +18,3 @@ class Context:
     backup_dir: Path
     force: bool
     runner: Runner
-    copy_mode: bool = False

@@ -316,12 +316,12 @@
         {
           "id": "zshrc",
           "label": "zshrc",
-          "method": "link"
+          "method": "copy"
         },
         {
           "id": "vimrc",
           "label": "vimrc",
-          "method": "link"
+          "method": "copy"
         },
         {
           "id": "btop-conf",
@@ -331,22 +331,22 @@
         {
           "id": "btop-themes",
           "label": "btop-themes",
-          "method": "link"
+          "method": "copy"
         },
         {
           "id": "fastfetch",
           "label": "fastfetch",
-          "method": "link"
+          "method": "copy"
         },
         {
           "id": "yazi",
           "label": "yazi",
-          "method": "link"
+          "method": "copy"
         },
         {
           "id": "tmux",
           "label": "tmux",
-          "method": "link"
+          "method": "copy"
         },
         {
           "id": "pi",
@@ -559,12 +559,12 @@
         {
           "id": "zshrc",
           "label": "zshrc",
-          "method": "link"
+          "method": "copy"
         },
         {
           "id": "vimrc",
           "label": "vimrc",
-          "method": "link"
+          "method": "copy"
         },
         {
           "id": "btop-conf",
@@ -574,12 +574,12 @@
         {
           "id": "fastfetch",
           "label": "fastfetch",
-          "method": "link"
+          "method": "copy"
         },
         {
           "id": "tmux",
           "label": "tmux",
-          "method": "link"
+          "method": "copy"
         }
       ],
       "mirrors": {
@@ -931,12 +931,12 @@
         {
           "id": "zshrc",
           "label": "zshrc",
-          "method": "link"
+          "method": "copy"
         },
         {
           "id": "vimrc",
           "label": "vimrc",
-          "method": "link"
+          "method": "copy"
         },
         {
           "id": "btop-conf",
@@ -946,17 +946,17 @@
         {
           "id": "btop-themes",
           "label": "btop-themes",
-          "method": "link"
+          "method": "copy"
         },
         {
           "id": "fastfetch",
           "label": "fastfetch",
-          "method": "link"
+          "method": "copy"
         },
         {
           "id": "tmux",
           "label": "tmux",
-          "method": "link"
+          "method": "copy"
         },
         {
           "id": "pi",
@@ -1253,27 +1253,27 @@
         {
           "id": "zshrc",
           "label": "zshrc",
-          "method": "link"
+          "method": "copy"
         },
         {
           "id": "vimrc",
           "label": "vimrc",
-          "method": "link"
+          "method": "copy"
         },
         {
           "id": "fastfetch",
           "label": "fastfetch",
-          "method": "link"
+          "method": "copy"
         },
         {
           "id": "yazi",
           "label": "yazi",
-          "method": "link"
+          "method": "copy"
         },
         {
           "id": "tmux",
           "label": "tmux",
-          "method": "link"
+          "method": "copy"
         },
         {
           "id": "pi",

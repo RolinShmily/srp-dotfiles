@@ -61,13 +61,13 @@
   "configs": [
     {
       "name": "zshrc",
-      "method": "link",
+      "method": "copy",
       "source": "configs/zsh/zshrc",
       "target": "~/.zshrc"
     },
     {
       "name": "vimrc",
-      "method": "link",
+      "method": "copy",
       "source": "configs/vim/vimrc",
       "target": "~/.vimrc"
     },
@@ -79,25 +79,25 @@
     },
     {
       "name": "btop-themes",
-      "method": "link",
+      "method": "copy",
       "source": "configs/btop/themes",
       "target": "~/.config/btop/themes"
     },
     {
       "name": "fastfetch",
-      "method": "link",
+      "method": "copy",
       "source": "configs/fastfetch",
       "target": "~/.config/fastfetch"
     },
     {
       "name": "yazi",
-      "method": "link",
+      "method": "copy",
       "source": "configs/yazi",
       "target": "~/.config/yazi"
     },
     {
       "name": "tmux",
-      "method": "link",
+      "method": "copy",
       "source": "configs/tmux",
       "target": "~/.config/tmux"
     },
