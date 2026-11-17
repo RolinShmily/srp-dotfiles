@@ -100,8 +100,11 @@ command = app.buildCommand({
   apps: allApps,
   configs: allConfigs,
 });
-assert.ok(command.startsWith("irm https://o/install.ps1 -OutFile install.ps1"));
-assert.ok(command.includes("install.ps1 -a -y"));
+assert.equal(
+  command,
+  "Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force; " +
+    "irm https://o/install.ps1 -OutFile install.ps1; .\\install.ps1 -a -y",
+);
 
 const fields = [
   { id: "github", type: "list" },

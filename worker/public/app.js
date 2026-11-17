@@ -75,7 +75,9 @@ export function buildCommand({
 
   const tail = parts.length ? ` ${parts.join(" ")}` : "";
   if (osName === "windows") {
-    return `irm ${origin}/install.ps1 -OutFile install.ps1; .\\install.ps1 -a -y${tail}`;
+    // Windows PowerShell 5.1 defaults to Restricted, which blocks .ps1 files.
+    // Set the policy for this process only, then run the downloaded script.
+    return `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force; irm ${origin}/install.ps1 -OutFile install.ps1; .\\install.ps1 -a -y${tail}`;
   }
   return `curl -fsSL ${origin}/install.sh | sh -s -- -a -y${tail}`;
 }

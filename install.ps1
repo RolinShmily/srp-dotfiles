@@ -5,8 +5,15 @@
 #   winget install Python.Python.3.12
 #
 # Usage:
-#   irm https://raw.githubusercontent.com/RolinShmily/srp-dotfiles/main/install.ps1 | iex
+#   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force; .\install.ps1 -a -y
+#   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force;
+#   irm https://raw.githubusercontent.com/RolinShmily/srp-dotfiles/main/install.ps1 -OutFile install.ps1;
 #   .\install.ps1 -a -y
+#
+# Note: Windows PowerShell 5.1 defaults to the Restricted policy, which blocks
+# local .ps1 files ("running scripts is disabled on this system"). Setting the
+# policy for the current process is enough; no admin rights are required.
+# The install step also sets RemoteSigned for the current user.
 
 $ErrorActionPreference = "Stop"
 

@@ -241,14 +241,25 @@ def install_skill(item: str) -> None:
 # ------------------------------------------------------------------ Windows
 
 def set_execution_policy() -> None:
-    sysinfo.run(
+    """Allow local scripts for the current user (needed by Scoop shims and profiles).
+
+    A group policy can pin the scope, in which case this is skipped with a warning
+    instead of failing the install.
+    """
+    result = sysinfo.run(
         [
             "powershell",
             "-NoProfile",
             "-Command",
             "Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force",
-        ]
+        ],
+        check=False,
+        capture=True,
     )
+    if result.returncode != 0:
+        sysinfo.warn(t("policy.skipped"))
+        return
+    sysinfo.success(t("policy.done"))
 
 
 def winget_install(package_id: str) -> None:
