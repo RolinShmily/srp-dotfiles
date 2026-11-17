@@ -59,18 +59,13 @@ def run(ctx: Context) -> None:
     if agents.is_file():
         deploy.copy_item(agents, target / "AGENTS.md", backup, force)
 
-    settings_example = source / "settings.json.example"
-    settings_target = target / "settings.json"
-    if settings_example.is_file():
-        deploy.copy_example_item(settings_example, settings_target, backup, force)
-        _inject(settings_target, ctx)
-        example_copy = Path(str(settings_target) + ".example")
-        if example_copy.is_file():
-            _inject(example_copy, ctx)
+    for name in ("settings.json", "mcp.json", "keybindings.json"):
+        source_file = source / name
+        if source_file.is_file():
+            deploy.copy_item(source_file, target / name, backup, force)
 
-    for name in ("mcp.json", "keybindings.json"):
-        example = source / f"{name}.example"
-        if example.is_file():
-            deploy.copy_example_item(example, target / name, backup, force)
+    settings_target = target / "settings.json"
+    if settings_target.is_file():
+        _inject(settings_target, ctx)
 
     sysinfo.success(t("pi.done", target))

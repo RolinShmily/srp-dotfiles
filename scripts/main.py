@@ -327,22 +327,13 @@ def dispatch(entry: manifest_lib.ConfigEntry, ctx: Context, runner: Runner) -> N
 
     for raw_target in entry.targets:
         target = sysinfo.expand_path(raw_target)
-        if entry.source.endswith(".example"):
-            runner.run(
-                t("step.copy_example", entry.name, raw_target),
-                lambda s=source, d=target: deploy.copy_example_item(
-                    s, d, ctx.backup_dir, ctx.force, if_missing=entry.if_missing
-                ),
-                core=True,
-            )
-        else:
-            runner.run(
-                t("step.copy", entry.name, raw_target),
-                lambda s=source, d=target: deploy.copy_item(
-                    s, d, ctx.backup_dir, ctx.force, exclude=entry.exclude, if_missing=entry.if_missing
-                ),
-                core=True,
-            )
+        runner.run(
+            t("step.copy", entry.name, raw_target),
+            lambda s=source, d=target: deploy.copy_item(
+                s, d, ctx.backup_dir, ctx.force, exclude=entry.exclude, if_missing=entry.if_missing
+            ),
+            core=True,
+        )
 
 
 def run_config(

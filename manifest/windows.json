@@ -94,14 +94,14 @@
       "method": "copy",
       "source": "configs/code",
       "exclude": [
-        "settings.json.example"
+        "settings.json"
       ],
       "target": "~/.config/code"
     },
     {
       "name": "code-settings",
       "method": "copy",
-      "source": "configs/code/settings.json.example",
+      "source": "configs/code/settings.json",
       "target": "%APPDATA%/Code/User/settings.json"
     },
     {

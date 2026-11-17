@@ -125,7 +125,7 @@ def _merge(target: dict, source: dict, path: str = "") -> None:
 
 
 def run(ctx: Context) -> None:
-    source = ctx.repo / "configs" / "windows-terminal" / "settings.json.example"
+    source = ctx.repo / "configs" / "windows-terminal" / "settings.json"
     target = (
         sysinfo.local_appdata()
         / "Packages"

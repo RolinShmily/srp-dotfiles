@@ -1,4 +1,4 @@
-"""Deployment verbs: copy / copy-example, with backup semantics."""
+"""Deployment verbs: copy, with backup semantics."""
 
 from __future__ import annotations
 
@@ -121,19 +121,3 @@ def copy_item(
     else:
         shutil.copy2(src, dest)
     sysinfo.success(t("deploy.overwrite", dest))
-
-
-def copy_example_item(
-    src: Path,
-    dest: Path,
-    backup_dir: Path,
-    force: bool,
-    if_missing: bool = False,
-) -> None:
-    exists = dest.exists() or _is_link(dest)
-    example = Path(str(dest) + ".example") if exists else dest
-    if exists:
-        sysinfo.info(t("deploy.example_existing", example))
-    else:
-        sysinfo.info(t("deploy.example_missing", dest))
-    copy_item(src, example, backup_dir, force, if_missing=if_missing)

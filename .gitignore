@@ -2,7 +2,6 @@
 .memory/
 .pi/
 .playwright-mcp/
-configs/pi/settings.json
 
 # 日志与临时文件
 *.log
