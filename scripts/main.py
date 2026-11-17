@@ -58,9 +58,7 @@ def print_help() -> None:
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(add_help=False)
-    actions = parser.add_mutually_exclusive_group()
-    actions.add_argument("-i", "--install", dest="do_install", action="store_true")
-    actions.add_argument("-c", "--config", dest="do_config", action="store_true")
+    parser.add_argument("-c", "--config", dest="do_config", action="store_true")
     parser.add_argument("-y", "--yes", action="store_true")
     # nargs="+" keeps "a,b" and PowerShell's unquoted "a b c" (which it turns
     # into an array) both working.
@@ -381,7 +379,7 @@ def run_action(
 
     runner = Runner(assume_yes=assume_yes, dry_run=dry_run)
     try:
-        if action in ("all", "install"):
+        if action == "all":
             run_install(
                 runner,
                 os_name,
@@ -430,12 +428,7 @@ def main(argv: list[str]) -> int:
         )
         return 0
 
-    if args.do_install:
-        action = "install"
-    elif args.do_config:
-        action = "config"
-    else:
-        action = "all"
+    action = "config" if args.do_config else "all"
 
     if not sys.stdin.isatty() and not args.yes and not args.dry_run:
         sysinfo.error(t("error.no_tty"))

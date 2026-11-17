@@ -11,7 +11,7 @@
 #
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/RolinShmily/srp-dotfiles/main/install.sh | sh -s -- -a -y
-#   ./install.sh [-i|--install] [-c|--config] [-y]
+#   ./install.sh [-c|--config] [-y]
 set -eu
 
 PY="${PYTHON:-python3}"
