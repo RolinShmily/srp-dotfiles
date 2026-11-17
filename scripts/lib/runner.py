@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from typing import Callable
 
 from . import platform_info as sysinfo
-from .i18n import t
+from .messages import t
 
 
 @dataclass

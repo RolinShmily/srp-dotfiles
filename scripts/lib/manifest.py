@@ -6,7 +6,7 @@ import json
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .i18n import t
+from .messages import t
 
 
 class ManifestError(Exception):

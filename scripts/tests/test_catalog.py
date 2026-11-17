@@ -49,11 +49,11 @@ class ArgumentParsingTests(unittest.TestCase):
         spec.loader.exec_module(cls.main)
 
     def test_comma_list(self) -> None:
-        args = self.main.parse_args(["-a", "-y", "--apps", "pkg:a,pkg:b"])
+        args = self.main.parse_args(["-y", "--apps", "pkg:a,pkg:b"])
         self.assertEqual(args.apps, "pkg:a,pkg:b")
 
     def test_space_separated_list(self) -> None:
-        args = self.main.parse_args(["-a", "-y", "--apps", "pkg:a", "pkg:b", "--configs", "x"])
+        args = self.main.parse_args(["-y", "--apps", "pkg:a", "pkg:b", "--configs", "x"])
         self.assertEqual(args.apps, "pkg:a,pkg:b")
         self.assertEqual(args.configs, "x")
 

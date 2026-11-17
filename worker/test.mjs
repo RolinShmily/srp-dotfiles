@@ -83,12 +83,12 @@ const allConfigs = ["zshrc", "tmux"];
 const base = { origin: "https://o", osName: "arch", allApps, allConfigs };
 
 let command = app.buildCommand({ ...base, apps: allApps, configs: allConfigs });
-assert.equal(command, "curl -fsSL https://o/install.sh | sh -s -- -a -y");
+assert.equal(command, "curl -fsSL https://o/install.sh | sh -s -- -y");
 
 command = app.buildCommand({ ...base, apps: ["pkg:zsh"], configs: ["tmux"] });
 assert.equal(
   command,
-  "curl -fsSL https://o/install.sh | sh -s -- -a -y --apps pkg:zsh --configs tmux",
+  "curl -fsSL https://o/install.sh | sh -s -- -y --apps pkg:zsh --configs tmux",
 );
 
 command = app.buildCommand({
@@ -101,7 +101,7 @@ command = app.buildCommand({
 });
 assert.equal(
   command,
-  "curl -fsSL https://o/install.sh | sh -s -- -a -y --mirror-profile cn --mirror-npm https://example",
+  "curl -fsSL https://o/install.sh | sh -s -- -y --mirror cn --mirror-npm https://example",
 );
 
 command = app.buildCommand({
@@ -113,14 +113,14 @@ command = app.buildCommand({
 assert.equal(
   command,
   "Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force; " +
-    "irm https://o/install.ps1 -OutFile install.ps1; .\\install.ps1 -a -y",
+    "irm https://o/install.ps1 -OutFile install.ps1; .\\install.ps1 -y",
 );
 
 const multi = { origin: "https://o", allApps: ["a", "b", "c"], allConfigs: ["x", "y", "z"] };
 assert.equal(
   app.buildCommand({ ...multi, osName: "windows", apps: ["a", "b"], configs: ["x", "y"] }),
   'Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force; ' +
-    "irm https://o/install.ps1 -OutFile install.ps1; .\\install.ps1 -a -y --apps \"a,b\" --configs \"x,y\"",
+    "irm https://o/install.ps1 -OutFile install.ps1; .\\install.ps1 -y --apps \"a,b\" --configs \"x,y\"",
 );
 assert.ok(
   app

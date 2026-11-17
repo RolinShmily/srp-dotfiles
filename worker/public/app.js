@@ -70,7 +70,7 @@ export function buildCommand({
     parts.push(`--configs ${configs.length ? shellArg(configs.join(",")) : "none"}`);
   }
   if (mirrorProfile && mirrorProfile !== defaultProfile) {
-    parts.push(`--mirror-profile ${mirrorProfile}`);
+    parts.push(`--mirror ${mirrorProfile}`);
   }
   parts.push(...mirrorFlags);
 
@@ -78,9 +78,9 @@ export function buildCommand({
   if (osName === "windows") {
     // Windows PowerShell 5.1 defaults to Restricted, which blocks .ps1 files.
     // Set the policy for this process only, then run the downloaded script.
-    return `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force; irm ${origin}/install.ps1 -OutFile install.ps1; .\\install.ps1 -a -y${tail}`;
+    return `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force; irm ${origin}/install.ps1 -OutFile install.ps1; .\\install.ps1 -y${tail}`;
   }
-  return `curl -fsSL ${origin}/install.sh | sh -s -- -a -y${tail}`;
+  return `curl -fsSL ${origin}/install.sh | sh -s -- -y${tail}`;
 }
 
 function detectOs() {

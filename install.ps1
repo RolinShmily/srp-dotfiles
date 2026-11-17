@@ -15,10 +15,10 @@
 #   powershell -c "irm https://astral.sh/uv/install.ps1 | iex" ; uv python install 3.12
 #
 # Usage:
-#   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force; .\install.ps1 -a -y
+#   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force; .\install.ps1 -y
 #   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force;
 #   irm https://raw.githubusercontent.com/RolinShmily/srp-dotfiles/main/install.ps1 -OutFile install.ps1;
-#   .\install.ps1 -a -y
+#   .\install.ps1 -y
 #
 # Note: Windows PowerShell 5.1 defaults to the Restricted policy, which blocks
 # local .ps1 files ("running scripts is disabled on this system"). Setting the
@@ -116,8 +116,8 @@ if (-not (Test-Path (Join-Path $repo "scripts\main.py"))) {
     if (-not (Get-Repo -Target $repo)) {
         Write-Host "Could not fetch $repoSlug." -ForegroundColor Red
         Write-Host "Try one of:"
-        Write-Host "  `$env:SRP_REPO_URL = '<git mirror url>'; .\install.ps1 -a -y"
-        Write-Host "  `$env:SRP_GH_PROXY = 'https://ghfast.top/'; .\install.ps1 -a -y"
+        Write-Host "  `$env:SRP_REPO_URL = '<git mirror url>'; .\install.ps1 -y"
+        Write-Host "  `$env:SRP_GH_PROXY = 'https://ghfast.top/'; .\install.ps1 -y"
         Write-Host "  git clone $githubUrl $repo"
         throw "Could not fetch $repoSlug"
     }

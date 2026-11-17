@@ -8,7 +8,7 @@ import stat
 from pathlib import Path
 
 from . import platform_info as sysinfo
-from .i18n import t
+from .messages import t
 
 
 def _is_reparse(path: Path) -> bool:

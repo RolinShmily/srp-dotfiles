@@ -16,7 +16,7 @@ from pathlib import Path
 
 from . import net
 from . import platform_info as sysinfo
-from .i18n import t
+from .messages import t
 from .manifest import Manifest, Mirrors
 
 MAPLE_URL = "https://github.com/subframe7536/maple-font/releases/latest/download/MapleMono-NF-CN.zip"

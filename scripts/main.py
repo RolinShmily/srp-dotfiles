@@ -35,12 +35,11 @@ for stream in (sys.stdout, sys.stderr):
 
 from lib import catalog  # noqa: E402
 from lib import deploy  # noqa: E402
-from lib import i18n  # noqa: E402
 from lib import installers  # noqa: E402
 from lib import manifest as manifest_lib  # noqa: E402
 from lib import platform_info as sysinfo  # noqa: E402
 from lib.context import Context  # noqa: E402
-from lib.i18n import t  # noqa: E402
+from lib.messages import t  # noqa: E402
 from lib.runner import Runner  # noqa: E402
 
 PROFILES = ("arch", "debian", "fedora", "termux", "windows")
@@ -60,7 +59,6 @@ def print_help() -> None:
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(add_help=False)
     actions = parser.add_mutually_exclusive_group()
-    actions.add_argument("-a", "--all", dest="do_all", action="store_true")
     actions.add_argument("-i", "--install", dest="do_install", action="store_true")
     actions.add_argument("-c", "--config", dest="do_config", action="store_true")
     parser.add_argument("-y", "--yes", action="store_true")
@@ -76,10 +74,9 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
             default=None,
         )
     parser.add_argument("--proxy", default=None)
-    parser.add_argument("--mirror-profile", dest="mirror_profile", default=None)
+    parser.add_argument("--mirror", dest="mirror", default=None)
     parser.add_argument("--catalog", action="store_true")
     parser.add_argument("--os", dest="os_name", default="")
-    parser.add_argument("--lang", "-Lang", dest="lang", default="")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("-h", "--help", action="store_true")
     args = parser.parse_args(argv)
@@ -400,53 +397,8 @@ def run_action(
     return 1 if runner.results.failed else 0
 
 
-def menu(
-    repo: Path,
-    os_name: str,
-    assume_yes: bool,
-    dry_run: bool,
-    apps_spec: str | None,
-    configs_spec: str | None,
-    mirror_overrides: dict[str, str | None] | None,
-    mirror_profile: str | None,
-) -> int:
-    while True:
-        print()
-        print("=" * 60)
-        print(t("menu.title"))
-        print(t("menu.target", os_name, repo))
-        print("=" * 60)
-        print(t("menu.choose"))
-        print(t("menu.all"))
-        print(t("menu.install"))
-        print(t("menu.config"))
-        print(t("menu.language", "中文" if i18n.LANG == "zh" else "en"))
-        print(t("menu.exit"))
-        try:
-            choice = input(t("menu.choice")).strip()
-        except (EOFError, KeyboardInterrupt):
-            print()
-            return 0
-
-        if choice in ("1", ""):
-            run_action("all", repo, os_name, assume_yes, dry_run, apps_spec, configs_spec, mirror_overrides, mirror_profile)
-        elif choice == "2":
-            run_action("install", repo, os_name, assume_yes, dry_run, apps_spec, configs_spec, mirror_overrides, mirror_profile)
-        elif choice == "3":
-            run_action("config", repo, os_name, assume_yes, dry_run, apps_spec, configs_spec, mirror_overrides, mirror_profile)
-        elif choice == "4":
-            i18n.set_language("en" if i18n.LANG == "zh" else "zh")
-        elif choice == "0":
-            print(t("menu.done"))
-            return 0
-        else:
-            sysinfo.warn(t("menu.invalid", choice))
-
-
 def main(argv: list[str]) -> int:
     args = parse_args(argv)
-    language = args.lang or os.environ.get("DF_LANG") or os.environ.get("SRP_LANG") or "en"
-    i18n.set_language(language)
 
     mirror_overrides = {
         name: getattr(args, f"mirror_{name.replace('-', '_')}")
@@ -464,7 +416,7 @@ def main(argv: list[str]) -> int:
         return 2
 
     if args.catalog:
-        loaded = load(REPO_DIR, os_name, args.mirror_profile or "")
+        loaded = load(REPO_DIR, os_name, args.mirror or "")
         if loaded is None:
             return 1
         default_profile, profiles = manifest_lib.load_mirror_profiles(REPO_DIR)
@@ -478,28 +430,12 @@ def main(argv: list[str]) -> int:
         )
         return 0
 
-    if args.do_all:
-        action = "all"
-    elif args.do_install:
+    if args.do_install:
         action = "install"
     elif args.do_config:
         action = "config"
     else:
-        action = "launch"
-    if action == "launch":
-        if not sys.stdin.isatty():
-            print_help()
-            return 0
-        return menu(
-            REPO_DIR,
-            os_name,
-            args.yes,
-            args.dry_run,
-            args.apps,
-            args.configs,
-            mirror_overrides,
-            args.mirror_profile,
-        )
+        action = "all"
 
     if not sys.stdin.isatty() and not args.yes and not args.dry_run:
         sysinfo.error(t("error.no_tty"))
@@ -516,7 +452,7 @@ def main(argv: list[str]) -> int:
         args.apps,
         args.configs,
         mirror_overrides,
-        args.mirror_profile,
+        args.mirror,
     )
 
 
