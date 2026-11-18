@@ -177,8 +177,8 @@ are installed directly from their GitHub assets.
 `install.sh` / `install.ps1` fetch the repository without relying on `mirror.json` (which lives inside
 it). Order:
 
-1. `git clone` from `SRP_REPO_URL` when set; otherwise GitHub via `SRP_GH_PROXY`, `ghfast.top`,
-   `gh-proxy.com`, then direct.
+1. `git clone` from `SRP_REPO_URL` when set; otherwise GitHub via `SRP_GH_PROXY`, then the
+   built-in list (`gh-proxy.com`, `gh-proxy.org`, `proxy.269601.xyz`), then direct.
 2. If git is unavailable or every clone fails: tarball/zip from `<origin>/repo.tar.gz`
    (default `https://dot.srprolin.com`), then `SRP_REPO_TARBALL`, then codeload (direct and through
    the same proxies).

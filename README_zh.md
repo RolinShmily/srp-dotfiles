@@ -77,7 +77,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 默认逐个步骤确认（显示“核心 / 可选”标记）；`-y` 一键同意，标准输入不是终端时必须显式指定。
 缺少依赖的步骤（npm、skills 等）会提示并跳过，不会中断整体流程。
 
-GitHub 不可达时，引导脚本会依次回退到 Worker 的仓库归档、`ghfast.top` / `gh-proxy.com`，最后才直连；可用 `SRP_GH_PROXY`、`SRP_REPO_URL`、`SRP_REPO_TARBALL` 指定。
+GitHub 不可达时，引导脚本会依次回退到 Worker 的仓库归档、`gh-proxy.com` / `gh-proxy.org` / `proxy.269601.xyz`，最后才直连；可用 `SRP_GH_PROXY`、`SRP_REPO_URL`、`SRP_REPO_TARBALL` 指定。
 
 配置一律用 **复制** 部署，之后不再依赖仓库。目标已存在时先归档到 `~/.dotfiles_backup_*`。源缺失会让该步骤失败，安装器以非零码退出。
 

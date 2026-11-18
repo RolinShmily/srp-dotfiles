@@ -81,8 +81,9 @@ Every step is confirmed individually (core / optional label shown). `-y` approve
 required when stdin is not a TTY. Steps whose dependencies are missing (npm, skills, brew-like tools)
 are skipped with a warning instead of failing the run.
 
-If GitHub is unreachable, the bootstrap falls back to the Worker tarball, then `ghfast.top` /
-`gh-proxy.com`, then direct. Override with `SRP_GH_PROXY`, `SRP_REPO_URL` or `SRP_REPO_TARBALL`.
+If GitHub is unreachable, the bootstrap falls back to the Worker tarball, then `gh-proxy.com` /
+`gh-proxy.org` / `proxy.269601.xyz`, then direct. Override with `SRP_GH_PROXY`, `SRP_REPO_URL`
+or `SRP_REPO_TARBALL`.
 
 Configs are deployed by **copy**, so the machine does not depend on the clone afterwards. Existing
 targets are archived to `~/.dotfiles_backup_*` before being replaced.

@@ -11,8 +11,9 @@
 #   curl -fsSL https://raw.githubusercontent.com/RolinShmily/srp-dotfiles/main/install.sh | sh -s -- -y
 #   ./install.sh [-c|--config] [-y]
 #
-# Fetch order: git clone (SRP_REPO_URL, then GitHub via SRP_GH_PROXY, ghfast.top,
-# gh-proxy.com, direct), then a tarball (Worker /repo.tar.gz, codeload).
+# Fetch order: git clone (SRP_REPO_URL, then SRP_GH_PROXY and the built-in
+# mirror list, then GitHub directly), then a tarball (Worker /repo.tar.gz,
+# codeload). manifest/mirror.json owns the mirrors used after bootstrap.
 set -eu
 
 PY="${PYTHON:-python3}"
@@ -26,6 +27,9 @@ fi
 REPO_SLUG="RolinShmily/srp-dotfiles"
 REPO_REF="${SRP_REPO_REF:-main}"
 GITHUB_URL="https://github.com/$REPO_SLUG.git"
+# Mirrors that are reachable before any configuration exists. Keep this in
+# sync with the cn profile in manifest/mirror.json.
+GH_PREFIXES="${SRP_GH_PROXY:-} https://gh-proxy.com/ https://gh-proxy.org/ https://proxy.269601.xyz/ "
 WORKER="${SRP_INSTALL_ORIGIN:-https://dot.srprolin.com}"
 
 # "local" is a checkout the caller already sits in, "explicit" honours
@@ -64,7 +68,7 @@ clone_repo() {
     if [ -n "${SRP_REPO_URL:-}" ]; then
         set -- "$SRP_REPO_URL"
     else
-        set -- "${SRP_GH_PROXY:-}" "https://ghfast.top/" "https://gh-proxy.com/" ""
+        set -- $GH_PREFIXES ""
     fi
     for prefix in "$@"; do
         prefix_alive "$prefix" || continue
@@ -80,8 +84,7 @@ clone_repo() {
 refresh_repo() {
     if [ -d "$REPO/.git" ] && command -v git >/dev/null 2>&1; then
         # Fetch by URL: a cached clone may still point at a mirror that died.
-        for url in "$GITHUB_URL" "${SRP_GH_PROXY:+${SRP_GH_PROXY}$GITHUB_URL}" \
-            "https://ghfast.top/$GITHUB_URL" "https://gh-proxy.com/$GITHUB_URL"; do
+        for url in "$GITHUB_URL" $(for prefix in $GH_PREFIXES; do echo "$prefix$GITHUB_URL"; done); do
             [ -n "$url" ] || continue
             git -C "$REPO" fetch --quiet --depth=1 "$url" "$REPO_REF" >/dev/null 2>&1 || continue
             git -C "$REPO" reset --quiet --hard FETCH_HEAD >/dev/null 2>&1 &&
@@ -95,13 +98,9 @@ refresh_repo() {
 
 download_repo() {
     command -v curl >/dev/null 2>&1 && command -v tar >/dev/null 2>&1 || return 1
-    for url in \
-        "$WORKER/repo.tar.gz" \
-        "${SRP_REPO_TARBALL:-}" \
-        "https://codeload.github.com/$REPO_SLUG/tar.gz/refs/heads/$REPO_REF" \
-        "${SRP_GH_PROXY:+${SRP_GH_PROXY}https://codeload.github.com/$REPO_SLUG/tar.gz/refs/heads/$REPO_REF}" \
-        "https://ghfast.top/https://codeload.github.com/$REPO_SLUG/tar.gz/refs/heads/$REPO_REF" \
-        "https://gh-proxy.com/https://codeload.github.com/$REPO_SLUG/tar.gz/refs/heads/$REPO_REF"; do
+    tarball="https://codeload.github.com/$REPO_SLUG/tar.gz/refs/heads/$REPO_REF"
+    for url in "$WORKER/repo.tar.gz" "${SRP_REPO_TARBALL:-}" "$tarball" \
+        $(for prefix in $GH_PREFIXES; do echo "$prefix$tarball"; done); do
         [ -n "$url" ] || continue
         rm -rf "$REPO"
         mkdir -p "$REPO"
@@ -118,7 +117,7 @@ download_repo() {
 if [ ! -f "$REPO/scripts/main.py" ]; then
     if ! clone_repo && ! download_repo; then
         echo "Could not fetch $REPO_SLUG. Try one of:" >&2
-        echo "  SRP_GH_PROXY=https://ghfast.top/ sh install.sh -y" >&2
+        echo "  SRP_GH_PROXY=https://gh-proxy.com/ sh install.sh -y" >&2
         echo "  SRP_REPO_URL=<git mirror url> sh install.sh -y" >&2
         echo "  git clone $GITHUB_URL $REPO" >&2
         exit 1

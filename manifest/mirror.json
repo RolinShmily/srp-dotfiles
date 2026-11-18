@@ -6,8 +6,9 @@
     "global": {},
     "cn": {
       "githubProxy": [
-        "https://ghfast.top/",
-        "https://gh-proxy.com/"
+        "https://gh-proxy.com/",
+        "https://gh-proxy.org/",
+        "https://proxy.269601.xyz/"
       ],
       "npmRegistry": "https://registry.npmmirror.com",
       "pypiIndex": [

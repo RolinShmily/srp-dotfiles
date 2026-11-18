@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-import io
+import json
+import re
 import sys
 import tempfile
 import unittest
@@ -26,25 +27,53 @@ def make_zip(path: Path) -> None:
 
 class MirrorTests(unittest.TestCase):
     def test_proxies_keep_the_direct_url_as_a_fallback(self) -> None:
-        mirrors = Mirrors(github_proxies=["https://ghfast.top/", "https://gh-proxy.com/"])
+        mirrors = Mirrors(github_proxies=["https://gh-proxy.com/", "https://gh-proxy.org/"])
         urls = mirrors.github_urls(GITHUB)
-        self.assertEqual(urls[0], f"https://ghfast.top/{GITHUB}")
-        self.assertEqual(urls[1], f"https://gh-proxy.com/{GITHUB}")
+        self.assertEqual(urls[0], f"https://gh-proxy.com/{GITHUB}")
+        self.assertEqual(urls[1], f"https://gh-proxy.org/{GITHUB}")
         self.assertEqual(urls[-1], GITHUB, "the unproxied URL must stay reachable")
 
     def test_primary_mirror_is_the_first_url(self) -> None:
-        mirrors = Mirrors(github_proxies=["https://ghfast.top/"])
-        self.assertEqual(mirrors.github(GITHUB), f"https://ghfast.top/{GITHUB}")
+        mirrors = Mirrors(github_proxies=["https://gh-proxy.com/"])
+        self.assertEqual(mirrors.github(GITHUB), f"https://gh-proxy.com/{GITHUB}")
 
     def test_non_github_urls_are_left_alone(self) -> None:
-        mirrors = Mirrors(github_proxies=["https://ghfast.top/"])
+        mirrors = Mirrors(github_proxies=["https://gh-proxy.com/"])
         url = "https://registry.npmmirror.com/-/binary/node/"
         self.assertEqual(mirrors.github_urls(url), [url])
 
 
+REPO_DIR = SCRIPTS_DIR.parent
+
+
+class MirrorConfigTests(unittest.TestCase):
+    """The bootstrap clones before it can read mirror.json, so its built-in
+    prefix list is a copy of the cn profile and has to stay identical."""
+
+    def _profile(self) -> set[str]:
+        config = json.loads((REPO_DIR / "manifest" / "mirror.json").read_text(encoding="utf-8"))
+        return {prefix.rstrip("/") + "/" for prefix in config["profiles"]["cn"]["githubProxy"]}
+
+    def _declared(self, name: str) -> set[str]:
+        text = (REPO_DIR / name).read_text(encoding="utf-8")
+        marker = "GH_PREFIXES=" if name.endswith(".sh") else "$prefixes +="
+        line = next(item for item in text.splitlines() if item.startswith(marker))
+        return {url.rstrip("/") + "/" for url in re.findall(r"https://[^\s\"']+", line)}
+
+    def test_bootstrap_prefixes_match_the_cn_profile(self) -> None:
+        expected = self._profile()
+        for name in ("install.sh", "install.ps1"):
+            self.assertEqual(self._declared(name), expected, name)
+
+    def test_ghfast_is_gone(self) -> None:
+        for name in ("install.sh", "install.ps1"):
+            self.assertNotIn("ghfast", (REPO_DIR / name).read_text(encoding="utf-8"), name)
+        self.assertNotIn("ghfast", (REPO_DIR / "manifest" / "mirror.json").read_text(encoding="utf-8"))
+
+
 class DownloadTests(unittest.TestCase):
     def test_invalid_content_falls_through_to_the_next_mirror(self) -> None:
-        mirrors = Mirrors(github_proxies=["https://ghfast.top/"])
+        mirrors = Mirrors(github_proxies=["https://gh-proxy.com/"])
         attempts: list[str] = []
 
         def fake_download(url: str, dest: Path) -> None:
@@ -65,11 +94,11 @@ class DownloadTests(unittest.TestCase):
                 )
             self.assertEqual(len(attempts), 2)
             self.assertTrue(zipfile.is_zipfile(archive))
-            self.assertTrue(attempts[0].startswith("https://ghfast.top/"))
+            self.assertTrue(attempts[0].startswith("https://gh-proxy.com/"))
             self.assertTrue(attempts[1].startswith("https://github.com/"))
 
     def test_every_mirror_failing_raises(self) -> None:
-        mirrors = Mirrors(github_proxies=["https://ghfast.top/"])
+        mirrors = Mirrors(github_proxies=["https://gh-proxy.com/"])
         with tempfile.TemporaryDirectory() as tmp:
             archive = Path(tmp) / "font.zip"
             with mock.patch.object(

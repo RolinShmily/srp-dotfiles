@@ -12,8 +12,9 @@
 #   .\install.ps1 -y
 #   irm https://raw.githubusercontent.com/RolinShmily/srp-dotfiles/main/install.ps1 -OutFile install.ps1; .\install.ps1 -y
 #
-# Fetch order: git clone (SRP_REPO_URL, then GitHub via SRP_GH_PROXY, ghfast.top,
-# gh-proxy.com, direct), then a zip (Worker /repo.zip, codeload).
+# Fetch order: git clone (SRP_REPO_URL, then SRP_GH_PROXY and the built-in
+# mirror list, then GitHub directly), then a zip (Worker /repo.zip, codeload).
+# manifest/mirror.json owns the mirrors used after bootstrap.
 
 $ErrorActionPreference = "Stop"
 
@@ -62,7 +63,9 @@ $githubUrl = "https://github.com/$repoSlug.git"
 
 $prefixes = @()
 if ($env:SRP_GH_PROXY) { $prefixes += $env:SRP_GH_PROXY }
-$prefixes += "https://ghfast.top/", "https://gh-proxy.com/", ""
+# Mirrors reachable before any configuration exists; keep this in sync with the
+# cn profile in manifest/mirror.json.
+$prefixes += "https://gh-proxy.com/", "https://gh-proxy.org/", "https://proxy.269601.xyz/", ""
 
 # A dead mirror answers a probe in seconds but makes git stall for minutes.
 function Test-Prefix {
@@ -151,7 +154,7 @@ if (-not (Test-Path (Join-Path $repo "scripts\main.py"))) {
         Write-Host "Could not fetch $repoSlug." -ForegroundColor Red
         Write-Host "Try one of:"
         Write-Host "  `$env:SRP_REPO_URL = '<git mirror url>'; .\install.ps1 -y"
-        Write-Host "  `$env:SRP_GH_PROXY = 'https://ghfast.top/'; .\install.ps1 -y"
+        Write-Host "  `$env:SRP_GH_PROXY = 'https://gh-proxy.com/'; .\install.ps1 -y"
         Write-Host "  git clone $githubUrl $repo"
         throw "Could not fetch $repoSlug"
     }

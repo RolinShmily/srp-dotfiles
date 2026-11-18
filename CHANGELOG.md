@@ -6,6 +6,13 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- The `cn` mirror profile now uses `gh-proxy.com`, `gh-proxy.org` and `proxy.269601.xyz`;
+  `ghfast.top` is gone from the profile, the bootstrap prefixes and the docs.
+- The bootstrap keeps the unproxied GitHub URL as a fallback instead of stopping at the last
+  mirror, validates downloaded archives, and clones through every prefix.
+
 ## [1.1.0] - 2026-11-18
 
 ### Added
