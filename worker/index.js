@@ -21,6 +21,10 @@ const REPO = "RolinShmily/srp-dotfiles";
 const REF = "main";
 const SOURCE = `https://raw.githubusercontent.com/${REPO}/${REF}`;
 const CACHE_SECONDS = 300;
+// Scripts are fetched through a per-minute cache key: raw.githubusercontent.com
+// edges keep serving an old body for a while, so a stable URL pins an obsolete
+// bootstrap long after a release.
+const SCRIPT_CACHE_SECONDS = 60;
 const REPO_ARCHIVES = {
   "/repo.tar.gz": {
     url: `https://codeload.github.com/${REPO}/tar.gz/refs/heads/${REF}`,
@@ -122,8 +126,9 @@ export default {
       });
     }
 
-    const upstream = await fetch(`${SOURCE}/${name}`, {
-      cf: { cacheEverything: true, cacheTtl: CACHE_SECONDS },
+    const bucket = Math.floor(Date.now() / 1000 / SCRIPT_CACHE_SECONDS);
+    const upstream = await fetch(`${SOURCE}/${name}?bucket=${bucket}`, {
+      cf: { cacheEverything: true, cacheTtl: SCRIPT_CACHE_SECONDS },
     });
     if (!upstream.ok) {
       return new Response(`Installer unavailable (upstream ${upstream.status})\n`, {
@@ -132,6 +137,9 @@ export default {
       });
     }
 
-    return new Response(upstream.body, { status: 200, headers: TEXT_HEADERS });
+    return new Response(upstream.body, {
+      status: 200,
+      headers: { ...TEXT_HEADERS, "cache-control": "no-store" },
+    });
   },
 };

@@ -43,16 +43,17 @@ assert.equal(JSON.parse(result.body).schema, 8);
 
 result = await call("/");
 assert.equal(result.body, "script body");
-assert.ok(upstream.endsWith("/install.sh"));
+assert.match(upstream, /\/install\.sh\?bucket=\d+$/);
 
 result = await call("/", "WindowsPowerShell/5.1");
-assert.ok(upstream.endsWith("/install.ps1"));
+assert.match(upstream, /\/install\.ps1\?bucket=\d+$/);
 
 result = await call("/?os=unix", "WindowsPowerShell/5.1");
-assert.ok(upstream.endsWith("/install.sh"));
+assert.match(upstream, /\/install\.sh\?bucket=\d+$/);
 
 result = await call("/install.ps1");
-assert.ok(upstream.endsWith("/install.ps1"));
+assert.match(upstream, /\/install\.ps1\?bucket=\d+$/);
+assert.equal(result.headers.get("cache-control"), "no-store");
 
 result = await call("/health");
 assert.equal(result.body.trim(), "ok");
