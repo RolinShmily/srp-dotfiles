@@ -86,10 +86,14 @@ function Get-Revision {
 function Update-Repo {
     param([string]$Target)
     if ((-not $env:SRP_REPO_URL) -and (Test-Path (Join-Path $Target ".git")) -and (Get-Command git -ErrorAction SilentlyContinue)) {
-        git -C $Target fetch --quiet --depth=1 origin $repoRef 2>$null | Out-Null
-        if ($LASTEXITCODE -eq 0) {
+        # Fetch by URL: a cached clone may still point at a mirror that died.
+        $urls = @($githubUrl) + ($prefixes | Where-Object { $_ } | ForEach-Object { "$_$githubUrl" })
+        foreach ($url in $urls) {
+            git -C $Target fetch --quiet --depth=1 $url $repoRef 2>$null | Out-Null
+            if ($LASTEXITCODE -ne 0) { continue }
             git -C $Target reset --quiet --hard FETCH_HEAD 2>$null | Out-Null
-            if ($LASTEXITCODE -eq 0) { return $true }
+            git -C $Target remote set-url origin $githubUrl 2>$null | Out-Null
+            return $true
         }
         return $false
     }

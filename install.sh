@@ -79,8 +79,15 @@ clone_repo() {
 
 refresh_repo() {
     if [ -d "$REPO/.git" ] && command -v git >/dev/null 2>&1; then
-        git -C "$REPO" fetch --quiet --depth=1 origin "$REPO_REF" >/dev/null 2>&1 &&
-            git -C "$REPO" reset --quiet --hard FETCH_HEAD >/dev/null 2>&1 && return 0
+        # Fetch by URL: a cached clone may still point at a mirror that died.
+        for url in "$GITHUB_URL" "${SRP_GH_PROXY:+${SRP_GH_PROXY}$GITHUB_URL}" \
+            "https://ghfast.top/$GITHUB_URL" "https://gh-proxy.com/$GITHUB_URL"; do
+            [ -n "$url" ] || continue
+            git -C "$REPO" fetch --quiet --depth=1 "$url" "$REPO_REF" >/dev/null 2>&1 || continue
+            git -C "$REPO" reset --quiet --hard FETCH_HEAD >/dev/null 2>&1 &&
+                git -C "$REPO" remote set-url origin "$GITHUB_URL" >/dev/null 2>&1
+            return 0
+        done
         return 1
     fi
     download_repo
