@@ -100,10 +100,17 @@ class Mirrors:
         return self.github_urls(url)[0]
 
     def github_urls(self, url: str) -> list[str]:
-        """All mirrored URLs in priority order."""
+        """Mirrored URLs in priority order, with the direct upstream last.
+
+        Proxies break in their own ways (403 for git, HTML error pages for
+        release assets), so the unproxied URL stays on the list as the final
+        attempt instead of becoming unreachable the moment a mirror is chosen.
+        """
         if not self.github_proxies or not url.startswith(self._github_prefixes()):
             return [url]
-        return [prefix.rstrip("/") + "/" + url for prefix in self.github_proxies]
+        urls = [prefix.rstrip("/") + "/" + url for prefix in self.github_proxies]
+        urls.append(url)
+        return urls
 
 
 def _text(value) -> str:

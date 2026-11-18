@@ -70,6 +70,30 @@ def _backup_existing(dest: Path, backup_dir: Path) -> None:
         pass
 
 
+def _ensure_dir(path: Path) -> None:
+    """Create path, clearing links that would make later writes fail.
+
+    ``mkdir(parents=True, exist_ok=True)`` accepts a dangling symlink or a plain
+    file sitting where a directory belongs, then every copy into it dies with
+    ENOTDIR. Walk the chain first and replace those placeholders.
+    """
+    if path.is_dir():
+        return
+    if path.parent == path:
+        return
+    _ensure_dir(path.parent)
+    if _is_link(path):
+        # Dangling link, or a link to a file: nothing of value to keep.
+        _remove(path)
+    elif path.exists():
+        raise RuntimeError(t("deploy.blocked", path))
+    try:
+        path.mkdir()
+    except FileExistsError:
+        if not path.is_dir():
+            raise
+
+
 def copy_item(
     src: Path,
     dest: Path,
@@ -86,7 +110,7 @@ def copy_item(
         sysinfo.info(t("deploy.if_missing", dest))
         return
 
-    dest.parent.mkdir(parents=True, exist_ok=True)
+    _ensure_dir(dest.parent)
 
     # Legacy symlinks/junctions from older versions are dropped, not backed up.
     if _is_link(dest):

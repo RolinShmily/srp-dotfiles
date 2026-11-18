@@ -117,11 +117,18 @@ def install_omz(mirrors: Mirrors) -> None:
         net.download(installer_urls, script, mirrors)
         sysinfo.run(
             ["sh", str(script)],
-            env={"RUNZSH": "no", "REMOTE": repo_url, "CHSH": "no"},
+            env={"RUNZSH": "no", "REMOTE": repo_url, "CHSH": "no", **net.proxy_env(mirrors)},
             check=False,
         )
     finally:
         script.unlink(missing_ok=True)
+
+    target = sysinfo.home() / ".oh-my-zsh"
+    if not target.is_dir():
+        # Its installer clones REMOTE inside itself, so a mirror that refuses
+        # git leaves nothing behind; clone with the full fallback chain.
+        sysinfo.warn(t("omz.fallback"))
+        net.git_clone("https://github.com/ohmyzsh/ohmyzsh.git", target, mirrors)
     sysinfo.success(t("omz.done"))
 
 
@@ -171,7 +178,9 @@ def install_font(unix_os: str, font_name: str, mirrors: Mirrors) -> None:
                 return
             target.parent.mkdir(parents=True, exist_ok=True)
             sysinfo.info(t("font.downloading", font_name))
-            net.download(mirrors.github_urls(spec.url), archive, mirrors)
+            net.download(
+                mirrors.github_urls(spec.url), archive, mirrors, validate=zipfile.is_zipfile
+            )
             with zipfile.ZipFile(archive) as bundle:
                 target.write_bytes(bundle.read(spec.termux_member))
             if sysinfo.which("termux-reload-settings"):
@@ -184,7 +193,9 @@ def install_font(unix_os: str, font_name: str, mirrors: Mirrors) -> None:
             sysinfo.info(t("font.already", font_name, font_dir))
             return
         sysinfo.info(t("font.downloading", font_name))
-        net.download(mirrors.github_urls(spec.url), archive, mirrors)
+        net.download(
+            mirrors.github_urls(spec.url), archive, mirrors, validate=zipfile.is_zipfile
+        )
         _extract_fonts(archive, extract_dir, spec)
         font_dir.mkdir(parents=True, exist_ok=True)
         for font in extract_dir.iterdir():
@@ -371,7 +382,9 @@ def install_font_windows(font_name: str, mirrors: Mirrors) -> None:
     extract_dir = Path(tempfile.mkdtemp(prefix="srp_font_"))
     try:
         sysinfo.info(t("font.downloading", font_name))
-        net.download(mirrors.github_urls(spec.url), archive, mirrors)
+        net.download(
+            mirrors.github_urls(spec.url), archive, mirrors, validate=zipfile.is_zipfile
+        )
         _extract_fonts(archive, extract_dir, spec)
         font_dir.mkdir(parents=True, exist_ok=True)
 
@@ -442,7 +455,7 @@ def setup_omz_plugins(mirrors: Mirrors) -> None:
     for dest, url in clones:
         if dest.exists():
             continue
-        sysinfo.run(["git", "clone", mirrors.github(url), str(dest)])
+        net.git_clone(url, dest, mirrors)
     theme_link = custom / "themes" / "spaceship.zsh-theme"
     source = custom / "themes" / "spaceship-prompt" / "spaceship.zsh-theme"
     if source.is_file() and not theme_link.exists():
