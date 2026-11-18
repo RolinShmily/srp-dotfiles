@@ -107,6 +107,25 @@ class DeployTargetTests(unittest.TestCase):
                 deploy.copy_item(self._source(root), dest, root / "backup")
             self.assertIn("not a directory", str(raised.exception))
 
+    def test_a_legacy_directory_link_is_replaced(self) -> None:
+        """Link deployments left ~/.config/<app> -> repo/<app>; copying onto that
+        link used to raise ENOTDIR because rmdir() does not follow symlinks."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            old = root / "old-fastfetch"
+            old.mkdir()
+            (old / "stale.jsonc").write_text("{}", encoding="utf-8")
+            dest = root / "home" / ".config" / "fastfetch"
+            dest.parent.mkdir(parents=True)
+            try:
+                dest.symlink_to(old)
+            except (OSError, NotImplementedError):
+                self.skipTest("symlinks are not available for this user")
+            deploy.copy_item(self._source(root), dest, root / "backup")
+            self.assertFalse(dest.is_symlink())
+            self.assertTrue((dest / "config.jsonc").is_file())
+            self.assertFalse((dest / "stale.jsonc").exists())
+
     def test_a_dangling_parent_link_is_replaced(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

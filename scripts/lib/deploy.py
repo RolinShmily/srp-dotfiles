@@ -27,10 +27,10 @@ def _remove(path: Path) -> None:
     if not path.exists() and not _is_link(path):
         return
     if _is_link(path):
-        if path.is_dir():
-            path.rmdir()
-        else:
-            path.unlink(missing_ok=True)
+        # Unlink links directly: rmdir() on a symlink to a directory raises
+        # ENOTDIR on POSIX, which is how legacy link deployments used to fail
+        # when the copy verb took over.
+        path.unlink(missing_ok=True)
     elif path.is_dir():
         shutil.rmtree(path)
     else:
