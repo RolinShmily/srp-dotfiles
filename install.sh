@@ -28,14 +28,36 @@ REPO_REF="${SRP_REPO_REF:-main}"
 GITHUB_URL="https://github.com/$REPO_SLUG.git"
 WORKER="${SRP_INSTALL_ORIGIN:-https://dot.srprolin.com}"
 
+# "local" is a checkout the caller already sits in, "explicit" honours
+# SRP_DOTFILES_DIR, and "auto" owns ~/.srp-dotfiles and is refreshed on every
+# run so a cached copy can never pin an obsolete installer.
 SELF_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" 2>/dev/null && pwd || pwd)"
 if [ -f "$SELF_DIR/scripts/main.py" ]; then
     REPO="$SELF_DIR"
+    REPO_MODE=local
 elif [ -f "./scripts/main.py" ]; then
     REPO="$(pwd)"
+    REPO_MODE=local
+elif [ -n "${SRP_DOTFILES_DIR:-}" ]; then
+    REPO="$SRP_DOTFILES_DIR"
+    REPO_MODE=explicit
 else
-    REPO="${SRP_DOTFILES_DIR:-$HOME/.srp-dotfiles}"
+    REPO="$HOME/.srp-dotfiles"
+    REPO_MODE=auto
 fi
+
+# A dead mirror answers in milliseconds when probed, but makes git stall for
+# minutes, so probe before cloning through it.
+prefix_alive() {
+    [ -z "$1" ] && return 0
+    command -v curl >/dev/null 2>&1 || return 0
+    curl -fsS -o /dev/null --connect-timeout 5 --max-time 8 \
+        "$1https://github.com/$REPO_SLUG" 2>/dev/null
+}
+
+repo_ref() {
+    git -C "$REPO" rev-parse --short HEAD 2>/dev/null || true
+}
 
 clone_repo() {
     command -v git >/dev/null 2>&1 || return 1
@@ -45,6 +67,7 @@ clone_repo() {
         set -- "${SRP_GH_PROXY:-}" "https://ghfast.top/" "https://gh-proxy.com/" ""
     fi
     for prefix in "$@"; do
+        prefix_alive "$prefix" || continue
         rm -rf "$REPO"
         if git clone --depth=1 "$prefix$GITHUB_URL" "$REPO" >/dev/null 2>&1; then
             echo "Repository: $prefix$GITHUB_URL" >&2
@@ -52,6 +75,15 @@ clone_repo() {
         fi
     done
     return 1
+}
+
+refresh_repo() {
+    if [ -d "$REPO/.git" ] && command -v git >/dev/null 2>&1; then
+        git -C "$REPO" fetch --quiet --depth=1 origin "$REPO_REF" >/dev/null 2>&1 &&
+            git -C "$REPO" reset --quiet --hard FETCH_HEAD >/dev/null 2>&1 && return 0
+        return 1
+    fi
+    download_repo
 }
 
 download_repo() {
@@ -84,6 +116,14 @@ if [ ! -f "$REPO/scripts/main.py" ]; then
         echo "  git clone $GITHUB_URL $REPO" >&2
         exit 1
     fi
+elif [ "$REPO_MODE" = auto ]; then
+    if ! refresh_repo; then
+        echo "Warning: could not refresh $REPO, using the cached copy$( [ -n "$(repo_ref)" ] && echo " at $(repo_ref)")" >&2
+    fi
+fi
+
+if [ "$REPO_MODE" != local ] && [ -n "$(repo_ref)" ]; then
+    echo "Revision: $(repo_ref)" >&2
 fi
 
 exec "$PY" "$REPO/scripts/main.py" "$@"

@@ -44,8 +44,14 @@ if (-not $python) {
 }
 
 $repo = if ($PSScriptRoot) { $PSScriptRoot } else { (Get-Location).Path }
-if (-not (Test-Path (Join-Path $repo "scripts\main.py"))) {
-    $repo = if ($env:SRP_DOTFILES_DIR) { $env:SRP_DOTFILES_DIR } else { Join-Path $env:USERPROFILE ".srp-dotfiles" }
+if (Test-Path (Join-Path $repo "scripts\main.py")) {
+    $repoMode = "local"
+} elseif ($env:SRP_DOTFILES_DIR) {
+    $repo = $env:SRP_DOTFILES_DIR
+    $repoMode = "explicit"
+} else {
+    $repo = Join-Path $env:USERPROFILE ".srp-dotfiles"
+    $repoMode = "auto"
 }
 
 # Mirrors live inside the repository, so fetching it cannot use them yet.
@@ -58,12 +64,48 @@ $prefixes = @()
 if ($env:SRP_GH_PROXY) { $prefixes += $env:SRP_GH_PROXY }
 $prefixes += "https://ghfast.top/", "https://gh-proxy.com/", ""
 
+# A dead mirror answers a probe in seconds but makes git stall for minutes.
+function Test-Prefix {
+    param([string]$Prefix)
+    if (-not $Prefix) { return $true }
+    try {
+        Invoke-WebRequest -Uri "${Prefix}https://github.com/$repoSlug" -Method Head -TimeoutSec 8 -ErrorAction Stop | Out-Null
+        return $true
+    } catch {
+        return $false
+    }
+}
+
+function Get-Revision {
+    if (Test-Path (Join-Path $repo ".git")) {
+        return (git -C $repo rev-parse --short HEAD 2>$null)
+    }
+    return $null
+}
+
+function Update-Repo {
+    param([string]$Target)
+    if ((-not $env:SRP_REPO_URL) -and (Test-Path (Join-Path $Target ".git")) -and (Get-Command git -ErrorAction SilentlyContinue)) {
+        git -C $Target fetch --quiet --depth=1 origin $repoRef 2>$null | Out-Null
+        if ($LASTEXITCODE -eq 0) {
+            git -C $Target reset --quiet --hard FETCH_HEAD 2>$null | Out-Null
+            if ($LASTEXITCODE -eq 0) { return $true }
+        }
+        return $false
+    }
+    return (Get-Repo -Target $Target)
+}
+
 function Get-Repo {
     param([string]$Target)
 
     if (Get-Command git -ErrorAction SilentlyContinue) {
         $cloneUrls = if ($env:SRP_REPO_URL) { @($env:SRP_REPO_URL) } else { $prefixes | ForEach-Object { "$_$githubUrl" } }
         foreach ($url in $cloneUrls) {
+            if (-not $env:SRP_REPO_URL) {
+                $prefix = $url.Substring(0, $url.Length - $githubUrl.Length)
+                if (-not (Test-Prefix $prefix)) { continue }
+            }
             Remove-Item $Target -Recurse -Force -ErrorAction SilentlyContinue
             git clone --depth=1 $url $Target 2>$null | Out-Null
             if (Test-Path (Join-Path $Target "scripts\main.py")) {
@@ -109,6 +151,17 @@ if (-not (Test-Path (Join-Path $repo "scripts\main.py"))) {
         Write-Host "  git clone $githubUrl $repo"
         throw "Could not fetch $repoSlug"
     }
+} elseif ($repoMode -eq "auto") {
+    if (-not (Update-Repo -Target $repo)) {
+        $cached = Get-Revision
+        $note = if ($cached) { " at $cached" } else { "" }
+        Write-Host "Warning: could not refresh $repo, using the cached copy$note" -ForegroundColor Yellow
+    }
+}
+
+if ($repoMode -ne "local") {
+    $revision = Get-Revision
+    if ($revision) { Write-Host "Revision: $revision" }
 }
 
 & $python (Join-Path $repo "scripts\main.py") @args

@@ -55,7 +55,7 @@ MESSAGES = {
     'pypi.done': 'PyPI mirror written to {0}',
     'report.complete': 'All steps completed',
     'report.failed': '[fail] Failed ({0})',
-    'report.hint': 'Re-run only what is needed: ./install.sh -i | ./install.sh -c',
+    'report.hint': 'Deploy configs only next time: ./install.sh -c -y',
     'report.os': 'Target: {0} | arch: {1}',
     'report.skipped': '[skip] Skipped ({0})',
     'report.success': '[ok] Completed ({0})',
