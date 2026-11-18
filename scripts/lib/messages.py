@@ -39,6 +39,7 @@ MESSAGES = {
     'manifest.invalid': 'Invalid manifest: {0} ({1})',
     'manifest.missing': 'Manifest not found: {0}',
     'mirror.profile_missing': 'Mirror profile not found: {0}',
+    'mirror.status': 'Mirrors: profile={0} github={1} npm={2} proxy={3}',
     'npm.done': 'npm global package installed: {0}',
     'npm.missing': 'npm not found; skipped: {0}',
     'omz.already': 'Oh My Zsh already installed; skipped.',
