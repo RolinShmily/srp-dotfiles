@@ -45,6 +45,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- The shell step used `USER`, which sudo sets to `root`, so the login shell of the calling account
+  was left alone; it now prefers `SUDO_USER`, compares real paths and reports the result.
+
 - `scoop.missing` was referenced but never defined, so a failed Scoop install printed the key name.
 - The worker repository-archive error response contained a stray newline, and CI now parses
   `install.ps1` as well.

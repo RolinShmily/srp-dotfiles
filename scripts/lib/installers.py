@@ -82,24 +82,52 @@ def enable_copr(repo: str) -> None:
     sysinfo.run(["dnf", "copr", "enable", "-y", repo], sudo=True)
 
 
+def login_user() -> str:
+    """Account that actually logged in.
+
+    sudo keeps the caller in SUDO_USER while USER/SHELL describe the target
+    account, so reading USER alone changes root's shell instead of yours.
+    """
+    return os.environ.get("SUDO_USER") or os.environ.get("USER") or getpass.getuser()
+
+
+def _shell_matches(user: str, shell: str) -> bool:
+    """Compare real paths: /bin/zsh and /usr/bin/zsh are the same shell."""
+    try:
+        import pwd
+    except ImportError:
+        return os.environ.get("SHELL") == shell
+    try:
+        current = pwd.getpwnam(user).pw_shell
+    except KeyError:
+        return False
+    return os.path.realpath(current) == os.path.realpath(shell)
+
+
 def set_default_shell(os_name: str) -> None:
     zsh = sysinfo.which("zsh")
     if not zsh:
         sysinfo.warn(t("shell.missing"))
         return
-    if os_name == "termux":
-        if os.environ.get("SHELL") != zsh:
-            sysinfo.run(["chsh", "-s", zsh], check=False)
-        sysinfo.success(t("shell.done"))
+
+    user = login_user()
+    if _shell_matches(user, zsh):
+        sysinfo.info(t("shell.already", zsh, user))
         return
 
-    shells = Path("/etc/shells")
-    if shells.exists() and zsh not in shells.read_text(encoding="utf-8").splitlines():
-        sysinfo.run(["sh", "-c", f'echo "{zsh}" >> /etc/shells'], sudo=True, check=False)
-    user = os.environ.get("USER") or getpass.getuser()
-    if os.environ.get("SHELL") != zsh:
+    if os_name == "termux":
+        sysinfo.run(["chsh", "-s", zsh], check=False)
+    else:
+        shells = Path("/etc/shells")
+        listed = shells.read_text(encoding="utf-8").splitlines() if shells.exists() else []
+        if zsh not in listed:
+            sysinfo.run(["sh", "-c", f'echo "{zsh}" >> /etc/shells'], sudo=True, check=False)
         sysinfo.run(["chsh", "-s", zsh, user], sudo=True, check=False)
-    sysinfo.success(t("shell.done"))
+
+    if _shell_matches(user, zsh):
+        sysinfo.success(t("shell.done", zsh, user))
+    else:
+        sysinfo.warn(t("shell.failed", user, zsh))
 
 
 def install_omz(mirrors: Mirrors) -> None:

@@ -124,6 +124,20 @@ GOPROXY
 npm_config_registry
 ```
 
+## Login shell
+
+The shell step points the account that logged in at zsh and appends it to `/etc/shells` when it is
+missing. It targets `SUDO_USER` when sudo is in play, so `sudo ./install.sh` changes your shell and
+not root's, and it compares real paths, so `/bin/zsh` and `/usr/bin/zsh` count as the same shell.
+The step reports the account it touched, or the exact command to run when `chsh` was refused.
+
+Change it by hand:
+
+```sh
+sudo chsh -s "$(command -v zsh)" srprolin
+getent passwd srprolin | cut -d: -f7     # /usr/bin/zsh
+```
+
 ## Fonts
 
 | ID | Source | Platform |
