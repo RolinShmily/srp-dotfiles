@@ -466,8 +466,12 @@ def setup_omz_plugins(mirrors: Mirrors) -> None:
 
 
 def configure_windows_environment() -> None:
-    sysinfo.set_windows_user_env("SHELL", "pwsh.exe")
-    sysinfo.set_windows_user_env("ZELLIJ_SHELL", "pwsh.exe")
+    # An absolute path: a bare "pwsh.exe" is resolved against the current
+    # directory by shells that read SHELL, which breaks e.g. the ProxyCommand
+    # an ssh client runs (it uses $SHELL, not the Windows shell).
+    pwsh = sysinfo.which("pwsh") or sysinfo.which("pwsh.exe") or "pwsh.exe"
+    sysinfo.set_windows_user_env("SHELL", pwsh)
+    sysinfo.set_windows_user_env("ZELLIJ_SHELL", pwsh)
 
 
 def pip_config_path() -> Path:
