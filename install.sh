@@ -1,29 +1,125 @@
 #!/bin/sh
-# SrP-Dotfiles bootstrap: check Python 3.9+, fetch the repository, run scripts/main.py.
+# ==============================================================================
+# SrP-Dotfiles bootstrap for Linux, macOS and Termux.
 #
-# Python is the only requirement:
-#   Arch:    sudo pacman -S --needed python
-#   Debian:  sudo apt install -y python3
-#   Fedora:  sudo dnf install -y python3
-#   Termux:  pkg install python
+# This script is the entry point. It checks for Python 3.9+, fetches the
+# repository when it is not already present, and hands over to scripts/main.py,
+# which installs packages and deploys configs from manifest/*.json.
 #
-# Usage (run as your normal user; the script escalates per command itself):
-#   curl -fsSL https://dot.srprolin.com | sh -s -- -y        # install + deploy
-#   curl -fsSL https://dot.srprolin.com | sh -s -- -c -y     # configs only
-#   ./install.sh [-c|--config] [-y]
+# The script:
 #
-# Do not run this script as root or through sudo: it writes configs to $HOME,
-# so root would deploy into /root. Set SRP_ALLOW_ROOT=1 only in containers/CI.
+# - Requires Python 3.9 or newer.
+# - Prefers a local checkout, then SRP_DOTFILES_DIR, then ~/.srp-dotfiles.
+# - Refreshes the auto-managed checkout on every run, so a cached copy cannot
+#   pin an obsolete installer.
+# - Uses only the bootstrap mirrors below until the repository is available;
+#   manifest/mirror.json takes over afterwards.
+# - Refuses to run as root unless SRP_ALLOW_ROOT=1 is set.
+# ==============================================================================
 #
-# Worker routes: / auto-detects the client and serves install.sh to Unix and
-# install.ps1 to PowerShell/Windows; /config is the checkbox configurator;
-# /install.sh and /install.ps1 force a script; /api/catalog serves the catalog;
-# /repo.tar.gz and /repo.zip mirror the repository; /health is a probe. Add
-# ?os=windows or ?os=unix to / to force a route.
+# Requirements
+# ==============================================================================
 #
-# Fetch order: git clone (SRP_REPO_URL, then SRP_GH_PROXY and the built-in
-# mirror list, then GitHub directly), then a tarball (Worker /repo.tar.gz,
-# codeload). manifest/mirror.json owns the mirrors used after bootstrap.
+# - Python 3.9 or newer. If it is missing, the script prints the command for
+#   the current OS:
+#
+#     Arch:    sudo pacman -S --needed python
+#     Debian:  sudo apt install -y python3
+#     Fedora:  sudo dnf install -y python3
+#     Termux:  pkg install python
+#
+# - Run as your normal user, not through sudo. Configs are written to $HOME,
+#   and the installer escalates per package-manager command; as root it would
+#   deploy into /root.
+#
+# - Network access to GitHub, the Worker origin, or one of the mirrors.
+#
+# Usage
+# ==============================================================================
+#
+# Run directly (the script fetches the repository when needed):
+#
+#   $ curl -fsSL https://dot.srprolin.com | sh -s -- -y
+#   $ curl -fsSL https://dot.srprolin.com | sh -s -- -c -y   # configs only
+#
+# From a local checkout:
+#
+#   $ ./install.sh                  # confirm each step, install and deploy
+#   $ ./install.sh -y               # same, without prompts
+#   $ ./install.sh -c               # deploy configs only
+#   $ ./install.sh --os arch        # force the target profile
+#   $ ./install.sh --dry-run -y     # print the plan only
+#
+# Command-line options
+# ==============================================================================
+#
+# -c, --config
+# Deploy configs only; skip package installation.
+#
+# -y, --yes
+# Answer yes to every step. Required when stdin is not a TTY.
+#
+# --os <name>
+# Force arch, debian, fedora, termux or windows instead of detecting it.
+#
+# --apps <ids>
+# Comma-separated app IDs; "none" selects nothing.
+#
+# --configs <names>
+# Comma-separated config names; "none" selects nothing.
+#
+# --mirror <profile>
+# Select a profile from manifest/mirror.json.
+#
+# --mirror-<name> <value>
+# Override github, npm, pypi, go or scoop; "none" clears the field.
+#
+# --proxy <url>
+# Proxy for downloads. "host:port" is probed for its scheme; "none" clears it.
+#
+# --catalog
+# Print the apps/configs/mirrors catalog as JSON and exit.
+#
+# --dry-run
+# Print the plan without changing the system.
+#
+# Environment
+# ==============================================================================
+#
+# SRP_REPO_URL        Git repository URL (default: GitHub)
+# SRP_GH_PROXY        GitHub proxy prefix tried before the built-in list
+# SRP_REPO_TARBALL    Repository archive URL
+# SRP_REPO_REF        Branch or tag to fetch (default: main)
+# SRP_DOTFILES_DIR    Checkout directory (default: ~/.srp-dotfiles)
+# SRP_INSTALL_ORIGIN  Worker base URL (default: https://dot.srprolin.com)
+# SRP_ALLOW_ROOT=1    Bypass the root guard (containers and CI only)
+# PYTHON              Python interpreter to use (default: python3)
+#
+# Bootstrap order
+# ==============================================================================
+#
+# This script cannot read manifest/mirror.json yet: it lives inside the
+# repository being fetched. It tries, in order:
+#
+#   1. git clone from SRP_REPO_URL, otherwise GitHub via SRP_GH_PROXY, the
+#      built-in mirrors, then direct.
+#   2. When git is unavailable or every clone fails: a tarball from
+#      <origin>/repo.tar.gz, then SRP_REPO_TARBALL, then codeload.
+#   3. If everything fails, exit 1 with the exact commands to retry.
+#
+# Worker routes
+# ==============================================================================
+#
+# /                     OS-detected script (Unix: install.sh)
+# /install.sh           this script (?os=windows / ?os=unix forces the target)
+# /install.ps1          PowerShell bootstrap
+# /config               checkbox configurator that generates a command
+# /api/catalog          apps/configs/mirrors catalog
+# /repo.tar.gz          repository tarball (bootstrap fallback)
+# /repo.zip             repository zip (bootstrap fallback)
+# /health               health probe
+#
+# ==============================================================================
 set -eu
 
 # Never deploy into /root by accident.

@@ -1,26 +1,134 @@
-# SrP-Dotfiles bootstrap: check Python 3.9+, fetch the repository, run scripts\main.py.
+# ==============================================================================
+# SrP-Dotfiles bootstrap for Windows (PowerShell 5.1 and PowerShell 7).
 #
-# Python is the only requirement:
-#   winget install Python.Python.3.12
-# winget comes from App Installer, which is absent on LTSC/Sandbox/Server:
-#   https://apps.microsoft.com/detail/9NBLGGH4NNS1
-# Without winget: python.org, `scoop install python`, or
-#   powershell -c "irm https://astral.sh/uv/install.ps1 | iex"; uv python install 3.12
+# This script is the entry point. It checks for Python 3.9+, fetches the
+# repository when it is not already present, and hands over to
+# scripts\main.py, which installs packages and deploys configs from
+# manifest\*.json.
 #
-# Usage (PowerShell 5.1 blocks local scripts, so relax the policy for this process):
+# The script:
+#
+# - Requires Python 3.9 or newer.
+# - Prefers a local checkout, then SRP_DOTFILES_DIR, then
+#   %USERPROFILE%\.srp-dotfiles.
+# - Refreshes the auto-managed checkout on every run, so a cached copy cannot
+#   pin an obsolete installer.
+# - Uses only the bootstrap mirrors below until the repository is available;
+#   manifest\mirror.json takes over afterwards.
+# ==============================================================================
+#
+# Requirements
+# ==============================================================================
+#
+# - Python 3.9 or newer. If it is missing, the script prints the available
+#   install paths:
+#
+#     winget install Python.Python.3.12
+#
+#   winget comes from App Installer, which is absent on LTSC, Sandbox and
+#   Server:
+#
+#     https://apps.microsoft.com/detail/9NBLGGH4NNS1
+#
+#   Without winget, use python.org, Scoop, or uv:
+#
+#     https://www.python.org/downloads/windows/
+#     irm get.scoop.sh | iex ; scoop install python
+#     powershell -c "irm https://astral.sh/uv/install.ps1 | iex" ; uv python install 3.12
+#
+# - Network access to GitHub, the Worker origin, or one of the mirrors.
+#
+# Usage
+# ==============================================================================
+#
+# PowerShell 5.1 blocks local scripts by default, so relax the policy for the
+# current process first:
+#
 #   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+#
+# Run directly (the script fetches the repository when needed):
+#
 #   irm https://dot.srprolin.com/install.ps1 -OutFile install.ps1; .\install.ps1 -y
-#   .\install.ps1 [-c|--config] [-y]
 #
-# Worker routes: / auto-detects the client and serves install.ps1 to
-# PowerShell/Windows and install.sh to everything else; /config is the checkbox
-# configurator; /install.sh and /install.ps1 force a script; /api/catalog
-# serves the catalog; /repo.tar.gz and /repo.zip mirror the repository;
-# /health is a probe. Add ?os=windows or ?os=unix to / to force a route.
+# From a local checkout:
 #
-# Fetch order: git clone (SRP_REPO_URL, then SRP_GH_PROXY and the built-in
-# mirror list, then GitHub directly), then a zip (Worker /repo.zip, codeload).
-# manifest/mirror.json owns the mirrors used after bootstrap.
+#   .\install.ps1                  # confirm each step, install and deploy
+#   .\install.ps1 -y               # same, without prompts
+#   .\install.ps1 -c               # deploy configs only
+#   .\install.ps1 --os windows     # force the target profile
+#   .\install.ps1 --dry-run -y     # print the plan only
+#
+# Command-line options
+# ==============================================================================
+#
+# List values are comma-separated. Quote them to keep a single argument
+# ("--apps a,b"); the CLI also accepts space-separated values.
+#
+# -c, --config
+# Deploy configs only; skip package installation.
+#
+# -y, --yes
+# Answer yes to every step. Required when stdin is not a TTY.
+#
+# --os <name>
+# Force arch, debian, fedora, termux or windows instead of detecting it.
+#
+# --apps <ids>
+# Comma-separated app IDs; "none" selects nothing.
+#
+# --configs <names>
+# Comma-separated config names; "none" selects nothing.
+#
+# --mirror <profile>
+# Select a profile from manifest\mirror.json.
+#
+# --mirror-<name> <value>
+# Override github, npm, pypi, go or scoop; "none" clears the field.
+#
+# --proxy <url>
+# Proxy for downloads. "host:port" is probed for its scheme; "none" clears it.
+#
+# --catalog
+# Print the apps/configs/mirrors catalog as JSON and exit.
+#
+# --dry-run
+# Print the plan without changing the system.
+#
+# Environment
+# ==============================================================================
+#
+# SRP_REPO_URL        Git repository URL (default: GitHub)
+# SRP_GH_PROXY        GitHub proxy prefix tried before the built-in list
+# SRP_REPO_TARBALL    Repository archive URL
+# SRP_REPO_REF        Branch or tag to fetch (default: main)
+# SRP_DOTFILES_DIR    Checkout directory (default: %USERPROFILE%\.srp-dotfiles)
+# SRP_INSTALL_ORIGIN  Worker base URL (default: https://dot.srprolin.com)
+#
+# Bootstrap order
+# ==============================================================================
+#
+# This script cannot read manifest\mirror.json yet: it lives inside the
+# repository being fetched. It tries, in order:
+#
+#   1. git clone from SRP_REPO_URL, otherwise GitHub via SRP_GH_PROXY, the
+#      built-in mirrors, then direct.
+#   2. When git is unavailable or every clone fails: a zip from
+#      <origin>/repo.zip, then SRP_REPO_TARBALL, then codeload.
+#   3. If everything fails, the script stops with the exact commands to retry.
+#
+# Worker routes
+# ==============================================================================
+#
+# /                     OS-detected script (Windows: install.ps1)
+# /install.sh           Unix bootstrap
+# /install.ps1          this script (?os=windows / ?os=unix forces the target)
+# /config               checkbox configurator that generates a command
+# /api/catalog          apps/configs/mirrors catalog
+# /repo.tar.gz          repository tarball (bootstrap fallback)
+# /repo.zip             repository zip (bootstrap fallback)
+# /health               health probe
+#
+# ==============================================================================
 
 $ErrorActionPreference = "Stop"
 
