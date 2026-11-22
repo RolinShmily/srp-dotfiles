@@ -74,23 +74,35 @@ def _install_with_fallback(
     sudo: bool,
     batch_message: str,
     missing_message: Callable[[str], str],
+    retry_command: list[str] | None = None,
 ) -> None:
     """Run a batch install, then retry one by one if the batch fails.
 
-    apt/pkg abort the whole transaction when one name is unknown, which would
-    leave even zsh uninstalled; the per-package pass lands the valid ones.
+    Package managers abort the whole transaction over a single bad name
+    (unknown package, conflict with an installed replacement, file clash).
+    The per-package pass lands everything else and the leftovers are reported
+    as warnings; only a total failure - no package installed at all, which
+    means the manager or its repositories are broken - still fails the step.
+
+    ``retry_command`` lets a manager retry without repeating setup work
+    (e.g. pacman's full ``-Syu``).
     """
     batch = sysinfo.run([*command, *packages], sudo=sudo, check=False)
     if batch.returncode == 0:
         return
     sysinfo.warn(batch_message)
+    retry = retry_command or command
     missing: list[str] = []
     for package in packages:
-        one = sysinfo.run([*command, package], sudo=sudo, check=False)
+        one = sysinfo.run([*retry, package], sudo=sudo, check=False)
         if one.returncode != 0:
             missing.append(package)
-    if missing:
-        raise sysinfo.CommandError(missing_message(", ".join(missing)))
+    if not missing:
+        return
+    message = missing_message(", ".join(missing))
+    if len(missing) == len(packages):
+        raise sysinfo.CommandError(message)
+    sysinfo.warn(message)
 
 
 def _apt_unavailable(packages: list[str]) -> list[str]:
@@ -107,11 +119,30 @@ def _apt_unavailable(packages: list[str]) -> list[str]:
     return unavailable
 
 
+def _rpm_missing(packages: list[str]) -> list[str]:
+    """Requested package names that are still not installed."""
+    missing: list[str] = []
+    for package in packages:
+        probe = sysinfo.run(["rpm", "-q", package], capture=True, check=False)
+        if probe.returncode != 0:
+            missing.append(package)
+    return missing
+
+
 def install_system_packages(os_name: str, package_manager: str, packages: list[str]) -> None:
     if not packages:
         return
     if package_manager == "pacman":
-        sysinfo.run(["pacman", "-Syu", "--needed", "--noconfirm", *packages], sudo=True)
+        _install_with_fallback(
+            ["pacman", "-Syu", "--needed", "--noconfirm"],
+            packages,
+            sudo=True,
+            batch_message=t("pkg.pacman_batch_failed"),
+            missing_message=lambda names: t("pkg.pacman_missing", names),
+            # The database is already synced by the batch run above, so the
+            # retries install from it instead of repeating a full upgrade.
+            retry_command=["pacman", "-S", "--needed", "--noconfirm"],
+        )
     elif package_manager == "apt":
         sysinfo.run(["apt-get", "update", "-y"], sudo=True)
         unavailable = _apt_unavailable(packages)
@@ -128,7 +159,20 @@ def install_system_packages(os_name: str, package_manager: str, packages: list[s
                 missing_message=lambda names: t("pkg.apt_missing", names),
             )
     elif package_manager == "dnf":
-        sysinfo.run(["dnf", "install", "-y", *packages], sudo=True)
+        # A requested name can conflict with an installed replacement (Fedora's
+        # ffmpeg-free vs rpmfusion's ffmpeg), and dnf aborts the whole
+        # transaction over it. Let dnf drop the broken entries, then report them.
+        result = sysinfo.run(
+            ["dnf", "install", "-y", "--skip-broken", *packages], sudo=True, check=False
+        )
+        missing = _rpm_missing(packages)
+        if missing:
+            sysinfo.warn(t("pkg.dnf_skipped", ", ".join(missing)))
+        if result.returncode != 0 and len(missing) == len(packages):
+            detail = (result.stderr or result.stdout or "").strip()
+            raise sysinfo.CommandError(
+                f"dnf install exited with {result.returncode}" + (f": {detail}" if detail else "")
+            )
     elif package_manager == "pkg":
         _install_with_fallback(
             ["pkg", "install", "-y"],

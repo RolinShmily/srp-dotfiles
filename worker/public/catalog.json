@@ -6,6 +6,36 @@
       "os": "arch",
       "apps": [
         {
+          "id": "pkg:git",
+          "source": "pacman",
+          "name": "git",
+          "label": "git"
+        },
+        {
+          "id": "pkg:curl",
+          "source": "pacman",
+          "name": "curl",
+          "label": "curl"
+        },
+        {
+          "id": "pkg:unzip",
+          "source": "pacman",
+          "name": "unzip",
+          "label": "unzip"
+        },
+        {
+          "id": "pkg:base-devel",
+          "source": "pacman",
+          "name": "base-devel",
+          "label": "base-devel"
+        },
+        {
+          "id": "pkg:gcc",
+          "source": "pacman",
+          "name": "gcc",
+          "label": "gcc"
+        },
+        {
           "id": "pkg:zsh",
           "source": "pacman",
           "name": "zsh",
@@ -24,16 +54,52 @@
           "label": "zsh-syntax-highlighting"
         },
         {
+          "id": "pkg:python",
+          "source": "pacman",
+          "name": "python",
+          "label": "python"
+        },
+        {
+          "id": "pkg:uv",
+          "source": "pacman",
+          "name": "uv",
+          "label": "uv"
+        },
+        {
+          "id": "pkg:nodejs",
+          "source": "pacman",
+          "name": "nodejs",
+          "label": "nodejs"
+        },
+        {
+          "id": "pkg:npm",
+          "source": "pacman",
+          "name": "npm",
+          "label": "npm"
+        },
+        {
+          "id": "pkg:ripgrep",
+          "source": "pacman",
+          "name": "ripgrep",
+          "label": "ripgrep"
+        },
+        {
+          "id": "pkg:fd",
+          "source": "pacman",
+          "name": "fd",
+          "label": "fd"
+        },
+        {
+          "id": "pkg:bat",
+          "source": "pacman",
+          "name": "bat",
+          "label": "bat"
+        },
+        {
           "id": "pkg:eza",
           "source": "pacman",
           "name": "eza",
           "label": "eza"
-        },
-        {
-          "id": "pkg:curl",
-          "source": "pacman",
-          "name": "curl",
-          "label": "curl"
         },
         {
           "id": "pkg:zoxide",
@@ -48,22 +114,16 @@
           "label": "fzf"
         },
         {
-          "id": "pkg:bat",
+          "id": "pkg:jq",
           "source": "pacman",
-          "name": "bat",
-          "label": "bat"
+          "name": "jq",
+          "label": "jq"
         },
         {
-          "id": "pkg:fd",
+          "id": "pkg:tldr",
           "source": "pacman",
-          "name": "fd",
-          "label": "fd"
-        },
-        {
-          "id": "pkg:ripgrep",
-          "source": "pacman",
-          "name": "ripgrep",
-          "label": "ripgrep"
+          "name": "tldr",
+          "label": "tldr"
         },
         {
           "id": "pkg:diff-so-fancy",
@@ -84,58 +144,22 @@
           "label": "lazygit"
         },
         {
-          "id": "pkg:jq",
+          "id": "pkg:miller",
           "source": "pacman",
-          "name": "jq",
-          "label": "jq"
+          "name": "miller",
+          "label": "miller"
         },
         {
-          "id": "pkg:tldr",
+          "id": "pkg:resvg",
           "source": "pacman",
-          "name": "tldr",
-          "label": "tldr"
-        },
-        {
-          "id": "pkg:nodejs",
-          "source": "pacman",
-          "name": "nodejs",
-          "label": "nodejs"
-        },
-        {
-          "id": "pkg:npm",
-          "source": "pacman",
-          "name": "npm",
-          "label": "npm"
-        },
-        {
-          "id": "pkg:python",
-          "source": "pacman",
-          "name": "python",
-          "label": "python"
-        },
-        {
-          "id": "pkg:uv",
-          "source": "pacman",
-          "name": "uv",
-          "label": "uv"
-        },
-        {
-          "id": "pkg:yazi",
-          "source": "pacman",
-          "name": "yazi",
-          "label": "yazi"
+          "name": "resvg",
+          "label": "resvg"
         },
         {
           "id": "pkg:file",
           "source": "pacman",
           "name": "file",
           "label": "file"
-        },
-        {
-          "id": "pkg:chafa",
-          "source": "pacman",
-          "name": "chafa",
-          "label": "chafa"
         },
         {
           "id": "pkg:imagemagick",
@@ -162,6 +186,18 @@
           "label": "sox"
         },
         {
+          "id": "pkg:chafa",
+          "source": "pacman",
+          "name": "chafa",
+          "label": "chafa"
+        },
+        {
+          "id": "pkg:mediainfo",
+          "source": "pacman",
+          "name": "mediainfo",
+          "label": "mediainfo"
+        },
+        {
           "id": "pkg:7zip",
           "source": "pacman",
           "name": "7zip",
@@ -180,12 +216,6 @@
           "label": "perl-image-exiftool"
         },
         {
-          "id": "pkg:mediainfo",
-          "source": "pacman",
-          "name": "mediainfo",
-          "label": "mediainfo"
-        },
-        {
           "id": "pkg:zathura",
           "source": "pacman",
           "name": "zathura",
@@ -198,64 +228,16 @@
           "label": "zathura-pdf-poppler"
         },
         {
-          "id": "pkg:miller",
+          "id": "pkg:yazi",
           "source": "pacman",
-          "name": "miller",
-          "label": "miller"
-        },
-        {
-          "id": "pkg:resvg",
-          "source": "pacman",
-          "name": "resvg",
-          "label": "resvg"
-        },
-        {
-          "id": "pkg:xdg-utils",
-          "source": "pacman",
-          "name": "xdg-utils",
-          "label": "xdg-utils"
-        },
-        {
-          "id": "pkg:xclip",
-          "source": "pacman",
-          "name": "xclip",
-          "label": "xclip"
-        },
-        {
-          "id": "pkg:wl-clipboard",
-          "source": "pacman",
-          "name": "wl-clipboard",
-          "label": "wl-clipboard"
+          "name": "yazi",
+          "label": "yazi"
         },
         {
           "id": "pkg:vim",
           "source": "pacman",
           "name": "vim",
           "label": "vim"
-        },
-        {
-          "id": "pkg:git",
-          "source": "pacman",
-          "name": "git",
-          "label": "git"
-        },
-        {
-          "id": "pkg:base-devel",
-          "source": "pacman",
-          "name": "base-devel",
-          "label": "base-devel"
-        },
-        {
-          "id": "pkg:gcc",
-          "source": "pacman",
-          "name": "gcc",
-          "label": "gcc"
-        },
-        {
-          "id": "pkg:unzip",
-          "source": "pacman",
-          "name": "unzip",
-          "label": "unzip"
         },
         {
           "id": "pkg:tmux",
@@ -274,6 +256,24 @@
           "source": "pacman",
           "name": "btop",
           "label": "btop"
+        },
+        {
+          "id": "pkg:xdg-utils",
+          "source": "pacman",
+          "name": "xdg-utils",
+          "label": "xdg-utils"
+        },
+        {
+          "id": "pkg:xclip",
+          "source": "pacman",
+          "name": "xclip",
+          "label": "xclip"
+        },
+        {
+          "id": "pkg:wl-clipboard",
+          "source": "pacman",
+          "name": "wl-clipboard",
+          "label": "wl-clipboard"
         },
         {
           "id": "font:MapleMono-NF-CN",
@@ -403,6 +403,24 @@
       "os": "debian",
       "apps": [
         {
+          "id": "pkg:git",
+          "source": "apt",
+          "name": "git",
+          "label": "git"
+        },
+        {
+          "id": "pkg:curl",
+          "source": "apt",
+          "name": "curl",
+          "label": "curl"
+        },
+        {
+          "id": "pkg:unzip",
+          "source": "apt",
+          "name": "unzip",
+          "label": "unzip"
+        },
+        {
           "id": "pkg:zsh",
           "source": "apt",
           "name": "zsh",
@@ -421,10 +439,34 @@
           "label": "zsh-syntax-highlighting"
         },
         {
-          "id": "pkg:curl",
+          "id": "pkg:python3",
           "source": "apt",
-          "name": "curl",
-          "label": "curl"
+          "name": "python3",
+          "label": "python3"
+        },
+        {
+          "id": "pkg:nodejs",
+          "source": "apt",
+          "name": "nodejs",
+          "label": "nodejs"
+        },
+        {
+          "id": "pkg:ripgrep",
+          "source": "apt",
+          "name": "ripgrep",
+          "label": "ripgrep"
+        },
+        {
+          "id": "pkg:fd-find",
+          "source": "apt",
+          "name": "fd-find",
+          "label": "fd-find"
+        },
+        {
+          "id": "pkg:bat",
+          "source": "apt",
+          "name": "bat",
+          "label": "bat"
         },
         {
           "id": "pkg:eza",
@@ -445,30 +487,6 @@
           "label": "fzf"
         },
         {
-          "id": "pkg:bat",
-          "source": "apt",
-          "name": "bat",
-          "label": "bat"
-        },
-        {
-          "id": "pkg:fd-find",
-          "source": "apt",
-          "name": "fd-find",
-          "label": "fd-find"
-        },
-        {
-          "id": "pkg:ripgrep",
-          "source": "apt",
-          "name": "ripgrep",
-          "label": "ripgrep"
-        },
-        {
-          "id": "pkg:gh",
-          "source": "apt",
-          "name": "gh",
-          "label": "gh"
-        },
-        {
           "id": "pkg:jq",
           "source": "apt",
           "name": "jq",
@@ -481,40 +499,22 @@
           "label": "tealdeer"
         },
         {
-          "id": "pkg:nodejs",
+          "id": "pkg:gh",
           "source": "apt",
-          "name": "nodejs",
-          "label": "nodejs"
-        },
-        {
-          "id": "pkg:python3",
-          "source": "apt",
-          "name": "python3",
-          "label": "python3"
-        },
-        {
-          "id": "pkg:unzip",
-          "source": "apt",
-          "name": "unzip",
-          "label": "unzip"
-        },
-        {
-          "id": "pkg:vim",
-          "source": "apt",
-          "name": "vim",
-          "label": "vim"
-        },
-        {
-          "id": "pkg:git",
-          "source": "apt",
-          "name": "git",
-          "label": "git"
+          "name": "gh",
+          "label": "gh"
         },
         {
           "id": "pkg:lazygit",
           "source": "apt",
           "name": "lazygit",
           "label": "lazygit"
+        },
+        {
+          "id": "pkg:vim",
+          "source": "apt",
+          "name": "vim",
+          "label": "vim"
         },
         {
           "id": "pkg:tmux",
@@ -636,6 +636,30 @@
       "os": "fedora",
       "apps": [
         {
+          "id": "pkg:git",
+          "source": "dnf",
+          "name": "git",
+          "label": "git"
+        },
+        {
+          "id": "pkg:curl",
+          "source": "dnf",
+          "name": "curl",
+          "label": "curl"
+        },
+        {
+          "id": "pkg:unzip",
+          "source": "dnf",
+          "name": "unzip",
+          "label": "unzip"
+        },
+        {
+          "id": "pkg:file",
+          "source": "dnf",
+          "name": "file",
+          "label": "file"
+        },
+        {
           "id": "pkg:zsh",
           "source": "dnf",
           "name": "zsh",
@@ -652,90 +676,6 @@
           "source": "dnf",
           "name": "zsh-syntax-highlighting",
           "label": "zsh-syntax-highlighting"
-        },
-        {
-          "id": "pkg:curl",
-          "source": "dnf",
-          "name": "curl",
-          "label": "curl"
-        },
-        {
-          "id": "pkg:eza",
-          "source": "dnf",
-          "name": "eza",
-          "label": "eza"
-        },
-        {
-          "id": "pkg:zoxide",
-          "source": "dnf",
-          "name": "zoxide",
-          "label": "zoxide"
-        },
-        {
-          "id": "pkg:fzf",
-          "source": "dnf",
-          "name": "fzf",
-          "label": "fzf"
-        },
-        {
-          "id": "pkg:bat",
-          "source": "dnf",
-          "name": "bat",
-          "label": "bat"
-        },
-        {
-          "id": "pkg:fd-find",
-          "source": "dnf",
-          "name": "fd-find",
-          "label": "fd-find"
-        },
-        {
-          "id": "pkg:ripgrep",
-          "source": "dnf",
-          "name": "ripgrep",
-          "label": "ripgrep"
-        },
-        {
-          "id": "pkg:diff-so-fancy",
-          "source": "dnf",
-          "name": "diff-so-fancy",
-          "label": "diff-so-fancy"
-        },
-        {
-          "id": "pkg:gh",
-          "source": "dnf",
-          "name": "gh",
-          "label": "gh"
-        },
-        {
-          "id": "pkg:lazygit",
-          "source": "dnf",
-          "name": "lazygit",
-          "label": "lazygit"
-        },
-        {
-          "id": "pkg:jq",
-          "source": "dnf",
-          "name": "jq",
-          "label": "jq"
-        },
-        {
-          "id": "pkg:tldr",
-          "source": "dnf",
-          "name": "tldr",
-          "label": "tldr"
-        },
-        {
-          "id": "pkg:nodejs",
-          "source": "dnf",
-          "name": "nodejs",
-          "label": "nodejs"
-        },
-        {
-          "id": "pkg:npm",
-          "source": "dnf",
-          "name": "npm",
-          "label": "npm"
         },
         {
           "id": "pkg:python3",
@@ -762,16 +702,88 @@
           "label": "uv"
         },
         {
-          "id": "pkg:file",
+          "id": "pkg:nodejs",
           "source": "dnf",
-          "name": "file",
-          "label": "file"
+          "name": "nodejs",
+          "label": "nodejs"
         },
         {
-          "id": "pkg:chafa",
+          "id": "pkg:npm",
           "source": "dnf",
-          "name": "chafa",
-          "label": "chafa"
+          "name": "npm",
+          "label": "npm"
+        },
+        {
+          "id": "pkg:ripgrep",
+          "source": "dnf",
+          "name": "ripgrep",
+          "label": "ripgrep"
+        },
+        {
+          "id": "pkg:fd-find",
+          "source": "dnf",
+          "name": "fd-find",
+          "label": "fd-find"
+        },
+        {
+          "id": "pkg:bat",
+          "source": "dnf",
+          "name": "bat",
+          "label": "bat"
+        },
+        {
+          "id": "pkg:eza",
+          "source": "dnf",
+          "name": "eza",
+          "label": "eza"
+        },
+        {
+          "id": "pkg:zoxide",
+          "source": "dnf",
+          "name": "zoxide",
+          "label": "zoxide"
+        },
+        {
+          "id": "pkg:fzf",
+          "source": "dnf",
+          "name": "fzf",
+          "label": "fzf"
+        },
+        {
+          "id": "pkg:jq",
+          "source": "dnf",
+          "name": "jq",
+          "label": "jq"
+        },
+        {
+          "id": "pkg:tldr",
+          "source": "dnf",
+          "name": "tldr",
+          "label": "tldr"
+        },
+        {
+          "id": "pkg:diff-so-fancy",
+          "source": "dnf",
+          "name": "diff-so-fancy",
+          "label": "diff-so-fancy"
+        },
+        {
+          "id": "pkg:gh",
+          "source": "dnf",
+          "name": "gh",
+          "label": "gh"
+        },
+        {
+          "id": "pkg:lazygit",
+          "source": "dnf",
+          "name": "lazygit",
+          "label": "lazygit"
+        },
+        {
+          "id": "pkg:miller",
+          "source": "dnf",
+          "name": "miller",
+          "label": "miller"
         },
         {
           "id": "pkg:ImageMagick",
@@ -798,6 +810,18 @@
           "label": "sox"
         },
         {
+          "id": "pkg:chafa",
+          "source": "dnf",
+          "name": "chafa",
+          "label": "chafa"
+        },
+        {
+          "id": "pkg:mediainfo",
+          "source": "dnf",
+          "name": "mediainfo",
+          "label": "mediainfo"
+        },
+        {
           "id": "pkg:7zip",
           "source": "dnf",
           "name": "7zip",
@@ -816,12 +840,6 @@
           "label": "perl-Image-ExifTool"
         },
         {
-          "id": "pkg:mediainfo",
-          "source": "dnf",
-          "name": "mediainfo",
-          "label": "mediainfo"
-        },
-        {
           "id": "pkg:zathura",
           "source": "dnf",
           "name": "zathura",
@@ -834,46 +852,10 @@
           "label": "zathura-pdf-poppler"
         },
         {
-          "id": "pkg:miller",
-          "source": "dnf",
-          "name": "miller",
-          "label": "miller"
-        },
-        {
-          "id": "pkg:xdg-utils",
-          "source": "dnf",
-          "name": "xdg-utils",
-          "label": "xdg-utils"
-        },
-        {
-          "id": "pkg:xclip",
-          "source": "dnf",
-          "name": "xclip",
-          "label": "xclip"
-        },
-        {
-          "id": "pkg:wl-clipboard",
-          "source": "dnf",
-          "name": "wl-clipboard",
-          "label": "wl-clipboard"
-        },
-        {
           "id": "pkg:vim-enhanced",
           "source": "dnf",
           "name": "vim-enhanced",
           "label": "vim-enhanced"
-        },
-        {
-          "id": "pkg:git",
-          "source": "dnf",
-          "name": "git",
-          "label": "git"
-        },
-        {
-          "id": "pkg:unzip",
-          "source": "dnf",
-          "name": "unzip",
-          "label": "unzip"
         },
         {
           "id": "pkg:tmux",
@@ -892,6 +874,24 @@
           "source": "dnf",
           "name": "btop",
           "label": "btop"
+        },
+        {
+          "id": "pkg:xdg-utils",
+          "source": "dnf",
+          "name": "xdg-utils",
+          "label": "xdg-utils"
+        },
+        {
+          "id": "pkg:xclip",
+          "source": "dnf",
+          "name": "xclip",
+          "label": "xclip"
+        },
+        {
+          "id": "pkg:wl-clipboard",
+          "source": "dnf",
+          "name": "wl-clipboard",
+          "label": "wl-clipboard"
         },
         {
           "id": "font:MapleMono-NF-CN",
@@ -1017,10 +1017,82 @@
       "os": "termux",
       "apps": [
         {
+          "id": "pkg:git",
+          "source": "pkg",
+          "name": "git",
+          "label": "git"
+        },
+        {
+          "id": "pkg:curl",
+          "source": "pkg",
+          "name": "curl",
+          "label": "curl"
+        },
+        {
+          "id": "pkg:unzip",
+          "source": "pkg",
+          "name": "unzip",
+          "label": "unzip"
+        },
+        {
+          "id": "pkg:file",
+          "source": "pkg",
+          "name": "file",
+          "label": "file"
+        },
+        {
+          "id": "pkg:clang",
+          "source": "pkg",
+          "name": "clang",
+          "label": "clang"
+        },
+        {
+          "id": "pkg:make",
+          "source": "pkg",
+          "name": "make",
+          "label": "make"
+        },
+        {
           "id": "pkg:zsh",
           "source": "pkg",
           "name": "zsh",
           "label": "zsh"
+        },
+        {
+          "id": "pkg:python",
+          "source": "pkg",
+          "name": "python",
+          "label": "python"
+        },
+        {
+          "id": "pkg:nodejs",
+          "source": "pkg",
+          "name": "nodejs",
+          "label": "nodejs"
+        },
+        {
+          "id": "pkg:tree-sitter",
+          "source": "pkg",
+          "name": "tree-sitter",
+          "label": "tree-sitter"
+        },
+        {
+          "id": "pkg:ripgrep",
+          "source": "pkg",
+          "name": "ripgrep",
+          "label": "ripgrep"
+        },
+        {
+          "id": "pkg:fd",
+          "source": "pkg",
+          "name": "fd",
+          "label": "fd"
+        },
+        {
+          "id": "pkg:bat",
+          "source": "pkg",
+          "name": "bat",
+          "label": "bat"
         },
         {
           "id": "pkg:eza",
@@ -1035,34 +1107,22 @@
           "label": "zoxide"
         },
         {
-          "id": "pkg:curl",
-          "source": "pkg",
-          "name": "curl",
-          "label": "curl"
-        },
-        {
           "id": "pkg:fzf",
           "source": "pkg",
           "name": "fzf",
           "label": "fzf"
         },
         {
-          "id": "pkg:bat",
+          "id": "pkg:jq",
           "source": "pkg",
-          "name": "bat",
-          "label": "bat"
+          "name": "jq",
+          "label": "jq"
         },
         {
-          "id": "pkg:fd",
+          "id": "pkg:tealdeer",
           "source": "pkg",
-          "name": "fd",
-          "label": "fd"
-        },
-        {
-          "id": "pkg:ripgrep",
-          "source": "pkg",
-          "name": "ripgrep",
-          "label": "ripgrep"
+          "name": "tealdeer",
+          "label": "tealdeer"
         },
         {
           "id": "pkg:diff-so-fancy",
@@ -1083,46 +1143,10 @@
           "label": "lazygit"
         },
         {
-          "id": "pkg:jq",
+          "id": "pkg:miller",
           "source": "pkg",
-          "name": "jq",
-          "label": "jq"
-        },
-        {
-          "id": "pkg:tealdeer",
-          "source": "pkg",
-          "name": "tealdeer",
-          "label": "tealdeer"
-        },
-        {
-          "id": "pkg:nodejs",
-          "source": "pkg",
-          "name": "nodejs",
-          "label": "nodejs"
-        },
-        {
-          "id": "pkg:python",
-          "source": "pkg",
-          "name": "python",
-          "label": "python"
-        },
-        {
-          "id": "pkg:yazi",
-          "source": "pkg",
-          "name": "yazi",
-          "label": "yazi"
-        },
-        {
-          "id": "pkg:file",
-          "source": "pkg",
-          "name": "file",
-          "label": "file"
-        },
-        {
-          "id": "pkg:chafa",
-          "source": "pkg",
-          "name": "chafa",
-          "label": "chafa"
+          "name": "miller",
+          "label": "miller"
         },
         {
           "id": "pkg:imagemagick",
@@ -1143,6 +1167,18 @@
           "label": "ffmpeg"
         },
         {
+          "id": "pkg:chafa",
+          "source": "pkg",
+          "name": "chafa",
+          "label": "chafa"
+        },
+        {
+          "id": "pkg:mediainfo",
+          "source": "pkg",
+          "name": "mediainfo",
+          "label": "mediainfo"
+        },
+        {
           "id": "pkg:7zip",
           "source": "pkg",
           "name": "7zip",
@@ -1161,46 +1197,10 @@
           "label": "exiftool"
         },
         {
-          "id": "pkg:mediainfo",
+          "id": "pkg:yazi",
           "source": "pkg",
-          "name": "mediainfo",
-          "label": "mediainfo"
-        },
-        {
-          "id": "pkg:miller",
-          "source": "pkg",
-          "name": "miller",
-          "label": "miller"
-        },
-        {
-          "id": "pkg:git",
-          "source": "pkg",
-          "name": "git",
-          "label": "git"
-        },
-        {
-          "id": "pkg:clang",
-          "source": "pkg",
-          "name": "clang",
-          "label": "clang"
-        },
-        {
-          "id": "pkg:make",
-          "source": "pkg",
-          "name": "make",
-          "label": "make"
-        },
-        {
-          "id": "pkg:unzip",
-          "source": "pkg",
-          "name": "unzip",
-          "label": "unzip"
-        },
-        {
-          "id": "pkg:tree-sitter",
-          "source": "pkg",
-          "name": "tree-sitter",
-          "label": "tree-sitter"
+          "name": "yazi",
+          "label": "yazi"
         },
         {
           "id": "pkg:tmux",
@@ -1346,12 +1346,6 @@
           "label": "Git.Git"
         },
         {
-          "id": "winget:JanDeDobbeleer.OhMyPosh",
-          "source": "winget",
-          "name": "JanDeDobbeleer.OhMyPosh",
-          "label": "JanDeDobbeleer.OhMyPosh"
-        },
-        {
           "id": "winget:GitHub.cli",
           "source": "winget",
           "name": "GitHub.cli",
@@ -1370,12 +1364,6 @@
           "label": "sxyazi.yazi"
         },
         {
-          "id": "winget:Gyan.FFmpeg",
-          "source": "winget",
-          "name": "Gyan.FFmpeg",
-          "label": "Gyan.FFmpeg"
-        },
-        {
           "id": "winget:7zip.7zip",
           "source": "winget",
           "name": "7zip.7zip",
@@ -1386,12 +1374,6 @@
           "source": "winget",
           "name": "jqlang.jq",
           "label": "jqlang.jq"
-        },
-        {
-          "id": "winget:oschwartz10612.Poppler",
-          "source": "winget",
-          "name": "oschwartz10612.Poppler",
-          "label": "oschwartz10612.Poppler"
         },
         {
           "id": "winget:sharkdp.fd",
@@ -1436,16 +1418,34 @@
           "label": "tldr-pages.tlrc"
         },
         {
+          "id": "winget:JanDeDobbeleer.OhMyPosh",
+          "source": "winget",
+          "name": "JanDeDobbeleer.OhMyPosh",
+          "label": "JanDeDobbeleer.OhMyPosh"
+        },
+        {
+          "id": "winget:Gyan.FFmpeg",
+          "source": "winget",
+          "name": "Gyan.FFmpeg",
+          "label": "Gyan.FFmpeg"
+        },
+        {
+          "id": "winget:oschwartz10612.Poppler",
+          "source": "winget",
+          "name": "oschwartz10612.Poppler",
+          "label": "oschwartz10612.Poppler"
+        },
+        {
+          "id": "scoop:curl",
+          "source": "scoop",
+          "name": "curl",
+          "label": "curl"
+        },
+        {
           "id": "scoop:aria2",
           "source": "scoop",
           "name": "aria2",
           "label": "aria2"
-        },
-        {
-          "id": "scoop:vim",
-          "source": "scoop",
-          "name": "vim",
-          "label": "vim"
         },
         {
           "id": "scoop:nodejs-lts",
@@ -1454,16 +1454,34 @@
           "label": "nodejs-lts"
         },
         {
+          "id": "scoop:uv",
+          "source": "scoop",
+          "name": "uv",
+          "label": "uv"
+        },
+        {
+          "id": "scoop:vim",
+          "source": "scoop",
+          "name": "vim",
+          "label": "vim"
+        },
+        {
           "id": "scoop:sox",
           "source": "scoop",
           "name": "sox",
           "label": "sox"
         },
         {
-          "id": "scoop:curl",
+          "id": "scoop:eza",
           "source": "scoop",
-          "name": "curl",
-          "label": "curl"
+          "name": "eza",
+          "label": "eza"
+        },
+        {
+          "id": "scoop:lazygit",
+          "source": "scoop",
+          "name": "lazygit",
+          "label": "lazygit"
         },
         {
           "id": "scoop:btop",
@@ -1488,24 +1506,6 @@
           "source": "scoop",
           "name": "vscode",
           "label": "vscode"
-        },
-        {
-          "id": "scoop:eza",
-          "source": "scoop",
-          "name": "eza",
-          "label": "eza"
-        },
-        {
-          "id": "scoop:uv",
-          "source": "scoop",
-          "name": "uv",
-          "label": "uv"
-        },
-        {
-          "id": "scoop:lazygit",
-          "source": "scoop",
-          "name": "lazygit",
-          "label": "lazygit"
         },
         {
           "id": "font:Maple-Mono-NF-CN",

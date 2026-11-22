@@ -11,6 +11,9 @@ All notable changes to this project are documented here. The format follows
 - The `install.sh` and `install.ps1` headers now follow a Docker-style layout: summary,
   requirements, usage, command-line options, environment, bootstrap order and Worker routes. The
   documented flags and environment variables match the CLI.
+- Package lists in every manifest are ordered dependency-first (base toolchain → shell → runtimes →
+  CLI tools → media tools → applications), so a per-package retry installs providers before
+  consumers (`nodejs` before `npm`, `zathura` before its PDF plugin).
 
 ### Fixed
 
@@ -24,6 +27,14 @@ All notable changes to this project are documented here. The format follows
 - Windows: commands that exist only as `.cmd` shims (`scoop`, `npm`, `npx`) failed with
   `<name>: command not found` even though `shutil.which` found them, because `CreateProcess` only
   appends `.exe`. Bare names are now resolved through `PATHEXT` before execution.
+- Fedora: `dnf install` aborted the whole package step when a requested name conflicted with an
+  installed replacement (Fedora's `ffmpeg-free` vs rpmfusion's `ffmpeg`). The batch now runs with
+  `--skip-broken` and the skipped names are reported as a warning instead of failing the step.
+- Unix package steps no longer fail when a single package is unavailable or conflicts with an
+  installed one: apt, pacman and pkg retry package by package, dnf skips broken entries, and the
+  leftovers are reported as a warning. Arch gained that fallback (a machine with
+  `zathura-pdf-mupdf` previously rolled the whole transaction back when the poppler plugin was
+  requested); only a total failure still fails the step.
 
 ## [1.1.1] - 2026-11-22
 

@@ -53,6 +53,24 @@ unquoted `a,b` is parsed as an array, so the configurator always quotes these va
 | `wingetPackages` | string[] | Windows |
 | `scoopPackages` | string[] | Windows |
 
+### Package order
+
+Package arrays are listed dependency-first, because a failed batch is resolved entry by entry in
+manifest order (retry for apt/pacman/pkg, skip for dnf):
+
+1. Base toolchain and network primitives: `git`, `curl`, `unzip`, `file`, `base-devel`/`clang`/`make`.
+2. Shell and its plugins: `zsh`, then `zsh-autosuggestions` and `zsh-syntax-highlighting`.
+3. Runtimes and their package managers: `python3`, `python3-pip` before `pipx`, `nodejs` before
+   `npm`, `uv`.
+4. CLI tools: `ripgrep`, `fd`, `bat`, `eza`, `zoxide`, `fzf`, `jq`, `gh`, `lazygit`, …
+5. Media and archive tools: `ImageMagick`, `poppler`, `ffmpeg`, `sox`, `chafa`, `mediainfo`,
+   `7zip`, `unar`, `exiftool`.
+6. Applications, keeping providers before consumers: `zathura` before `zathura-pdf-poppler`,
+   `yazi`, `vim`, `tmux`, `fastfetch`, `btop`, clipboard tools.
+
+Package managers still solve dependencies themselves; the order only decides which entries survive
+when one of them cannot be installed.
+
 ### Config entry
 
 | Field | Required | Meaning |
