@@ -22,6 +22,10 @@ from .manifest import Manifest, Mirrors
 
 MAPLE_URL = "https://github.com/subframe7536/maple-font/releases/latest/download/MapleMono-NF-CN.zip"
 
+# winget returns UPDATE_NOT_APPLICABLE when a package is already installed and
+# no newer version is offered. That is the desired end state, not a failure.
+WINGET_UPDATE_NOT_APPLICABLE = 0x8A15002B
+
 FONT_SUFFIXES = (".ttf", ".otf", ".ttc")
 
 
@@ -376,11 +380,40 @@ def winget_install(package_id: str) -> None:
     ]
     if package_id == "Git.Git":
         args.append("-e")
-    sysinfo.run(args)
+    result = sysinfo.run(args, check=False)
+    if result.returncode == 0:
+        return
+    # Windows exit codes are 32-bit; normalize so the signed form also matches.
+    if (result.returncode & 0xFFFFFFFF) == WINGET_UPDATE_NOT_APPLICABLE:
+        sysinfo.info(t("winget.up_to_date", package_id))
+        return
+    raise sysinfo.CommandError(f"{' '.join(args)} exited with {result.returncode}")
+
+
+def scoop_shims() -> Path:
+    return sysinfo.scoop_root() / "shims"
+
+
+def scoop_available() -> bool:
+    """Return True when scoop is runnable, adding its shims directory first.
+
+    The Scoop installer does not always put ``shims`` on the PATH inherited by
+    the running process, so a freshly installed Scoop can still be invisible to
+    ``subprocess`` until the registry PATH is refreshed or the shims directory is
+    appended.
+    """
+    if sysinfo.which("scoop"):
+        return True
+    shims = scoop_shims()
+    if shims.is_dir():
+        entries = [entry for entry in os.environ.get("PATH", "").split(os.pathsep) if entry]
+        if str(shims) not in entries:
+            os.environ["PATH"] = os.pathsep.join([str(shims), *entries])
+    return bool(sysinfo.which("scoop"))
 
 
 def install_scoop(mirrors: Mirrors) -> None:
-    if not sysinfo.which("scoop"):
+    if not scoop_available():
         installer_urls = (
             mirrors.github_urls(
                 "https://raw.githubusercontent.com/ScoopInstaller/Install/master/install.ps1"
@@ -398,7 +431,7 @@ def install_scoop(mirrors: Mirrors) -> None:
         finally:
             script.unlink(missing_ok=True)
         sysinfo.refresh_windows_path()
-    if not sysinfo.which("scoop"):
+    if not scoop_available():
         raise RuntimeError(t("scoop.missing"))
     sysinfo.success(t("scoop.setup"))
 
@@ -406,6 +439,9 @@ def install_scoop(mirrors: Mirrors) -> None:
 def configure_scoop_buckets(mirrors: Mirrors) -> None:
     if not mirrors.scoop_buckets:
         sysinfo.info(t("scoop.buckets_empty"))
+        return
+    if not scoop_available():
+        sysinfo.warn(t("scoop.missing"))
         return
 
     installed = sysinfo.run(["scoop", "bucket", "list"], capture=True, check=False).stdout or ""
@@ -423,16 +459,23 @@ def configure_scoop_buckets(mirrors: Mirrors) -> None:
 
 
 def scoop_install(package: str) -> None:
+    if not scoop_available():
+        sysinfo.warn(t("scoop.missing"))
+        return
     sysinfo.run(["scoop", "install", package])
 
 
 def configure_aria2(manifest: Manifest) -> None:
     if "aria2" not in manifest.array("scoopPackages"):
         return
+    if not scoop_available():
+        sysinfo.warn(t("scoop.missing"))
+        return
     sysinfo.run(["scoop", "install", "aria2"])
-    shims = sysinfo.home() / "scoop" / "shims"
-    if shims.is_dir() and str(shims) not in os.environ.get("PATH", ""):
-        os.environ["PATH"] = str(shims) + os.pathsep + os.environ.get("PATH", "")
+    shims = scoop_shims()
+    entries = [entry for entry in os.environ.get("PATH", "").split(os.pathsep) if entry]
+    if str(shims) not in entries:
+        os.environ["PATH"] = os.pathsep.join([str(shims), *entries])
     for key, value in (
         ("aria2-enabled", "true"),
         ("aria2-warning-enabled", "false"),
@@ -445,6 +488,9 @@ def configure_aria2(manifest: Manifest) -> None:
 
 
 def install_uv_python() -> None:
+    if not sysinfo.which("uv"):
+        sysinfo.warn(t("uv.missing"))
+        return
     sysinfo.run(["uv", "python", "install"])
 
 

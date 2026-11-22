@@ -198,15 +198,19 @@ def run_install(
                     lambda pkg=package: installers.winget_install(pkg),
                     core=True,
                 )
+        scoop_ready = False
         if scoop or fonts:
             runner.run(t("step.scoop_setup"), lambda: installers.install_scoop(mirrors), core=True)
-            if mirrors.scoop_buckets:
+            scoop_ready = installers.scoop_available()
+            if not scoop_ready:
+                sysinfo.warn(t("scoop.skipping"))
+            elif mirrors.scoop_buckets:
                 runner.run(t("step.buckets"), lambda: installers.configure_scoop_buckets(mirrors), core=False)
 
-        if "aria2" in scoop:
+        if "aria2" in scoop and scoop_ready:
             runner.run(t("step.aria2"), lambda: installers.configure_aria2(data), core=False)
         for package in scoop:
-            if package == "aria2":
+            if package == "aria2" or not scoop_ready:
                 continue
             runner.run(
                 t("step.scoop_pkg", package),
@@ -215,7 +219,12 @@ def run_install(
             )
         for font in fonts:
             spec = installers.FONT_SPECS.get(font)
-            if spec and spec.scoop_package and not (mirrors.github_proxy or mirrors.proxy):
+            if (
+                spec
+                and spec.scoop_package
+                and scoop_ready
+                and not (mirrors.github_proxy or mirrors.proxy)
+            ):
                 runner.run(
                     t("step.scoop_pkg", spec.scoop_package),
                     lambda pkg=spec.scoop_package: installers.scoop_install(pkg),
@@ -227,7 +236,7 @@ def run_install(
                     lambda name=font: installers.install_font_windows(name, mirrors),
                     core=False,
                 )
-        if "uv" in scoop:
+        if "uv" in scoop and scoop_ready:
             runner.run(t("step.uv_python"), installers.install_uv_python, core=False)
     else:
         packages = app_names(apps, selected_apps, "pkg:")

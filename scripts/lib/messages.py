@@ -76,6 +76,7 @@ MESSAGES = {
     'scoop.buckets_empty': 'mirror.json declares no scoopBuckets; skipped bucket setup.',
     'scoop.missing': 'scoop is still unavailable after installation.',
     'scoop.setup': 'Installing Scoop and preparing PATH.',
+    'scoop.skipping': 'Scoop is unavailable; skipping the remaining Scoop steps.',
     'selection.available': 'Available: {0}',
     'selection.unknown': 'Unknown selection: {0}',
     'shell.already': 'Login shell already set: {0} for {1}',
@@ -105,12 +106,14 @@ MESSAGES = {
     'step.running': 'Running: {0} ...',
     'step.scoop_pkg': 'Scoop package [{0}]',
     'step.scoop_setup': 'Install Scoop and refresh PATH',
+    'uv.missing': 'uv not found; skipping Python install.',
     'step.shell': 'Set default shell',
     'step.skill': 'Agent skill [{0}]',
     'step.system_packages': 'System packages ({0}, {1} items)',
     'step.uv_python': 'Install Python runtime (uv)',
     'step.winget': 'winget package [{0}]',
     'winget.missing': 'winget not found; skipping winget packages.',
+    'winget.up_to_date': 'Already installed; no upgrade available: {0}',
 }
 
 
