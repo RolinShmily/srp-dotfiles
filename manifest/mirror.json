@@ -3,7 +3,12 @@
   "proxy": "",
   "profile": "global",
   "profiles": {
-    "global": {},
+    "global": {
+      "scoopBuckets": [
+        "extras = https://github.com/ScoopInstaller/Extras",
+        "nerd-fonts = https://github.com/matthewjberger/scoop-nerd-fonts"
+      ]
+    },
     "cn": {
       "githubProxy": [
         "https://gh-proxy.com/",

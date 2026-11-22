@@ -38,6 +38,15 @@
       "target": "~/.zshrc"
     },
     {
+      "name": "zsh-modules",
+      "source": "configs/zsh",
+      "target": "~/.config/srp-dotfiles/zsh",
+      "exclude": [
+        "zshrc",
+        "local.zsh"
+      ]
+    },
+    {
       "name": "vimrc",
       "source": "configs/vim/vimrc",
       "target": "~/.vimrc"

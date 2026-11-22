@@ -318,6 +318,10 @@
           "label": "zshrc"
         },
         {
+          "id": "zsh-modules",
+          "label": "zsh-modules"
+        },
+        {
           "id": "vimrc",
           "label": "vimrc"
         },
@@ -553,6 +557,10 @@
         {
           "id": "zshrc",
           "label": "zshrc"
+        },
+        {
+          "id": "zsh-modules",
+          "label": "zsh-modules"
         },
         {
           "id": "vimrc",
@@ -928,6 +936,10 @@
           "label": "zshrc"
         },
         {
+          "id": "zsh-modules",
+          "label": "zsh-modules"
+        },
+        {
           "id": "vimrc",
           "label": "vimrc"
         },
@@ -1245,6 +1257,10 @@
           "label": "zshrc"
         },
         {
+          "id": "zsh-modules",
+          "label": "zsh-modules"
+        },
+        {
           "id": "vimrc",
           "label": "vimrc"
         },
@@ -1450,12 +1466,6 @@
           "label": "curl"
         },
         {
-          "id": "font:Maple-Mono-NF-CN",
-          "source": "font",
-          "name": "Maple-Mono-NF-CN",
-          "label": "Maple-Mono-NF-CN"
-        },
-        {
           "id": "scoop:btop",
           "source": "scoop",
           "name": "btop",
@@ -1496,6 +1506,12 @@
           "source": "scoop",
           "name": "lazygit",
           "label": "lazygit"
+        },
+        {
+          "id": "font:Maple-Mono-NF-CN",
+          "source": "font",
+          "name": "Maple-Mono-NF-CN",
+          "label": "Maple-Mono-NF-CN"
         },
         {
           "id": "font:Inter",
@@ -1610,7 +1626,10 @@
             "npm": "",
             "pypi": [],
             "go": "",
-            "scoop": []
+            "scoop": [
+              "extras = https://github.com/ScoopInstaller/Extras",
+              "nerd-fonts = https://github.com/matthewjberger/scoop-nerd-fonts"
+            ]
           },
           "cn": {
             "github": [

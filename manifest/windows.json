@@ -24,7 +24,6 @@
     "nodejs-lts",
     "sox",
     "curl",
-    "Maple-Mono-NF-CN",
     "btop",
     "zellij",
     "notepad3",
@@ -103,6 +102,7 @@
     }
   ],
   "fonts": [
+    "Maple-Mono-NF-CN",
     "Inter",
     "SourceHanSansSC"
   ]

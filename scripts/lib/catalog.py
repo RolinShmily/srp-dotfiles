@@ -86,11 +86,7 @@ def build_catalog(manifest: Manifest, mirrors, profiles=None, default_profile=""
         for package in manifest.array("wingetPackages"):
             add(f"winget:{package}", "winget", str(package))
         for package in manifest.array("scoopPackages"):
-            name = str(package)
-            if name == "Maple-Mono-NF-CN":
-                add(f"font:{name}", "font", name)
-            else:
-                add(f"scoop:{name}", "scoop", name)
+            add(f"scoop:{package}", "scoop", str(package))
         for font in manifest.array("fonts"):
             add(f"font:{font}", "font", str(font))
     else:

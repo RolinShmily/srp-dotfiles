@@ -25,7 +25,6 @@
     "imagemagick",
     "poppler",
     "ffmpeg",
-    "imagemagick",
     "7zip",
     "unar",
     "exiftool",
@@ -52,6 +51,15 @@
       "name": "zshrc",
       "source": "configs/zsh/zshrc",
       "target": "~/.zshrc"
+    },
+    {
+      "name": "zsh-modules",
+      "source": "configs/zsh",
+      "target": "~/.config/srp-dotfiles/zsh",
+      "exclude": [
+        "zshrc",
+        "local.zsh"
+      ]
     },
     {
       "name": "vimrc",
