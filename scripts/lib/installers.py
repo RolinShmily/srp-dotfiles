@@ -13,6 +13,7 @@ import tempfile
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Callable
 
 from . import net
 from . import platform_info as sysinfo
@@ -62,6 +63,46 @@ FONT_SPECS["Maple-Mono-NF-CN"] = FONT_SPECS["MapleMono-NF-CN"]
 
 # --------------------------------------------------------------------- Unix
 
+def _install_with_fallback(
+    command: list[str],
+    packages: list[str],
+    *,
+    sudo: bool,
+    batch_message: str,
+    missing_message: Callable[[str], str],
+) -> None:
+    """Run a batch install, then retry one by one if the batch fails.
+
+    apt/pkg abort the whole transaction when one name is unknown, which would
+    leave even zsh uninstalled; the per-package pass lands the valid ones.
+    """
+    batch = sysinfo.run([*command, *packages], sudo=sudo, check=False)
+    if batch.returncode == 0:
+        return
+    sysinfo.warn(batch_message)
+    missing: list[str] = []
+    for package in packages:
+        one = sysinfo.run([*command, package], sudo=sudo, check=False)
+        if one.returncode != 0:
+            missing.append(package)
+    if missing:
+        raise sysinfo.CommandError(missing_message(", ".join(missing)))
+
+
+def _apt_unavailable(packages: list[str]) -> list[str]:
+    """Packages the current apt archive does not provide.
+
+    Availability is release-dependent (e.g. eza/fastfetch/lazygit are not in
+    bookworm), so probe the index instead of letting one name fail the batch.
+    """
+    unavailable: list[str] = []
+    for package in packages:
+        probe = sysinfo.run(["apt-cache", "show", package], capture=True, check=False)
+        if probe.returncode != 0:
+            unavailable.append(package)
+    return unavailable
+
+
 def install_system_packages(os_name: str, package_manager: str, packages: list[str]) -> None:
     if not packages:
         return
@@ -69,11 +110,29 @@ def install_system_packages(os_name: str, package_manager: str, packages: list[s
         sysinfo.run(["pacman", "-Syu", "--needed", "--noconfirm", *packages], sudo=True)
     elif package_manager == "apt":
         sysinfo.run(["apt-get", "update", "-y"], sudo=True)
-        sysinfo.run(["apt-get", "install", "-y", *packages], sudo=True)
+        unavailable = _apt_unavailable(packages)
+        if unavailable:
+            sysinfo.warn(t("pkg.apt_unavailable", ", ".join(unavailable)))
+            skipped = set(unavailable)
+            packages = [package for package in packages if package not in skipped]
+        if packages:
+            _install_with_fallback(
+                ["apt-get", "install", "-y"],
+                packages,
+                sudo=True,
+                batch_message=t("pkg.apt_batch_failed"),
+                missing_message=lambda names: t("pkg.apt_missing", names),
+            )
     elif package_manager == "dnf":
         sysinfo.run(["dnf", "install", "-y", *packages], sudo=True)
     elif package_manager == "pkg":
-        sysinfo.run(["pkg", "install", "-y", *packages])
+        _install_with_fallback(
+            ["pkg", "install", "-y"],
+            packages,
+            sudo=False,
+            batch_message=t("pkg.termux_batch_failed"),
+            missing_message=lambda names: t("pkg.termux_missing", names),
+        )
     else:
         sysinfo.warn(t("pkg.unknown_os", package_manager))
 
@@ -462,6 +521,7 @@ def _broadcast_font_change() -> None:
 def setup_omz_plugins(mirrors: Mirrors) -> None:
     ohmyzsh = sysinfo.home() / ".oh-my-zsh"
     if not ohmyzsh.is_dir():
+        sysinfo.warn(t("omz.plugins_missing"))
         return
     custom = Path(os.environ.get("ZSH_CUSTOM") or ohmyzsh / "custom")
     clones = (

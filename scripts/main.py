@@ -329,6 +329,9 @@ def run_config(
         runner.run(t("step.env"), installers.configure_windows_environment, core=True)
         runner.run(t("step.git"), installers.configure_git, core=False)
     elif "zshrc" in selected_configs:
+        # The rc file only sources modules; deploy its module tree alongside it
+        # so removing the clone cannot leave ~/.zshrc pointing at nothing.
+        selected_configs = set(selected_configs) | {"zsh-modules"}
         runner.run(t("step.omz_plugins"), lambda: installers.setup_omz_plugins(mirrors), core=True)
 
     ctx = Context(repo=repo, backup_dir=backup_dir, runner=runner)
@@ -427,6 +430,17 @@ def main(argv: list[str]) -> int:
         return 0
 
     action = "config" if args.do_config else "all"
+
+    # The engine escalates per command; running the whole thing as root would
+    # deploy configs into /root and leave root-owned files in the user's home.
+    if (
+        not sysinfo.IS_WINDOWS
+        and os.environ.get("SRP_ALLOW_ROOT") != "1"
+        and hasattr(os, "geteuid")
+        and os.geteuid() == 0
+    ):
+        sysinfo.error(t("error.root"))
+        return 2
 
     if not sys.stdin.isatty() and not args.yes and not args.dry_run:
         sysinfo.error(t("error.no_tty"))
