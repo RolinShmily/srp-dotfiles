@@ -9,10 +9,13 @@
 # --------------------------------------------------------------------
 
 # 设置默认 Shell 环境变量为 PowerShell 7 (供 Zellij / 终端复用器探测)
-if (Get-Command "pwsh" -ErrorAction SilentlyContinue) {
-    $env:SHELL = "pwsh.exe"
-    $env:ZELLIJ_SHELL = "pwsh.exe"
+# 用绝对路径：ssh 的 ProxyCommand 等直接读取 $SHELL，裸命令名会按当前目录解析
+$__pwsh = Get-Command "pwsh" -ErrorAction SilentlyContinue
+if ($__pwsh) {
+    $env:SHELL = $__pwsh.Source
+    $env:ZELLIJ_SHELL = $__pwsh.Source
 }
+Remove-Variable __pwsh -ErrorAction SilentlyContinue
 
 # 启用 Pi 终端硬件光标同步 (确保 Windows IME 输入法候选窗精准跟随输入光标)
 $env:PI_HARDWARE_CURSOR = "1"
@@ -402,90 +405,63 @@ if (Get-Command "live-server" -ErrorAction SilentlyContinue) {
 }
 
 # --------------------------------------------------------------------
-# 8. 远程连接与 SSH 提效函数 (对标原生 ssh-copy-id)
+# 8. 远程连接与 SSH 提效函数 (简化版 ssh-copy-id)
 # --------------------------------------------------------------------
 
-# Windows 原生 ssh-copy-id 兜底实现 (将本地公钥推送到远程 authorized_keys)
+# Windows 原生 ssh-copy-id 兜底实现：ssh-copy-id [user@]hostname
+# 将本地 ~/.ssh 中最先找到的公钥追加到远程 authorized_keys
 function ssh-copy-id {
     param(
         [Parameter(Position = 0)]
         [string]$userAtMachine
     )
 
-    # 1. 收集并解析参数 (支持 user@host 与 -i/-p 等参数任意位置摆放)
-    $allArgs = @()
-    if ($userAtMachine) { $allArgs += $userAtMachine }
-    $allArgs += $args
-
-    $target = ""
-    $identityFile = ""
-    $sshExtraArgs = @()
-
-    $i = 0
-    while ($i -lt $allArgs.Count) {
-        $arg = $allArgs[$i]
-        if ($arg -eq "-i" -and ($i + 1) -lt $allArgs.Count) {
-            $identityFile = $allArgs[$i + 1]
-            $i += 2
-            continue
-        }
-        if (-not $target -and $arg -notmatch "^-") {
-            $target = $arg
-            $i++
-            continue
-        }
-        $sshExtraArgs += $arg
-        $i++
-    }
-
-    if (-not $target) {
-        Write-Host "用法: ssh-copy-id [-i [identity_file]] [-p port] [user@]hostname [ssh_args...]" -ForegroundColor Yellow
+    if (-not $userAtMachine) {
+        Write-Host "用法: ssh-copy-id [user@]hostname" -ForegroundColor Yellow
         return
     }
 
-    # 2. 探测公钥路径 (优先 -i 指定，其次优先 id_rsa.pub，回退探测 id_ed25519/id_ecdsa 或 ~/.ssh/*.pub)
-    $publicKey = $identityFile
-    if (-not $publicKey) {
-        $sshDir = Join-Path $HOME ".ssh"
-        $candidates = @(
-            (Join-Path $sshDir "id_rsa.pub"),
-            (Join-Path $sshDir "id_ed25519.pub"),
-            (Join-Path $sshDir "id_ecdsa.pub")
-        )
-        foreach ($c in $candidates) {
-            if (Test-Path $c) {
-                $publicKey = $c
-                break
-            }
+    # 探测公钥路径 (优先 id_rsa.pub，回退探测 id_ed25519/id_ecdsa 或 ~/.ssh/*.pub)
+    $sshDir = Join-Path $HOME ".ssh"
+    $publicKey = $null
+    $candidates = @(
+        (Join-Path $sshDir "id_rsa.pub"),
+        (Join-Path $sshDir "id_ed25519.pub"),
+        (Join-Path $sshDir "id_ecdsa.pub")
+    )
+    foreach ($c in $candidates) {
+        if (Test-Path $c) {
+            $publicKey = $c
+            break
         }
-        if (-not $publicKey) {
-            $anyPub = Get-ChildItem -Path $sshDir -Filter "*.pub" -ErrorAction SilentlyContinue | Select-Object -First 1
-            if ($anyPub) {
-                $publicKey = $anyPub.FullName
-            }
+    }
+    if (-not $publicKey) {
+        $anyPub = Get-ChildItem -Path $sshDir -Filter "*.pub" -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($anyPub) {
+            $publicKey = $anyPub.FullName
         }
     }
 
     if (-not $publicKey -or -not (Test-Path $publicKey)) {
-        Write-Error "ERROR: failed to open ID file '$publicKey': No such file"
+        Write-Error "ERROR: 在 $sshDir 未找到任何 *.pub 公钥文件"
         return
     }
 
-    # 3. 使用原生 Get-Content 读取纯净公钥内容 (规避 profile 中 cat/bat 样式与行号污染)
+    # 使用原生 Get-Content 读取纯净公钥内容 (规避 profile 中 cat/bat 样式与行号污染)
     $pubContent = (Get-Content -Path $publicKey -Raw).Trim()
     if (-not $pubContent) {
         Write-Error "ERROR: 公钥文件 '$publicKey' 内容为空"
         return
     }
 
-    Write-Host "[*] 正在安装公钥: $publicKey -> $target" -ForegroundColor Cyan
+    Write-Host "[*] 正在安装公钥: $publicKey -> $userAtMachine" -ForegroundColor Cyan
 
-    # 4. 透传给 ssh 执行远程追加 (保证独立整行追加)
+    # 透传给 ssh 执行远程追加 (保证独立整行追加)
     $remoteCmd = "umask 077; test -d .ssh || mkdir .ssh ; cat >> .ssh/authorized_keys || exit 1"
-    ($pubContent + "`n") | ssh.exe @sshExtraArgs $target $remoteCmd
+    ($pubContent + "`n") | ssh.exe $userAtMachine $remoteCmd
 
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "[OK] 密钥已成功配置到 $target 的 ~/.ssh/authorized_keys" -ForegroundColor Green
+        Write-Host "[OK] 密钥已成功配置到 $userAtMachine 的 ~/.ssh/authorized_keys" -ForegroundColor Green
     }
 }
 
