@@ -21,6 +21,9 @@ All notable changes to this project are documented here. The format follows
   the setup step was skipped. The shims directory is now added to `PATH` after setup, and the
   remaining Scoop steps are skipped with a single warning; fonts fall back to a direct download and
   `uv` is skipped when it is absent.
+- Windows: commands that exist only as `.cmd` shims (`scoop`, `npm`, `npx`) failed with
+  `<name>: command not found` even though `shutil.which` found them, because `CreateProcess` only
+  appends `.exe`. Bare names are now resolved through `PATHEXT` before execution.
 
 ## [1.1.1] - 2026-11-22
 

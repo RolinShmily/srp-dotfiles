@@ -110,9 +110,16 @@ def run(
     sudo: bool = False,
 ) -> subprocess.CompletedProcess:
     argv = list(command)
+    printable = " ".join(argv)
+    if IS_WINDOWS and argv:
+        # CreateProcess only appends .exe, so PATHEXT shims (.CMD/.BAT) such as
+        # scoop, npm and npx must be resolved to their full path before exec.
+        resolved = shutil.which(argv[0])
+        if resolved:
+            argv[0] = resolved
     if sudo and can_sudo():
         argv = ["sudo", *argv]
-    printable = " ".join(argv)
+        printable = f"sudo {printable}"
     if DRY_RUN:
         print(f"[dry-run] {printable}")
         return subprocess.CompletedProcess(argv, 0, "", "")
@@ -131,7 +138,7 @@ def run(
             cwd=str(cwd) if cwd else None,
         )
     except FileNotFoundError as exc:
-        raise CommandError(f"{argv[0]}: command not found") from exc
+        raise CommandError(f"{command[0]}: command not found") from exc
 
     if check and result.returncode != 0:
         detail = (result.stderr or result.stdout or "").strip()
