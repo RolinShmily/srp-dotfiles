@@ -6,12 +6,69 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-11-22
+
+### Added
+
+- `zsh-modules` config entry (all Unix manifests): the zsh module tree is copied to
+  `~/.config/srp-dotfiles/zsh`, so a copied `~/.zshrc` no longer depends on the repository clone.
+  Selecting `zshrc` deploys it automatically.
+
 ### Changed
 
+- The `global` mirror profile now declares the `extras` and `nerd-fonts` Scoop buckets, so the
+  Windows app list (`vscode`, `notepad3`, and the Maple Mono NF CN font) resolves without the `cn`
+  profile.
+- Windows: the Maple font moved from `scoopPackages` to `fonts`, and the catalog special case is
+  gone. It was already installed once through the font path, so behavior is unchanged.
 - The `cn` mirror profile now uses `gh-proxy.com`, `gh-proxy.org` and `proxy.269601.xyz`;
   `ghfast.top` is gone from the profile, the bootstrap prefixes and the docs.
 - The bootstrap keeps the unproxied GitHub URL as a fallback instead of stopping at the last
-  mirror, validates downloaded archives, and clones through every prefix.
+  mirror, validates downloaded archives, clones through every prefix, and refreshes a cached
+  checkout by URL, repointing its origin at GitHub.
+- The bootstrap refreshes the auto-managed `~/.srp-dotfiles` on every run instead of reusing any
+  checkout that contains `scripts/main.py`, prints the revision it runs, and probes mirrors before
+  cloning so a dead proxy does not stall for minutes.
+
+### Fixed
+
+- `~/.zshrc` deployed by copy resolved `DOTFILES_CONFIG` with the symlink rules (falling back to
+  `/`), so `env`, `omz`, `aliases` and the other modules were skipped silently: no theme, no
+  syntax highlighting and no aliases. It now prefers the deployed modules, then
+  `~/.srp-dotfiles`, symlinks and direct sourcing.
+- Without Oh My Zsh, `omz.zsh` sources the distro `zsh-autosuggestions` and
+  `zsh-syntax-highlighting` scripts as a fallback, and the plugin step warns instead of returning
+  silently.
+- `apt` aborted the whole batch when one package name was unavailable, leaving even `zsh`
+  uninstalled; packages are now retried individually and the failures are reported.
+- `apt` now probes the archive before installing and skips packages this release does not ship
+  (e.g. `eza`, `fastfetch`, `lazygit` on Debian 12) with a warning instead of failing the step.
+- The installer refuses to run as root or through `sudo` (`SRP_ALLOW_ROOT=1` is reserved for
+  containers/CI), because it deploys into `$HOME`; the recommended URLs now point at
+  `https://dot.srprolin.com`, and both bootstrap headers document the Worker routes.
+- The shell step used `USER`, which sudo sets to `root`, so the login shell of the calling account
+  was left alone; it now prefers `SUDO_USER`, compares real paths and reports the result.
+- `profile.ps1` overwrote the absolute `SHELL` / `ZELLIJ_SHELL` set by the installer with a bare
+  `pwsh.exe`, which ssh resolves against the current directory; it now stores `pwsh`'s full path.
+- Legacy link deployments left directory links under `~/.config`; `rmdir()` on those raised
+  `ENOTDIR`, so copy deployment failed until the links were removed by hand. Links are now
+  unlinked first, and target directories are created without resolving through a dangling
+  `~/.config`.
+- The Termux manifest listed `imagemagick` twice.
+- `pkg` (Termux) retries package by package when a batch fails, like `apt`, so one unavailable
+  name no longer aborts the whole list.
+- Fedora enabled the `dejan/lazygit` COPR although `lazygit` is in the official repositories; the
+  extra step could fail on systems without the copr plugin.
+- Debian deployed `btop.conf` without the theme directory it references
+  (`catppuccin_mocha.theme`); both are now deployed together.
+- The Worker served a five-minute-cached bootstrap, so a pre-release script could survive a push;
+  it now fetches through a per-minute cache key, keeps script responses out of the cache, and
+  marks them `no-store`.
+- `mirror.status` was pruned with the unused message keys, so the mirror summary printed the raw
+  key; it is restored, and a test now fails on any used-but-undefined or defined-but-unused key.
+- Aliases for optional tools (`ff`, `serve`, `lg`) are only registered when the command exists.
+- PowerShell `ssh-copy-id` no longer advertises `-i` / `-p`: PowerShell parameter binding rejected
+  them before the function ran. It now takes `[user@]hostname` and uses the first `~/.ssh/*.pub`.
 
 ## [1.1.0] - 2026-11-18
 
@@ -44,9 +101,6 @@ All notable changes to this project are documented here. The format follows
 - CI also parses `install.ps1` and runs a config-only smoke test.
 
 ### Fixed
-
-- The shell step used `USER`, which sudo sets to `root`, so the login shell of the calling account
-  was left alone; it now prefers `SUDO_USER`, compares real paths and reports the result.
 
 - `scoop.missing` was referenced but never defined, so a failed Scoop install printed the key name.
 - The worker repository-archive error response contained a stray newline, and CI now parses
