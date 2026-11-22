@@ -1,29 +1,39 @@
 # configs/zsh/zshrc - Dotfiles 模块化 Zsh 配置主入口 (部署至 ~/.zshrc)
 
 # ------------------------------------------------------------------
-# 1. 解析 Dotfiles 所在物理目录
+# 1. 解析配置模块目录
+#    安装器把模块复制到 ~/.config/srp-dotfiles/zsh，所以即使 ~/.zshrc 是
+#    复制品（而非软链接），配置也能独立工作，不依赖仓库 clone。
 # ------------------------------------------------------------------
 if [ -n "$ZSH_DOTFILES_DIR" ]; then
+    # 显式覆盖：ZSH_DOTFILES_DIR 指向仓库根
     DOTFILES_DIR="$ZSH_DOTFILES_DIR"
-elif [ -L "$HOME/.zshrc" ]; then
-    # ~/.zshrc -> <repo>/configs/zsh/zshrc，上溯两级即仓库根
-    _target="$(readlink "$HOME/.zshrc")"
-    if [[ "$_target" = /* ]]; then
-        DOTFILES_DIR="$(cd "$(dirname "$_target")/../.." && pwd)"
-    else
-        DOTFILES_DIR="$(cd "$(dirname "$HOME/$_target")/../.." && pwd)"
-    fi
-    unset _target
-elif [ -d "$HOME/.dotfiles" ]; then
-    DOTFILES_DIR="$HOME/.dotfiles"
-elif [ -d "$HOME/Projects/srp-dotfiles" ]; then
-    DOTFILES_DIR="$HOME/Projects/srp-dotfiles"
-else
+    DOTFILES_CONFIG="$DOTFILES_DIR/configs"
+elif [ -d "$HOME/.config/srp-dotfiles/zsh" ]; then
+    DOTFILES_CONFIG="$HOME/.config/srp-dotfiles"
+elif [ -d "${${(%):-%N}:A:h:h:h}/configs/zsh" ]; then
+    # 软链接部署，或直接 source 仓库内的 zshrc
     DOTFILES_DIR="${${(%):-%N}:A:h:h:h}"
+    DOTFILES_CONFIG="$DOTFILES_DIR/configs"
+elif [ -d "$HOME/.srp-dotfiles/configs/zsh" ]; then
+    # install.sh 在线安装的默认克隆位置
+    DOTFILES_DIR="$HOME/.srp-dotfiles"
+    DOTFILES_CONFIG="$DOTFILES_DIR/configs"
+elif [ -d "$HOME/.dotfiles/configs/zsh" ]; then
+    DOTFILES_DIR="$HOME/.dotfiles"
+    DOTFILES_CONFIG="$DOTFILES_DIR/configs"
+elif [ -d "$HOME/Projects/srp-dotfiles/configs/zsh" ]; then
+    DOTFILES_DIR="$HOME/Projects/srp-dotfiles"
+    DOTFILES_CONFIG="$DOTFILES_DIR/configs"
+else
+    # 都没有时仍指向部署位置，让下面的 -f 检查安静地跳过
+    DOTFILES_CONFIG="$HOME/.config/srp-dotfiles"
 fi
 
-DOTFILES_CONFIG="$DOTFILES_DIR/configs"
-export DOTFILES_DIR DOTFILES_CONFIG
+export DOTFILES_CONFIG
+if [ -n "$DOTFILES_DIR" ]; then
+    export DOTFILES_DIR
+fi
 
 # ------------------------------------------------------------------
 # 2. 按顺序加载通用模块
@@ -78,7 +88,12 @@ unset _CURRENT_OS _detect_os_module
 
 # ------------------------------------------------------------------
 # 4. 加载单机专属私有配置（不入 Git 仓库，可存放私有 Token/密钥）
+#    部署模式下受管目录 ~/.config/srp-dotfiles/zsh 每次都会被整体替换，
+#    私有文件请放在它外面（~/.config/srp-dotfiles/local.zsh 或 ~/.zshrc.local）。
 # ------------------------------------------------------------------
+if [ -f "$HOME/.config/srp-dotfiles/local.zsh" ]; then
+    source "$HOME/.config/srp-dotfiles/local.zsh"
+fi
 if [ -f "$DOTFILES_CONFIG/zsh/local.zsh" ]; then
     source "$DOTFILES_CONFIG/zsh/local.zsh"
 fi

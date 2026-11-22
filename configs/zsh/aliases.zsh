@@ -5,7 +5,9 @@
 # -------------------------------- #
 alias cl='clear'
 alias e='exit'
-alias ff='fastfetch'
+if command -v fastfetch &>/dev/null; then
+    alias ff='fastfetch'
+fi
 
 # -------------------------------- #
 # 现代 CLI 工具替代
@@ -80,4 +82,6 @@ function codep() {
 }
 
 # 本地快速静态服务器
-alias serve='live-server'
+if command -v live-server &>/dev/null; then
+    alias serve='live-server'
+fi
