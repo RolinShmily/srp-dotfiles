@@ -6,6 +6,22 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- The `install.sh` and `install.ps1` headers now follow a Docker-style layout: summary,
+  requirements, usage, command-line options, environment, bootstrap order and Worker routes. The
+  documented flags and environment variables match the CLI.
+
+### Fixed
+
+- `winget install` exits with `UPDATE_NOT_APPLICABLE` (`0x8A15002B` = `2316632107`) when a package
+  is already installed and no newer version is offered. That benign result was reported as a failed
+  step on every run; it now logs the package as already up to date and continues.
+- Windows Scoop steps failed one by one with `scoop: command not found` when Scoop was missing or
+  the setup step was skipped. The shims directory is now added to `PATH` after setup, and the
+  remaining Scoop steps are skipped with a single warning; fonts fall back to a direct download and
+  `uv` is skipped when it is absent.
+
 ## [1.1.1] - 2026-11-22
 
 ### Added
