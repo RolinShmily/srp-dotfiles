@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 import tempfile
@@ -167,6 +168,43 @@ class DeployTargetTests(unittest.TestCase):
             deploy.copy_item(self._source(root), dest, root / "backup")
             self.assertFalse(link.is_symlink())
             self.assertTrue((dest / "config.jsonc").is_file())
+
+
+    def test_a_hard_link_to_the_source_becomes_a_copy(self) -> None:
+        """The old installer hard-linked files into $HOME; copying onto such a
+        target raised SameFileError."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "profile.ps1"
+            source.write_text("repo", encoding="utf-8")
+            dest = root / "home" / "profile.ps1"
+            dest.parent.mkdir()
+            try:
+                os.link(source, dest)
+            except (OSError, NotImplementedError):
+                self.skipTest("hard links are not available here")
+            deploy.copy_item(source, dest, root / "backup")
+            self.assertEqual(dest.read_text(encoding="utf-8"), "repo")
+            self.assertFalse(os.path.samefile(source, dest))
+
+    def test_a_target_hard_link_keeps_its_inode(self) -> None:
+        """Scoop persist files are hard links and must be written in place."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "btop.conf"
+            source.write_text("new", encoding="utf-8")
+            dest = root / "persist" / "btop.conf"
+            dest.parent.mkdir()
+            dest.write_text("old", encoding="utf-8")
+            peer = root / "app" / "btop.conf"
+            peer.parent.mkdir()
+            try:
+                os.link(dest, peer)
+            except (OSError, NotImplementedError):
+                self.skipTest("hard links are not available here")
+            deploy.copy_item(source, dest, root / "backup")
+            self.assertEqual(peer.read_text(encoding="utf-8"), "new")
+            self.assertTrue(os.path.samefile(dest, peer))
 
 
 if __name__ == "__main__":

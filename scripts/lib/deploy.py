@@ -23,6 +23,18 @@ def _is_link(path: Path) -> bool:
     return path.is_symlink() or _is_reparse(path)
 
 
+def _same_file(a: Path, b: Path) -> bool:
+    try:
+        return a.samefile(b)
+    except OSError:
+        return False
+
+
+def _same_entry(a: Path, b: Path) -> bool:
+    """True when both paths name one directory entry, not a hard-link twin."""
+    return os.path.normcase(os.path.realpath(a)) == os.path.normcase(os.path.realpath(b))
+
+
 def _remove(path: Path) -> None:
     if not path.exists() and not _is_link(path):
         return
@@ -114,6 +126,16 @@ def copy_item(
 
     # Legacy symlinks/junctions from older versions are dropped, not backed up.
     if _is_link(dest):
+        _remove(dest)
+
+    # The old installer also linked files in: New-Item -ItemType HardLink.
+    # copyfile()/copy2() refuse to write over the same inode, so drop the link
+    # first; the source keeps the inode and the copy breaks the link. When the
+    # target *is* the source entry, there is nothing to deploy.
+    if src.is_file() and dest.is_file() and _same_file(src, dest):
+        if _same_entry(src, dest):
+            sysinfo.info(t("deploy.same_file", dest))
+            return
         _remove(dest)
 
     if src.is_file() and dest.is_file():

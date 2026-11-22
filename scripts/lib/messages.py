@@ -15,6 +15,7 @@ MESSAGES = {
     'deploy.if_missing': 'Target exists, skipped: {0}',
     'deploy.overwrite': 'Overwrote: {0}',
     'deploy.overwrite_file': 'Overwrote in place: {0}',
+    'deploy.same_file': 'Target is the source file itself; skipped: {0}',
     'deploy.source_missing': 'Source missing [{0}]: {1}',
     'error.no_tty': 'stdin is not a TTY; pass -y / --yes to approve steps automatically.',
     'error.root': 'Do not run the installer as root or through sudo; it deploys to $HOME. Set SRP_ALLOW_ROOT=1 only for containers/CI.',

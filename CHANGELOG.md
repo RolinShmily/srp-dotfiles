@@ -27,6 +27,9 @@ All notable changes to this project are documented here. The format follows
 - Windows: commands that exist only as `.cmd` shims (`scoop`, `npm`, `npx`) failed with
   `<name>: command not found` even though `shutil.which` found them, because `CreateProcess` only
   appends `.exe`. Bare names are now resolved through `PATHEXT` before execution.
+- Deploying onto a file that the old link-based installer had hard-linked into `$HOME` (the
+  PowerShell profile) failed with `... are the same file`. The target is now unlinked and written
+  as a real copy, so the deployed file no longer shares the repository's inode.
 - Fedora: `dnf install` aborted the whole package step when a requested name conflicted with an
   installed replacement (Fedora's `ffmpeg-free` vs rpmfusion's `ffmpeg`). The batch now runs with
   `--skip-broken` and the skipped names are reported as a warning instead of failing the step.
