@@ -9,8 +9,14 @@
 #
 # Usage (PowerShell 5.1 blocks local scripts, so relax the policy for this process):
 #   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
-#   .\install.ps1 -y
-#   irm https://raw.githubusercontent.com/RolinShmily/srp-dotfiles/main/install.ps1 -OutFile install.ps1; .\install.ps1 -y
+#   irm https://dot.srprolin.com/install.ps1 -OutFile install.ps1; .\install.ps1 -y
+#   .\install.ps1 [-c|--config] [-y]
+#
+# Worker routes: / auto-detects the client and serves install.ps1 to
+# PowerShell/Windows and install.sh to everything else; /config is the checkbox
+# configurator; /install.sh and /install.ps1 force a script; /api/catalog
+# serves the catalog; /repo.tar.gz and /repo.zip mirror the repository;
+# /health is a probe. Add ?os=windows or ?os=unix to / to force a route.
 #
 # Fetch order: git clone (SRP_REPO_URL, then SRP_GH_PROXY and the built-in
 # mirror list, then GitHub directly), then a zip (Worker /repo.zip, codeload).

@@ -7,14 +7,32 @@
 #   Fedora:  sudo dnf install -y python3
 #   Termux:  pkg install python
 #
-# Usage:
-#   curl -fsSL https://raw.githubusercontent.com/RolinShmily/srp-dotfiles/main/install.sh | sh -s -- -y
+# Usage (run as your normal user; the script escalates per command itself):
+#   curl -fsSL https://dot.srprolin.com | sh -s -- -y        # install + deploy
+#   curl -fsSL https://dot.srprolin.com | sh -s -- -c -y     # configs only
 #   ./install.sh [-c|--config] [-y]
+#
+# Do not run this script as root or through sudo: it writes configs to $HOME,
+# so root would deploy into /root. Set SRP_ALLOW_ROOT=1 only in containers/CI.
+#
+# Worker routes: / auto-detects the client and serves install.sh to Unix and
+# install.ps1 to PowerShell/Windows; /config is the checkbox configurator;
+# /install.sh and /install.ps1 force a script; /api/catalog serves the catalog;
+# /repo.tar.gz and /repo.zip mirror the repository; /health is a probe. Add
+# ?os=windows or ?os=unix to / to force a route.
 #
 # Fetch order: git clone (SRP_REPO_URL, then SRP_GH_PROXY and the built-in
 # mirror list, then GitHub directly), then a tarball (Worker /repo.tar.gz,
 # codeload). manifest/mirror.json owns the mirrors used after bootstrap.
 set -eu
+
+# Never deploy into /root by accident.
+if [ "$(id -u)" -eq 0 ] && [ "${SRP_ALLOW_ROOT:-}" != "1" ]; then
+    echo "Do not run the installer as root or through sudo." >&2
+    echo "It writes configs to \$HOME and escalates per command; as root it would deploy to /root." >&2
+    echo "Run it as your normal user. Set SRP_ALLOW_ROOT=1 only in a container or CI." >&2
+    exit 1
+fi
 
 PY="${PYTHON:-python3}"
 if ! command -v "$PY" >/dev/null 2>&1 ||

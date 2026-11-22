@@ -73,7 +73,9 @@ Placeholders: `~`, `%APPDATA%`, `%LOCALAPPDATA%`, `$SCOOP`, `$PROFILE`.
   "proxy": "",
   "profile": "global",
   "profiles": {
-    "global": {},
+    "global": {
+      "scoopBuckets": ["extras = ...", "nerd-fonts = ..."]
+    },
     "cn": {
       "githubProxy": ["..."],
       "npmRegistry": "...",
@@ -115,6 +117,14 @@ Configs are copied, so the deployed files no longer depend on the clone. Existin
 archived to `~/.dotfiles_backup_*` before being replaced. A missing source fails the step and the
 installer exits non-zero.
 
+The zsh module tree (`env`, `omz`, `git`, `aliases`, `tools`, `os/`) is copied to
+`~/.config/srp-dotfiles/zsh`, so `~/.zshrc` keeps working when the clone is moved or deleted.
+`~/.zshrc` still recognises `ZSH_DOTFILES_DIR`, a symlinked `~/.zshrc`, `~/.srp-dotfiles`,
+`~/.dotfiles` and `~/Projects/srp-dotfiles` as repositories. Selecting the `zshrc` config deploys
+`zsh-modules` automatically. The deployed directory is fully managed and replaced on every run:
+keep private settings in `~/.config/srp-dotfiles/local.zsh` (outside the managed subtree) or
+`~/.zshrc.local`.
+
 Environment exports during install:
 
 ```text
@@ -127,8 +137,9 @@ npm_config_registry
 ## Login shell
 
 The shell step points the account that logged in at zsh and appends it to `/etc/shells` when it is
-missing. It targets `SUDO_USER` when sudo is in play, so `sudo ./install.sh` changes your shell and
-not root's, and it compares real paths, so `/bin/zsh` and `/usr/bin/zsh` count as the same shell.
+missing. It targets `SUDO_USER` when the command runs through sudo, and it compares real paths, so
+`/bin/zsh` and `/usr/bin/zsh` count as the same shell. The installer itself refuses to start as
+root (except with `SRP_ALLOW_ROOT=1` in containers/CI), because it deploys into `$HOME`.
 The step reports the account it touched, or the exact command to run when `chsh` was refused.
 
 Change it by hand:
@@ -200,6 +211,11 @@ it). Order:
 
 Environment: `SRP_REPO_URL`, `SRP_GH_PROXY`, `SRP_REPO_TARBALL`, `SRP_REPO_REF` (default `main`),
 `SRP_DOTFILES_DIR` (default `~/.srp-dotfiles`), `SRP_INSTALL_ORIGIN` (Worker base URL).
+`SRP_ALLOW_ROOT=1` bypasses the root guard and is meant only for containers and CI.
+
+Run the installer as your normal user, never through `sudo`: it writes configs to `$HOME` and
+escalates per package-manager command. Running as root would deploy into `/root` and leave
+root-owned files around.
 
 ## CI/CD
 

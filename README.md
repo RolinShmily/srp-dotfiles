@@ -44,12 +44,12 @@ print these options and exit.
 Online (clones the repo to `~/.srp-dotfiles` when needed):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/RolinShmily/srp-dotfiles/main/install.sh | sh -s -- -y
+curl -fsSL https://dot.srprolin.com | sh -s -- -y
 ```
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force;
-irm https://raw.githubusercontent.com/RolinShmily/srp-dotfiles/main/install.ps1 -OutFile install.ps1;
+irm https://dot.srprolin.com/install.ps1 -OutFile install.ps1;
 .\install.ps1 -y
 ```
 
@@ -76,6 +76,9 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 
 A full run also sets `RemoteSigned` for the current user, so later sessions can run
 `.\install.ps1` without the `Set-ExecutionPolicy` line.
+
+Run the installer as your normal user, never through `sudo`: it writes configs to `$HOME` and
+escalates per package-manager command. `SRP_ALLOW_ROOT=1` exists only for containers and CI.
 
 Every step is confirmed individually (core / optional label shown). `-y` approves everything and is
 required when stdin is not a TTY. Steps whose dependencies are missing (npm, skills, brew-like tools)
@@ -204,13 +207,14 @@ Run `python scripts/gen_catalog.py` after changing the manifests, otherwise CI/d
 {
   "profile": "global",
   "profiles": {
-    "global": {},
+    "global": { "scoopBuckets": ["extras = ...", "nerd-fonts = ..."] },
     "cn": { "githubProxy": ["..."], "npmRegistry": "..." }
   }
 }
 ```
 
-- `global` is the default and empty, i.e. system/upstream defaults.
+- `global` is the default: no proxies or registries, but it declares the `extras` and `nerd-fonts`
+  Scoop buckets the Windows app list needs.
 - `cn` ships with GitHub / npm / pip / Go / Scoop presets.
 - Pick one with `--mirror cn`; `profile` in the file sets the default.
 - Override single fields with `--mirror-<name>` (`github`, `npm`, `pypi`, `go`, `scoop`) or

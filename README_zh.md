@@ -42,12 +42,12 @@ powershell -c "irm https://astral.sh/uv/install.ps1 | iex"; uv python install 3.
 在线执行（缺少仓库时自动克隆到 `~/.srp-dotfiles`）：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/RolinShmily/srp-dotfiles/main/install.sh | sh -s -- -y
+curl -fsSL https://dot.srprolin.com | sh -s -- -y
 ```
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force;
-irm https://raw.githubusercontent.com/RolinShmily/srp-dotfiles/main/install.ps1 -OutFile install.ps1;
+irm https://dot.srprolin.com/install.ps1 -OutFile install.ps1;
 .\install.ps1 -y
 ```
 
@@ -73,6 +73,9 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 ```
 
 默认全量运行还会把当前用户策略设为 `RemoteSigned`，之后新开的会话可直接运行 `.\install.ps1`。
+
+请以普通用户运行安装器，不要加 `sudo`：配置写入 `$HOME`，脚本只在需要时对单条包管理命令提权。
+`SRP_ALLOW_ROOT=1` 仅用于容器/CI。
 
 默认逐个步骤确认（显示“核心 / 可选”标记）；`-y` 一键同意，标准输入不是终端时必须显式指定。
 缺少依赖的步骤（npm、skills 等）会提示并跳过，不会中断整体流程。
