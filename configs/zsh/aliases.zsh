@@ -46,15 +46,26 @@ fi
 # 目录导航与快捷命令
 # -------------------------------- #
 
-# 跳转到 Projects 目录 (~/Projects)
-function proj() {
-    local target="${1:-}"
-    local base="${PROJECTS_DIR:-$HOME/Projects}"
+# 进入指定根目录下的子目录；根目录不存在时自动创建（仅限根目录）
+function _srp_cd_under() {
+    local base="$1"
+    local target="${2:-}"
+    mkdir -p -- "$base" || return 1
     if [[ -n "$target" ]]; then
         cd -- "$base/$target"
     else
         cd -- "$base"
     fi
+}
+
+# 跳转到 Projects 目录 (~/Projects)
+function proj() {
+    _srp_cd_under "${PROJECTS_DIR:-$HOME/Projects}" "${1:-}"
+}
+
+# 跳转到 Apps 目录 (~/Apps)
+function app() {
+    _srp_cd_under "${APPS_DIR:-$HOME/Apps}" "${1:-}"
 }
 
 # 创建目录并进入
@@ -71,9 +82,9 @@ function clone() {
     fi
 }
 
-# 在 Projects 下克隆并用 VS Code 打开
+# 在 Projects 下克隆并进入克隆出的项目目录
 function clonep() {
-    proj && clone "$@" && code . && cd -
+    proj && clone "$@"
 }
 
 # 在 Projects 下直接用 VS Code 打开指定项目

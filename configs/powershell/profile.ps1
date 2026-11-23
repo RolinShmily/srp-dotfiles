@@ -159,15 +159,36 @@ function yz {
 # 移除 PowerShell 原生冲突别名以优先执行自定义增强函数
 Remove-Item alias:dir -Force -ErrorAction SilentlyContinue
 
+# 进入指定根目录下的子目录；根目录不存在时自动创建（仅限根目录）
+function _srp_cd_under {
+    param([string]$Base, [string]$Target = "")
+    if (-not (Test-Path -LiteralPath $Base -PathType Container)) {
+        try {
+            New-Item -ItemType Directory -Path $Base -Force -ErrorAction Stop | Out-Null
+        } catch {
+            Write-Error "无法创建目录 '$Base': $($_.Exception.Message)"
+            return
+        }
+    }
+    if ($Target) {
+        Set-Location -LiteralPath (Join-Path $Base $Target)
+    } else {
+        Set-Location -LiteralPath $Base
+    }
+}
+
 # 快速跳转到 Projects 开发根目录 (~/Projects 或指定子项目)
 function proj {
     param([string]$target = "")
     $base = if ($env:PROJECTS_DIR) { $env:PROJECTS_DIR } else { Join-Path $HOME "Projects" }
-    if ($target) {
-        Set-Location (Join-Path $base $target)
-    } else {
-        Set-Location $base
-    }
+    _srp_cd_under -Base $base -Target $target
+}
+
+# 快速跳转到 Apps 目录 (~/Apps 或指定子应用目录)
+function app {
+    param([string]$target = "")
+    $base = if ($env:APPS_DIR) { $env:APPS_DIR } else { Join-Path $HOME "Apps" }
+    _srp_cd_under -Base $base -Target $target
 }
 
 # 创建目录并立刻进入 (dir)
@@ -380,13 +401,11 @@ function pr {
 # --------------------------------------------------------------------
 # 7. 项目与开发提效组合函数 (对标 Unix zsh/aliases.zsh)
 # --------------------------------------------------------------------
+# 在 Projects 下克隆并进入克隆出的项目目录
 function clonep {
-    param([Parameter(Mandatory=$true)][string]$repo)
-    $prev = Get-Location
+    param([Parameter(Mandatory=$true)][string]$repo, [string]$dir = "")
     proj
-    clone $repo
-    if (Get-Command "code" -ErrorAction SilentlyContinue) { code . }
-    Set-Location $prev
+    if ($?) { clone $repo $dir }
 }
 
 function codep {

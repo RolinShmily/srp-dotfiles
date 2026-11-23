@@ -6,8 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `app` opens `~/Apps` (or `$APPS_DIR`) on zsh and PowerShell, mirroring `proj`. Both commands now
+  create their base directory when it is missing, while subdirectories are still required to exist.
+
 ### Changed
 
+- `clonep` now only enters `~/Projects`, clones there and stays in the cloned repository on zsh and
+  PowerShell; it no longer launches VS Code or returns to the previous directory.
 - The `install.sh` and `install.ps1` headers now follow a Docker-style layout: summary,
   requirements, usage, command-line options, environment, bootstrap order and Worker routes. The
   documented flags and environment variables match the CLI.
