@@ -24,6 +24,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Removed
 
+- Pi: removed `configs/pi/skills/` and `configs/pi/mcp.json`; `configs/pi/` now only ships
+  `AGENTS.md`, `keybindings.json`, and `settings.json`.
 - Windows: removed the `windows-terminal-settings` config entry and
   `configs/windows-terminal/settings.json`. Overwriting Windows Terminal's `settings.json` with a
   template that omits machine-generated `profiles.list` / `defaultProfile` caused Windows Terminal

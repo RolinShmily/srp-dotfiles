@@ -12,9 +12,6 @@
 configs/zsh/local.zsh
 configs/zsh/*.local.zsh
 
-# skill
-configs/pi/skills/browser-tools/package-lock.json
-
 # Python
 __pycache__/
 *.pyc

@@ -262,7 +262,7 @@ scoop bucket rm <name>      # 再重新添加默认 bucket
 可选字段：`targets`、`exclude`、`ifMissing`、`when`。
 路径占位符：`~`、`%APPDATA%`、`%LOCALAPPDATA%`、`$SCOOP`、`$PROFILE`。
 
-目录按整棵复制，`~/.pi/agent` 就是这样部署的（Pi 自己会发现 `~/.pi/agent/skills`）。
+目录按整棵复制，`~/.pi/agent` 就是这样部署的。
 
 ## 字体
 

@@ -277,8 +277,7 @@ Every entry is a **copy**: the previous target is archived to `~/.dotfiles_backu
 there is no other method. Optional fields: `targets`, `exclude`, `ifMissing`, `when`.
 Placeholders: `~`, `%APPDATA%`, `%LOCALAPPDATA%`, `$SCOOP`, `$PROFILE`.
 
-Directories are copied as a whole, which is how `~/.pi/agent` is deployed (Pi discovers
-`~/.pi/agent/skills` on its own).
+Directories are copied as a whole, which is how `~/.pi/agent` is deployed.
 
 ## Font
 
