@@ -1582,10 +1582,6 @@
           "label": "code-settings"
         },
         {
-          "id": "windows-terminal-settings",
-          "label": "windows-terminal-settings"
-        },
-        {
           "id": "pi",
           "label": "pi"
         }

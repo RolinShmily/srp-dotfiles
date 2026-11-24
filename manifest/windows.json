@@ -90,12 +90,6 @@
       "target": "%APPDATA%/Code/User/settings.json"
     },
     {
-      "name": "windows-terminal-settings",
-      "source": "configs/windows-terminal/settings.json",
-      "target": "%LOCALAPPDATA%/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json",
-      "when": "%LOCALAPPDATA%/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState"
-    },
-    {
       "name": "pi",
       "source": "configs/pi",
       "target": "~/.pi/agent"

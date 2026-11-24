@@ -121,7 +121,7 @@ GitHub 不可达时，引导脚本会依次回退到 Worker 的仓库归档、`g
 │   ├── arch|debian|fedora|termux|windows.json
 │   └── mirror.json              # 镜像与代理
 ├── configs/                     # 各软件配置
-│   └── zsh/ vim/ tmux/ powershell/ pi/ wezterm/ windows-terminal/ zellij/ yazi/ btop/ fastfetch/ code/
+│   └── zsh/ vim/ tmux/ powershell/ pi/ wezterm/ zellij/ yazi/ btop/ fastfetch/ code/
 ├── worker/                      # 可选：Cloudflare Worker 安装入口
 └── docs/                        # 开发、架构、设计、参考规范
 ```
@@ -263,8 +263,6 @@ scoop bucket rm <name>      # 再重新添加默认 bucket
 路径占位符：`~`、`%APPDATA%`、`%LOCALAPPDATA%`、`$SCOOP`、`$PROFILE`。
 
 目录按整棵复制，`~/.pi/agent` 就是这样部署的（Pi 自己会发现 `~/.pi/agent/skills`）。
-Windows Terminal 也是普通文件复制：模板不含机器相关字段，所以旧的 `settings.json`
-（含 `defaultProfile` / `profiles.list`）会先归档，再被模板替换。
 
 ## 字体
 

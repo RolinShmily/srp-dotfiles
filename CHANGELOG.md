@@ -22,6 +22,13 @@ All notable changes to this project are documented here. The format follows
   CLI tools → media tools → applications), so a per-package retry installs providers before
   consumers (`nodejs` before `npm`, `zathura` before its PDF plugin).
 
+### Removed
+
+- Windows: removed the `windows-terminal-settings` config entry and
+  `configs/windows-terminal/settings.json`. Overwriting Windows Terminal's `settings.json` with a
+  template that omits machine-generated `profiles.list` / `defaultProfile` caused Windows Terminal
+  to fail startup validation (`AllProfilesHidden`); Terminal preferences are left to the UI.
+
 ### Fixed
 
 - `winget install` exits with `UPDATE_NOT_APPLICABLE` (`0x8A15002B` = `2316632107`) when a package

@@ -128,7 +128,7 @@ Full guides live in [docs/](docs/README.md): development, architecture, design a
 │   ├── arch|debian|fedora|termux|windows.json
 │   └── mirror.json              # mirrors & proxy
 ├── configs/                     # application configs
-│   └── zsh/ vim/ tmux/ powershell/ pi/ wezterm/ windows-terminal/ zellij/ yazi/ btop/ fastfetch/ code/
+│   └── zsh/ vim/ tmux/ powershell/ pi/ wezterm/ zellij/ yazi/ btop/ fastfetch/ code/
 ├── worker/                      # optional Cloudflare Worker install endpoint
 └── docs/                        # development, architecture, design, references
 ```
@@ -278,9 +278,7 @@ there is no other method. Optional fields: `targets`, `exclude`, `ifMissing`, `w
 Placeholders: `~`, `%APPDATA%`, `%LOCALAPPDATA%`, `$SCOOP`, `$PROFILE`.
 
 Directories are copied as a whole, which is how `~/.pi/agent` is deployed (Pi discovers
-`~/.pi/agent/skills` on its own). Windows Terminal is a plain file copy too: the template has no
-machine-specific fields, so the previous `settings.json` — including `defaultProfile` /
-`profiles.list` — is archived before the template replaces it.
+`~/.pi/agent/skills` on its own).
 
 ## Font
 
