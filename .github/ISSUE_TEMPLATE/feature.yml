@@ -1,0 +1,25 @@
+name: Feature
+description: Propose a new app, config, OS profile, mirror, or improvement
+title: "[feat] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        See [docs/design.md](https://github.com/RolinShmily/srp-dotfiles/blob/main/docs/design.md) for project principles and non-goals before proposing structural changes.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem & proposal
+      description: What problem are you solving, and how should it work?
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Platforms & scope (optional)
+      description: Affected OS manifests (`arch`, `debian`, `fedora`, `termux`, `windows`), package names, config paths, or Worker changes.
+    validations:
+      required: false

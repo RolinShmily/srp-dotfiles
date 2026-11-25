@@ -1,0 +1,49 @@
+name: Bug
+description: Report a broken installer step, config deployment issue, or Worker bug
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Never paste real proxy credentials, API tokens, or private keys.
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Target OS
+      options:
+        - Arch Linux
+        - Debian / Ubuntu
+        - Fedora
+        - Termux
+        - Windows
+        - Cloudflare Worker / Configurator
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Command / steps to reproduce
+      description: Exact `install.sh`, `install.ps1`, `scripts/main.py` command or `/config` action (redact private proxy URLs).
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Expected vs actual behaviour
+      description: Include verbatim terminal output, step failure report, or `--dry-run` output if helpful.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment
+      description: Distro/Windows version, Python version (`python3 --version`), commit hash (`git rev-parse --short HEAD` or `Revision:` printed by bootstrap), and mirror/proxy flags used.
+      render: shell
+    validations:
+      required: true
