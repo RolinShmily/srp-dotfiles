@@ -1,6 +1,7 @@
 # References
 
-Schemas, IDs and operational contracts.
+Complete CLI flags, ID grammar, manifest/mirror/catalog schemas, font specs, Worker routes,
+bootstrap behavior, and CI/CD operational contracts.
 
 ## CLI
 
@@ -12,34 +13,37 @@ Schemas, IDs and operational contracts.
 
 | Flag | Notes |
 | :--- | :--- |
-| `-c, --config` | deploy only |
-| `-y, --yes` | required when stdin is not a TTY |
-| `--os` | `arch` / `debian` / `fedora` / `termux` / `windows` |
-| `--dry-run` | no side effects |
-| `--apps` | comma-separated app IDs; `none` |
-| `--configs` | comma-separated config names; `none` |
-| `--mirror` | profile key from `mirror.json` |
-| `--mirror-<name>` | `github`, `npm`, `pypi`, `go`, `scoop`; `none` clears |
-| `--proxy` | `host:port` (scheme auto-detected) or an explicit proxy URL; `none` clears |
-| `--catalog` | print JSON and exit |
+| `-c, --config` | Deploy configs only; skip package/font/mirror-persistence steps |
+| `-y, --yes` | Approve all steps automatically; required when stdin is not a TTY |
+| `--os` | Override auto-detection: `arch` / `debian` / `fedora` / `termux` / `windows` |
+| `--dry-run` | Print the execution plan without side effects |
+| `--apps` | Comma-separated app IDs, or `none` to skip all apps |
+| `--configs` | Comma-separated config names, or `none` to skip all configs |
+| `--mirror` | Select a profile key from `manifest/mirror.json` (`global`, `cn`) |
+| `--mirror-<name>` | Override a single field (`github`, `npm`, `pypi`, `go`, `scoop`); `none` clears it |
+| `--proxy` | `host:port` (scheme auto-probed) or explicit proxy URL; `none` clears it |
+| `--catalog` | Print the resolved OS catalog as JSON and exit |
 
-List flags (`--apps`, `--configs`, `--mirror-*`) accept comma-separated values. On PowerShell an
-unquoted `a,b` is parsed as an array, so the configurator always quotes these values
-(`--apps "a,b"`); the CLI also accepts the expanded form (`--apps a b`) for hand-typed commands.
+List flags (`--apps`, `--configs`, `--mirror-*`) accept comma-separated values. Because PowerShell
+parses an unquoted `a,b` as an array, the configurator always quotes list values
+(`--apps "a,b"`), and the CLI accepts both comma-separated and space-separated forms for hand-typed
+commands.
 
 ## App and config IDs
 
-| ID | Source |
+| ID pattern | Manifest source |
 | :--- | :--- |
 | `pkg:<name>` | Unix `packages` |
 | `winget:<id>` | Windows `wingetPackages` |
 | `scoop:<name>` | Windows `scoopPackages` |
-| `font:<name>` | `fonts` / Maple entry |
+| `font:<name>` | `fonts` (all platforms) |
 | `npm:<name>` | `npmGlobals` |
 | `skill:<item>` | `skillsAdd` |
-| `<name>` | config entry `name` (`--configs` only) |
+| `<name>` | Config entry `name` (`--configs` only) |
 
 ## Manifest schema
+
+Located in `manifest/<os>.json` (`arch`, `debian`, `fedora`, `termux`, `windows`).
 
 | Key | Type | Platform |
 | :--- | :--- | :--- |
@@ -55,36 +59,38 @@ unquoted `a,b` is parsed as an array, so the configurator always quotes these va
 
 ### Package order
 
-Package arrays are listed dependency-first, because a failed batch is resolved entry by entry in
-manifest order (retry for apt/pacman/pkg, skip for dnf):
+Unix `packages` arrays are ordered dependency-first because failed batch installs fall back entry by
+entry in manifest order (per-package retry for `apt`/`pacman`/`pkg`, `--skip-broken` for `dnf`):
 
 1. Base toolchain and network primitives: `git`, `curl`, `unzip`, `file`, `base-devel`/`clang`/`make`.
-2. Shell and its plugins: `zsh`, then `zsh-autosuggestions` and `zsh-syntax-highlighting`.
-3. Runtimes and their package managers: `python3`, `python3-pip` before `pipx`, `nodejs` before
-   `npm`, `uv`.
+2. Shell and plugins: `zsh`, then `zsh-autosuggestions` and `zsh-syntax-highlighting`.
+3. Runtimes and package managers: `python3`, `python3-pip` before `pipx`, `nodejs` before `npm`, `uv`.
 4. CLI tools: `ripgrep`, `fd`, `bat`, `eza`, `zoxide`, `fzf`, `jq`, `gh`, `lazygit`, …
 5. Media and archive tools: `ImageMagick`, `poppler`, `ffmpeg`, `sox`, `chafa`, `mediainfo`,
    `7zip`, `unar`, `exiftool`.
-6. Applications, keeping providers before consumers: `zathura` before `zathura-pdf-poppler`,
-   `yazi`, `vim`, `tmux`, `fastfetch`, `btop`, clipboard tools.
+6. Applications (providers before consumers): `zathura` before `zathura-pdf-poppler`, `yazi`, `vim`,
+   `tmux`, `fastfetch`, `btop`, clipboard tools.
 
-Package managers still solve dependencies themselves; the order only decides which entries survive
-when one of them cannot be installed.
+OS package managers still resolve dependencies themselves; the ordering ensures providers succeed
+before consumers when an unrelated package in the batch is unavailable or conflicts with an
+installed replacement.
 
 ### Config entry
 
 | Field | Required | Meaning |
 | :--- | :--- | :--- |
-| `name` | yes | Stable ID |
-| `source` | yes | Repository-relative, normally `configs/...` |
-| `target` / `targets` | yes | One or many destinations |
-| `exclude` | no | Top-level names to skip |
-| `ifMissing` | no | Skip an existing copy target |
-| `when` | no | Skip when this path does not exist |
+| `name` | yes | Stable config ID exposed to `--configs` and `/config` |
+| `source` | yes | Repository-relative file or directory path, normally `configs/...` |
+| `target` / `targets` | yes | One destination path or a list of destination paths |
+| `exclude` | no | Top-level entry names inside a source directory to skip |
+| `ifMissing` | no | When `true`, skip deployment if the target already exists |
+| `when` | no | Path guard; skip deployment when this path does not exist |
 
-Placeholders: `~`, `%APPDATA%`, `%LOCALAPPDATA%`, `$SCOOP`, `$PROFILE`.
+Path placeholders expanded at runtime: `~`, `%APPDATA%`, `%LOCALAPPDATA%`, `$SCOOP`, `$PROFILE`.
 
 ## Mirror schema
+
+Defined in `manifest/mirror.json`:
 
 ```json
 {
@@ -92,108 +98,126 @@ Placeholders: `~`, `%APPDATA%`, `%LOCALAPPDATA%`, `$SCOOP`, `$PROFILE`.
   "profile": "global",
   "profiles": {
     "global": {
-      "scoopBuckets": ["extras = ...", "nerd-fonts = ..."]
+      "scoopBuckets": [
+        "extras = https://github.com/ScoopInstaller/Extras",
+        "nerd-fonts = https://github.com/matthewjberger/scoop-nerd-fonts"
+      ]
     },
     "cn": {
-      "githubProxy": ["..."],
-      "npmRegistry": "...",
-      "pypiIndex": ["..."],
-      "goProxy": "...",
-      "scoopBuckets": ["..."]
+      "githubProxy": [
+        "https://gh-proxy.com/",
+        "https://gh-proxy.org/",
+        "https://proxy.269601.xyz/"
+      ],
+      "npmRegistry": "https://registry.npmmirror.com",
+      "pypiIndex": [
+        "https://pypi.tuna.tsinghua.edu.cn/simple",
+        "https://mirrors.ustc.edu.cn/pypi/simple"
+      ],
+      "goProxy": "https://goproxy.cn,direct",
+      "scoopBuckets": [
+        "main = https://mirror.nju.edu.cn/git/scoop-main.git",
+        "extras = https://mirror.nju.edu.cn/git/scoop-extras.git",
+        "versions = https://mirror.nju.edu.cn/git/scoop-versions.git",
+        "nerd-fonts = https://mirror.nju.edu.cn/git/scoop-nerd-fonts.git/",
+        "dorado = https://github.com/chawyehsu/dorado"
+      ]
     }
   }
 }
 ```
 
-| Field | Type | Semantics |
+| Field | Type | Applies to |
 | :--- | :--- | :--- |
-| `githubProxy` | array | Tried in order for GitHub downloads |
-| `npmRegistry` | string | npm registry |
-| `pypiIndex` | string/array | pip + uv index, extra indexes after the first |
-| `goProxy` | string | Written to `GOPROXY` |
-| `scoopBuckets` | array/object | `name = url` entries |
+| `githubProxy` | string[] | GitHub releases, raw scripts, `git clone`, GitHub Scoop buckets; tried in order with direct GitHub retained as final fallback |
+| `npmRegistry` | string | `npm` / `npx` (`npm_config_registry` + `--registry`) |
+| `pypiIndex` | string or string[] | `pip` and `uv` (first entry = primary index, remaining = extra indexes) |
+| `goProxy` | string | `GOPROXY` (supports Go syntax such as `...,direct`) |
+| `scoopBuckets` | string[] or object | Scoop buckets on Windows (`name = url`) |
 
-Precedence: file profile → `--mirror` → `--mirror-*` / `--proxy`.
+- **Precedence**: `manifest/mirror.json` default `profile` → `--mirror` → `--mirror-*` / `--proxy`.
+- **Proxy handling**: top-level `proxy` (or `--proxy`) applies across downloads independent of the
+  selected profile. When passed as `host:port`, the installer probes the port once and selects
+  `socks5://` if it answers a SOCKS5 greeting, otherwise `http://`. Explicit schemes (`http://`,
+  `https://`, `socks5h://`, …) are kept verbatim. Because `npm` and `winget` do not support SOCKS,
+  an `http://` mixed port is the safest choice.
+- **Scoop note**: Scoop does not support path-prefix mirrors; when `githubProxy` or `proxy` is set,
+  Windows downloads Maple fonts directly instead of through Scoop.
 
-Side effects on disk (only during a full run, i.e. without `-c`):
-
-| Setting | Written to | Persistent |
-| :--- | :--- | :--- |
-| `proxy` | process env (`ALL_PROXY`, `HTTP(S)_PROXY`, `npm_config_proxy`) | no |
-| `githubProxy` | nowhere (used for URL building) | no |
-| `npmRegistry` | process env + `--registry` per npm call | no |
-| `pypiIndex` | `PIP_*` / `UV_*` env, plus `pip.conf` / `pip.ini` | **yes** (config file) |
-| `goProxy` | `GOPROXY` env, plus `go env -w` if `go` exists | **yes** (go env file) |
-| `scoopBuckets` | `scoop bucket` state | **yes** |
-
-Persisted values are not reverted when the selected profile becomes empty; remove them with
-`pip config unset global.index-url`, `go env -w GOPROXY=`, or `scoop bucket rm <name>`.
-
-## Deployment durability
-
-Configs are copied, so the deployed files no longer depend on the clone. Existing targets are
-archived to `~/.dotfiles_backup_*` before being replaced. A missing source fails the step and the
-installer exits non-zero.
-
-The zsh module tree (`env`, `omz`, `git`, `aliases`, `tools`, `os/`) is copied to
-`~/.config/srp-dotfiles/zsh`, so `~/.zshrc` keeps working when the clone is moved or deleted.
-`~/.zshrc` still recognises `ZSH_DOTFILES_DIR`, a symlinked `~/.zshrc`, `~/.srp-dotfiles`,
-`~/.dotfiles` and `~/Projects/srp-dotfiles` as repositories. Selecting the `zshrc` config deploys
-`zsh-modules` automatically. The deployed directory is fully managed and replaced on every run:
-keep private settings in `~/.config/srp-dotfiles/local.zsh` (outside the managed subtree) or
-`~/.zshrc.local`.
-
-Environment exports during install:
+Environment variables exported during installation:
 
 ```text
+ALL_PROXY, HTTP_PROXY, HTTPS_PROXY, http_proxy, https_proxy, npm_config_proxy
 PIP_INDEX_URL, PIP_EXTRA_INDEX_URL
 UV_INDEX_URL, UV_DEFAULT_INDEX, UV_EXTRA_INDEX_URL
 GOPROXY
 npm_config_registry
 ```
 
-## Login shell
+See [Design](design.md#side-effects--persistence) for which mirror settings persist to disk and how
+to revert them.
 
-The shell step points the account that logged in at zsh and appends it to `/etc/shells` when it is
-missing. It targets `SUDO_USER` when the command runs through sudo, and it compares real paths, so
-`/bin/zsh` and `/usr/bin/zsh` count as the same shell. The installer itself refuses to start as
-root (except with `SRP_ALLOW_ROOT=1` in containers/CI), because it deploys into `$HOME`.
-The step reports the account it touched, or the exact command to run when `chsh` was refused.
+## Deployment durability
 
-Change it by hand:
+- Configs are copied into place; existing files or directories are moved to `~/.dotfiles_backup_*`
+  before replacement.
+- Legacy symlinks and hard-linked targets are unlinked first so deployed files never share inodes
+  with the repository.
+- A missing `source` fails the step and causes the installer to exit non-zero.
+- On Unix, the zsh module tree (`env`, `omz`, `git`, `aliases`, `tools`, `os/`) is copied to
+  `~/.config/srp-dotfiles/zsh`, so `~/.zshrc` continues working if the repository clone is moved or
+  deleted. Selecting `zshrc` deploys `zsh-modules` automatically.
+- `~/.zshrc` resolves its module tree in order: `~/.config/srp-dotfiles/zsh`, `ZSH_DOTFILES_DIR`,
+  a symlinked `~/.zshrc`, `~/.srp-dotfiles`, `~/.dotfiles`, and `~/Projects/srp-dotfiles`.
+- `~/.config/srp-dotfiles/zsh` is fully managed and replaced on every deploy; put machine-local
+  overrides in `~/.config/srp-dotfiles/local.zsh` or `~/.zshrc.local`.
+
+## Login shell & root guard
+
+- The installer refuses to start as `root` or under `sudo` (unless `SRP_ALLOW_ROOT=1` for containers
+  and CI) so configs are never deployed into `/root` or written with root ownership in `$HOME`.
+- The login-shell step appends `zsh` to `/etc/shells` when missing, targets `SUDO_USER` if invoked
+  through sudo, compares real paths (`/bin/zsh` vs `/usr/bin/zsh`), and prints the exact `chsh`
+  command if the change is refused.
+
+Manual fallback:
 
 ```sh
-sudo chsh -s "$(command -v zsh)" srprolin
-getent passwd srprolin | cut -d: -f7     # /usr/bin/zsh
+sudo chsh -s "$(command -v zsh)" "$USER"
+getent passwd "$USER" | cut -d: -f7
 ```
 
 ## Fonts
 
-| ID | Source | Platform |
-| :--- | :--- | :--- |
-| `MapleMono-NF-CN` | `subframe7536/maple-font` latest release | Unix, Windows, Termux |
-| `Inter` | `rsms/inter` v4.1 | Unix, Windows |
-| `SourceHanSansSC` | `adobe-fonts/source-han-sans` 2.005R (SC OTF) | Unix, Windows |
+| ID | Source | License | Platform | Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| `MapleMono-NF-CN` | `subframe7536/maple-font` latest release | SIL OFL 1.1 | Unix, Windows, Termux | Terminal font; Scoop fallback on Windows |
+| `Inter` | `rsms/inter` v4.1 | SIL OFL 1.1 | Unix, Windows | Latin UI font; direct GitHub download |
+| `SourceHanSansSC` | `adobe-fonts/source-han-sans` 2.005R (SC OTF) | SIL OFL 1.1 | Unix, Windows | CJK UI font (~95 MB download) |
 
-All three are SIL OFL 1.1. Termux installs only `MapleMono-NF-CN` because it supports a single
-`~/.termux/font.ttf`. Windows keeps a Scoop fallback for the Maple family; Inter and Source Han Sans
-are installed directly from their GitHub assets.
+Termux installs only `MapleMono-NF-CN` because it supports a single `~/.termux/font.ttf`. Font
+downloads respect `githubProxy` and `proxy`; individual download failures are reported as warnings
+and do not abort the run.
 
 ## Worker
 
+Deployed on route `dot.srprolin.com/*` via `worker/wrangler.toml`.
+
 ### Routes
 
-| Path | Response |
-| :--- | :--- |
-| `/` | OS-detected script |
-| `/install.sh`, `/install.ps1` | Scripts |
-| `/config` | HTML configurator |
-| `/api/catalog` | Catalog JSON |
-| `/repo.tar.gz` | repository tarball (bootstrap fallback) |
-| `/repo.zip` | repository zip (bootstrap fallback) |
-| `/health` | `ok` |
+| Path | Response | Caching |
+| :--- | :--- | :--- |
+| `/` | `install.ps1` for Windows/PowerShell UA, `install.sh` otherwise (`?os=windows` / `?os=unix` overrides) | `no-store` (60s upstream bucket) |
+| `/install.sh`, `/install.ps1` | Explicit bootstrap script | `no-store` (60s upstream bucket) |
+| `/config` | Static HTML configurator (`worker/public/config.html`) | `max-age=300` |
+| `/api/catalog` | Static catalog JSON (`worker/public/catalog.json`) | `max-age=300` |
+| `/repo.tar.gz`, `/repo.zip` | Upstream `main` repository archive from `codeload.github.com` | `max-age=300` |
+| `/health` | Plain text `ok` | `max-age=300` |
 
-### Catalog (schema 8)
+### Catalog JSON (schema 8)
+
+Generated by `scripts/gen_catalog.py` into `worker/public/catalog.json` (same per-OS schema as
+`scripts/main.py --catalog`):
 
 ```json
 {
@@ -213,53 +237,51 @@ are installed directly from their GitHub assets.
 }
 ```
 
-`gen_catalog.py --check` fails if this file is stale.
+`python scripts/gen_catalog.py --check` fails whenever `worker/public/catalog.json` is out of date.
 
 ## Bootstrap
 
-`install.sh` / `install.ps1` fetch the repository without relying on `mirror.json` (which lives inside
-it). Order:
+`install.sh` / `install.ps1` fetch the repository before `mirror.json` is available:
 
-1. `git clone` from `SRP_REPO_URL` when set; otherwise GitHub via `SRP_GH_PROXY`, then the
-   built-in list (`gh-proxy.com`, `gh-proxy.org`, `proxy.269601.xyz`), then direct.
-2. If git is unavailable or every clone fails: tarball/zip from `<origin>/repo.tar.gz`
-   (default `https://dot.srprolin.com`), then `SRP_REPO_TARBALL`, then codeload (direct and through
-   the same proxies).
-3. All candidates failed: exit 1 with the exact commands to retry manually.
+1. `git clone --depth=1` from `SRP_REPO_URL` when set; otherwise GitHub via `SRP_GH_PROXY`, built-in
+   prefixes (`gh-proxy.com`, `gh-proxy.org`, `proxy.269601.xyz`), then direct GitHub. Each mirror
+   prefix is probed briefly before cloning.
+2. When `git` is unavailable or every clone fails: download an archive from `<origin>/repo.tar.gz`
+   (or `/repo.zip` on Windows), then `SRP_REPO_TARBALL`, then GitHub `codeload` (direct and through
+   the same prefixes).
+3. If every candidate fails, exit `1` and print manual retry commands.
 
-Environment: `SRP_REPO_URL`, `SRP_GH_PROXY`, `SRP_REPO_TARBALL`, `SRP_REPO_REF` (default `main`),
-`SRP_DOTFILES_DIR` (default `~/.srp-dotfiles`), `SRP_INSTALL_ORIGIN` (Worker base URL).
-`SRP_ALLOW_ROOT=1` bypasses the root guard and is meant only for containers and CI.
+### Environment variables
 
-Run the installer as your normal user, never through `sudo`: it writes configs to `$HOME` and
-escalates per package-manager command. Running as root would deploy into `/root` and leave
-root-owned files around.
+| Variable | Default | Purpose |
+| :--- | :--- | :--- |
+| `SRP_REPO_URL` | GitHub HTTPS URL | Override the Git clone URL |
+| `SRP_GH_PROXY` | *(empty)* | Extra GitHub proxy prefix tried before the built-in list |
+| `SRP_REPO_TARBALL` | *(empty)* | Explicit repository archive URL |
+| `SRP_REPO_REF` | `main` | Branch or ref to fetch |
+| `SRP_DOTFILES_DIR` | `~/.srp-dotfiles` | Explicit checkout directory (`explicit` mode) |
+| `SRP_INSTALL_ORIGIN` | `https://dot.srprolin.com` | Worker base URL for archive fallback |
+| `SRP_ALLOW_ROOT` | *(unset)* | Set to `1` to bypass the root guard (containers/CI only) |
+| `PYTHON` | `python3` | Python interpreter override for `install.sh` |
 
 ## CI/CD
 
 | Workflow | Trigger | Result |
 | :--- | :--- | :--- |
-| `ci.yml` | push/PR | Python tests, catalog check, CLI dry-runs, Worker tests |
-| `deploy.yml` | main push on relevant paths, manual | Wrangler 4 deploy + endpoint smoke test |
-| `release.yml` | `v*` tag, manual | Release from `CHANGELOG.md` section |
+| `.github/workflows/test.yml` | Push to `main`, pull requests | Python 3.9/3.12 compile & unit tests, catalog check, CLI dry-runs, `sh -n` & PowerShell parse check, Worker syntax & route tests |
+| `.github/workflows/deploy.yml` | Push to `main` touching `worker/**`, `scripts/**`, `manifest/**`, or `deploy.yml`; manual dispatch | Catalog check, Worker tests, Wrangler 4 deploy, post-deploy smoke test (`/health`, `/config`, `/api/catalog`) |
 
-Secrets: `CLOUDFLARE_API_TOKEN` (Workers Scripts:Edit, Workers Routes:Edit, Zone:Read),
-`CLOUDFLARE_ACCOUNT_ID`.
+Required secrets: `CLOUDFLARE_API_TOKEN` (`Workers Scripts:Edit`, `Workers Routes:Edit`, `Zone:Read`
+for `srprolin.com`), `CLOUDFLARE_ACCOUNT_ID`.
 
-Release process:
-
-```bash
-# add [1.2.3] to CHANGELOG.md, commit, then:
-git tag -a v1.2.3 -m "v1.2.3"
-git push origin v1.2.3
-```
-
-## Local checks
+## Local verification commands
 
 ```bash
+python -m compileall -q scripts
 python -m unittest discover -s scripts/tests -v
 python scripts/gen_catalog.py --check
+node --check worker/index.js
+node --check worker/public/app.js
 node worker/test.mjs
-python scripts/changelog.py 1.0.1
 sh -n install.sh
 ```
