@@ -22,8 +22,8 @@ elif [ -d "$HOME/.srp-dotfiles/configs/zsh" ]; then
 elif [ -d "$HOME/.dotfiles/configs/zsh" ]; then
     DOTFILES_DIR="$HOME/.dotfiles"
     DOTFILES_CONFIG="$DOTFILES_DIR/configs"
-elif [ -d "$HOME/Projects/srp-dotfiles/configs/zsh" ]; then
-    DOTFILES_DIR="$HOME/Projects/srp-dotfiles"
+elif [ -d "$HOME/Projects/dotfiles/configs/zsh" ]; then
+    DOTFILES_DIR="$HOME/Projects/dotfiles"
     DOTFILES_CONFIG="$DOTFILES_DIR/configs"
 else
     # 都没有时仍指向部署位置，让下面的 -f 检查安静地跳过

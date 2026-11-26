@@ -168,7 +168,7 @@ to revert them.
   `~/.config/srp-dotfiles/zsh`, so `~/.zshrc` continues working if the repository clone is moved or
   deleted. Selecting `zshrc` deploys `zsh-modules` automatically.
 - `~/.zshrc` resolves its module tree in order: `~/.config/srp-dotfiles/zsh`, `ZSH_DOTFILES_DIR`,
-  a symlinked `~/.zshrc`, `~/.srp-dotfiles`, `~/.dotfiles`, and `~/Projects/srp-dotfiles`.
+  a symlinked `~/.zshrc`, `~/.srp-dotfiles`, `~/.dotfiles`, and `~/Projects/dotfiles`.
 - `~/.config/srp-dotfiles/zsh` is fully managed and replaced on every deploy; put machine-local
   overrides in `~/.config/srp-dotfiles/local.zsh` or `~/.zshrc.local`.
 

@@ -170,7 +170,7 @@ if (Test-Path (Join-Path $repo "scripts\main.py")) {
 }
 
 # Mirrors live inside the repository, so fetching it cannot use them yet.
-$repoSlug = "RolinShmily/srp-dotfiles"
+$repoSlug = "RolinShmily/dotfiles"
 $repoRef = if ($env:SRP_REPO_REF) { $env:SRP_REPO_REF } else { "main" }
 $installOrigin = if ($env:SRP_INSTALL_ORIGIN) { $env:SRP_INSTALL_ORIGIN } else { "https://dot.srprolin.com" }
 $githubUrl = "https://github.com/$repoSlug.git"
@@ -245,15 +245,15 @@ function Get-Repo {
         }
     }
 
-    $zip = Join-Path $env:TEMP "srp-dotfiles.zip"
-    $extract = Join-Path $env:TEMP "srp-dotfiles-extract"
+    $zip = Join-Path $env:TEMP "dotfiles.zip"
+    $extract = Join-Path $env:TEMP "dotfiles-extract"
     foreach ($url in $zipUrls) {
         try {
             Invoke-WebRequest -Uri $url -OutFile $zip -ErrorAction Stop
             Remove-Item $extract -Recurse -Force -ErrorAction SilentlyContinue
             Expand-Archive -Path $zip -DestinationPath $extract -Force
             Remove-Item $Target -Recurse -Force -ErrorAction SilentlyContinue
-            Move-Item (Join-Path $extract "srp-dotfiles-$repoRef") $Target -Force
+            Move-Item (Join-Path $extract "dotfiles-$repoRef") $Target -Force
             if (Test-Path (Join-Path $Target "scripts\main.py")) {
                 Write-Host "Repository: $url"
                 return $true

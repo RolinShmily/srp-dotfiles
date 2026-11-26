@@ -132,7 +132,7 @@ manifest/*.json ── scripts/gen_catalog.py ── worker/public/catalog.json 
 ```
 
 - **Script proxying (`/`, `/install.sh`, `/install.ps1`)**: fetches `install.sh` / `install.ps1`
-  from `raw.githubusercontent.com/RolinShmily/srp-dotfiles/main` using a per-minute cache-busting
+  from `raw.githubusercontent.com/RolinShmily/dotfiles/main` using a per-minute cache-busting
   bucket query parameter and returns `Cache-Control: no-store` so edge caches cannot pin stale
   bootstraps.
 - **Archive relay (`/repo.tar.gz`, `/repo.zip`)**: streams `codeload.github.com` archives of `main`

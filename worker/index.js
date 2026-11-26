@@ -17,7 +17,7 @@
  *
  *   npx wrangler@4 deploy
  */
-const REPO = "RolinShmily/srp-dotfiles";
+const REPO = "RolinShmily/dotfiles";
 const REF = "main";
 const SOURCE = `https://raw.githubusercontent.com/${REPO}/${REF}`;
 const CACHE_SECONDS = 300;

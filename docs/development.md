@@ -16,8 +16,8 @@ Python engine and the Cloudflare Worker.
 The Python engine uses only the standard library; there is nothing to `pip install`.
 
 ```bash
-git clone https://github.com/RolinShmily/srp-dotfiles.git
-cd srp-dotfiles
+git clone https://github.com/RolinShmily/dotfiles.git
+cd dotfiles
 ```
 
 ## Running from source

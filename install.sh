@@ -138,7 +138,7 @@ if ! command -v "$PY" >/dev/null 2>&1 ||
     exit 1
 fi
 
-REPO_SLUG="RolinShmily/srp-dotfiles"
+REPO_SLUG="RolinShmily/dotfiles"
 REPO_REF="${SRP_REPO_REF:-main}"
 GITHUB_URL="https://github.com/$REPO_SLUG.git"
 # Mirrors that are reachable before any configuration exists. Keep this in

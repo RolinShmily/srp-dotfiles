@@ -58,8 +58,8 @@ irm https://dot.srprolin.com/install.ps1 -OutFile install.ps1;
 ### 本地克隆运行
 
 ```bash
-git clone https://github.com/RolinShmily/srp-dotfiles.git ~/Projects/srp-dotfiles
-cd ~/Projects/srp-dotfiles
+git clone https://github.com/RolinShmily/dotfiles.git ~/Projects/dotfiles
+cd ~/Projects/dotfiles
 
 ./install.sh              # 交互模式：逐步确认
 ./install.sh -y           # 全部自动确认

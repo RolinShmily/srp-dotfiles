@@ -58,8 +58,8 @@ irm https://dot.srprolin.com/install.ps1 -OutFile install.ps1;
 ### Local clone
 
 ```bash
-git clone https://github.com/RolinShmily/srp-dotfiles.git ~/Projects/srp-dotfiles
-cd ~/Projects/srp-dotfiles
+git clone https://github.com/RolinShmily/dotfiles.git ~/Projects/dotfiles
+cd ~/Projects/dotfiles
 
 ./install.sh              # interactive: confirm each step
 ./install.sh -y           # approve all steps
