@@ -52,7 +52,7 @@ changelog:
 - `scripts/lib/` — shared Python engine modules (standard library only).
 - `manifest/` — per-OS manifests and `mirror.json`.
 - `worker/` — Cloudflare Worker router, static configurator assets, and generated `catalog.json`.
-- `docs/` — technical documentation (development, architecture, design, references).
+- `docs/` — technical documentation (development, architecture, design, reference).
 
 ## Precedence rules
 

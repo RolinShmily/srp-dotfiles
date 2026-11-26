@@ -1,4 +1,4 @@
-# References
+# Reference
 
 Complete CLI flags, ID grammar, manifest/mirror/catalog schemas, font specs, Worker routes,
 bootstrap behavior, and CI/CD operational contracts.

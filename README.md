@@ -102,7 +102,11 @@ Full guides for building, customizing, deploying the Worker, and schemas live in
 | [Development](docs/development.md) | Local development, tests, catalog generation, Worker deployment, CI workflows, and adding apps/configs/fonts |
 | [Architecture](docs/architecture.md) | Repository layout, engine modules, bootstrap & deployment flow, and Worker architecture |
 | [Design](docs/design.md) | Core principles, rolling model, precedence rules, disk side effects, and engineering trade-offs |
-| [References](docs/references.md) | CLI flags, app/config IDs, manifest/mirror/catalog schemas, fonts, Worker routes, and operational contracts |
+| [Reference](docs/reference.md) | CLI flags, app/config IDs, manifest/mirror/catalog schemas, fonts, Worker routes, and operational contracts |
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for local checks and the issue/PR workflow.
 
 ## Acknowledgements
 
@@ -111,3 +115,5 @@ Full guides for building, customizing, deploying the Worker, and schemas live in
 - [Xy (Pixiv 85385041)](https://www.pixiv.net/users/85385041) — background artwork:
   - `configs/code/background.png`: [CSGO / Nightlight-Print&Asimov](https://www.pixiv.net/artworks/121230570)
   - `configs/wezterm/background.png`: [CSGO / Original Sin-Printstream](https://www.pixiv.net/artworks/121094692)
+
+License texts and attribution details for bundled third-party assets: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

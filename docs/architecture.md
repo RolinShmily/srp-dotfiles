@@ -51,7 +51,7 @@ There are no OS-specific package lists hidden inside the CLI or Worker.
 │       ├── config.html          # visual checkbox configurator
 │       ├── app.js               # client-side command builder
 │       └── catalog.json         # generated from manifest/*.json
-├── docs/                        # development, architecture, design, references
+├── docs/                        # development, architecture, design, reference
 └── .github/workflows/           # test.yml, deploy.yml
 ```
 

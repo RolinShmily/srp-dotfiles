@@ -19,3 +19,22 @@ __pycache__/
 # Cloudflare Worker
 worker/node_modules/
 worker/.wrangler/
+
+# 本地工具与编辑器
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+.claude/settings.local.json
+
+# 环境变量与本地密钥
+.env
+.env.*
+!.env.example
+
+# 本地安装包
+*.rpm

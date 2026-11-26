@@ -102,7 +102,11 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 | [Development](docs/development.md) | 本地开发、测试命令、catalog 生成、Worker 部署、CI 工作流及新增软件/配置/字体指南 |
 | [Architecture](docs/architecture.md) | 仓库目录结构、核心模块职责、引导与部署流程、Worker 架构 |
 | [Design](docs/design.md) | 设计原则、滚动更新模式、配置优先级、磁盘持久化副作用与权衡取舍 |
-| [References](docs/references.md) | 完整 CLI 参数、App/Config ID 规范、Manifest/Mirror/Catalog Schema、字体清单与 Worker 路由 |
+| [Reference](docs/reference.md) | 完整 CLI 参数、App/Config ID 规范、Manifest/Mirror/Catalog Schema、字体清单与 Worker 路由 |
+
+## 参与贡献
+
+参见 [CONTRIBUTING.md](CONTRIBUTING.md) 了解本地检查与 issue/PR 流程。
 
 ## 鸣谢与致敬
 
@@ -111,3 +115,5 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 - [Xy (Pixiv 85385041)](https://www.pixiv.net/users/85385041) — 背景插画：
   - `configs/code/background.png`：[CSGO / Nightlight-Print&Asimov](https://www.pixiv.net/artworks/121230570)
   - `configs/wezterm/background.png`：[CSGO / Original Sin-Printstream](https://www.pixiv.net/artworks/121094692)
+
+第三方许可证原文与归属说明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。

@@ -130,7 +130,7 @@ npx wrangler@4 dev
 
 The local server exposes `/`, `/install.sh`, `/install.ps1`, `/config`, `/api/catalog`,
 `/repo.tar.gz`, `/repo.zip`, and `/health` identically to production. See
-[References](references.md#worker) for route and catalog schema details.
+[Reference](reference.md#worker) for route and catalog schema details.
 
 ### Manual deployment
 
@@ -185,7 +185,7 @@ Declare packages in `manifest/<os>.json`:
 
 Keep Unix `packages` ordered dependency-first (base toolchain → shell → runtimes → CLI tools → media
 tools → applications), because failed batches fall back to per-package installation in manifest
-order. See [References](references.md#package-order).
+order. See [Reference](reference.md#package-order).
 
 After editing any manifest, regenerate the catalog and verify with `--catalog` and `--dry-run`:
 
@@ -240,7 +240,7 @@ python scripts/main.py -y --dry-run --proxy 127.0.0.1:7890
 
 When adding or replacing GitHub proxy prefixes in the `cn` profile of `manifest/mirror.json`, also
 keep the fallback `GH_PREFIXES` list in `install.sh` and `install.ps1` synchronized so bootstrap
-fetching stays consistent. See [References](references.md#mirror-schema).
+fetching stays consistent. See [Reference](reference.md#mirror-schema).
 
 ## Common issues
 
