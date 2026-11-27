@@ -7,7 +7,7 @@
 ## 这是什么
 
 - **一键装软件和字体**：调用系统包管理器（`pacman`、`apt`、`dnf`、`pkg`、`winget`、`scoop`）安装常用工具，并自动部署终端与界面字体（`Maple Mono NF CN`、`Inter`、`Source Han Sans SC`）。
-- **干净地部署配置**：将开箱即用的配置（`zsh`、`powershell`、`vim`、`tmux`、`zellij`、`wezterm`、`yazi`、`btop`、`fastfetch`、`code`、`pi`）**复制**到 `$HOME`。覆盖前会自动把旧配置备份到 `~/.dotfiles_backup_*`，部署完成后不依赖原仓库目录。
+- **干净地部署配置**：将开箱即用的配置（`zsh`、`powershell`、`vim`、`tmux`、`zellij`、`yazi`、`btop`、`fastfetch`、`code`、`pi`）**复制**到 `$HOME`。覆盖前会自动把旧配置备份到 `~/.dotfiles_backup_*`，部署完成后不依赖原仓库目录。
 - **按需勾选、支持镜像与代理**：可以全量安装，也可以只选自己要的软件或配置；内置国内镜像预设（`--mirror cn`）与代理支持（`--proxy`）。
 
 ## 环境要求
@@ -110,10 +110,8 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 
 ## 鸣谢与致敬
 
-- [KevinSilvester/wezterm-config](https://github.com/KevinSilvester/wezterm-config) — WezTerm 调优参考。
 - [Aikoyori/ProgrammingVTuberLogos](https://github.com/Aikoyori/ProgrammingVTuberLogos) — VS Code 素材（`configs/code/VSCode-Thick.png`），遵循 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)。
 - [Xy (Pixiv 85385041)](https://www.pixiv.net/users/85385041) — 背景插画：
   - `configs/code/background.png`：[CSGO / Nightlight-Print&Asimov](https://www.pixiv.net/artworks/121230570)
-  - `configs/wezterm/background.png`：[CSGO / Original Sin-Printstream](https://www.pixiv.net/artworks/121094692)
 
 第三方许可证原文与归属说明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。

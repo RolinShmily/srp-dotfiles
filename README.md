@@ -7,7 +7,7 @@ Cross-platform dotfiles with a single Python installer for **Arch**, **Debian / 
 ## What it does
 
 - **Installs packages & fonts**: uses your OS package manager (`pacman`, `apt`, `dnf`, `pkg`, `winget`, `scoop`) and installs terminal/UI fonts (`Maple Mono NF CN`, `Inter`, `Source Han Sans SC`).
-- **Deploys configs cleanly**: copies ready-to-use configs (`zsh`, `powershell`, `vim`, `tmux`, `zellij`, `wezterm`, `yazi`, `btop`, `fastfetch`, `code`, `pi`) into `$HOME`. Existing files are backed up to `~/.dotfiles_backup_*` first, and deployed files do not depend on keeping the repo around.
+- **Deploys configs cleanly**: copies ready-to-use configs (`zsh`, `powershell`, `vim`, `tmux`, `zellij`, `yazi`, `btop`, `fastfetch`, `code`, `pi`) into `$HOME`. Existing files are backed up to `~/.dotfiles_backup_*` first, and deployed files do not depend on keeping the repo around.
 - **Selective & mirror-friendly**: install everything or pick only specific apps/configs, with built-in mirror presets (`--mirror cn`) and proxy support (`--proxy`).
 
 ## Requirements
@@ -110,10 +110,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for local checks and the issue/PR workflo
 
 ## Acknowledgements
 
-- [KevinSilvester/wezterm-config](https://github.com/KevinSilvester/wezterm-config) — WezTerm tuning reference.
 - [Aikoyori/ProgrammingVTuberLogos](https://github.com/Aikoyori/ProgrammingVTuberLogos) — VS Code artwork (`configs/code/VSCode-Thick.png`), [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).
 - [Xy (Pixiv 85385041)](https://www.pixiv.net/users/85385041) — background artwork:
   - `configs/code/background.png`: [CSGO / Nightlight-Print&Asimov](https://www.pixiv.net/artworks/121230570)
-  - `configs/wezterm/background.png`: [CSGO / Original Sin-Printstream](https://www.pixiv.net/artworks/121094692)
 
 License texts and attribution details for bundled third-party assets: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

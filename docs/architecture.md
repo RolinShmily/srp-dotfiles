@@ -39,7 +39,6 @@ There are no OS-specific package lists hidden inside the CLI or Worker.
 │   ├── powershell/              # PowerShell profile.ps1
 │   ├── tmux/                    # tmux.conf
 │   ├── vim/                     # vimrc
-│   ├── wezterm/                 # wezterm.lua + background artwork
 │   ├── yazi/                    # yazi/keymap/theme/package configs & plugins
 │   ├── zellij/                  # config.kdl
 │   └── zsh/                     # zshrc + modular env/omz/git/aliases/tools/os/
