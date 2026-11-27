@@ -233,37 +233,25 @@ def set_default_shell(os_name: str) -> None:
 
     if _shell_matches(user, zsh):
         sysinfo.success(t("shell.done", zsh, user))
+        current_shell = os.environ.get("SHELL") or ""
+        if not current_shell or os.path.realpath(current_shell) != os.path.realpath(zsh):
+            sysinfo.info(t("shell.switch_hint"))
     else:
         sysinfo.warn(t("shell.failed", user, zsh))
 
 
 def install_omz(mirrors: Mirrors) -> None:
-    if (sysinfo.home() / ".oh-my-zsh").is_dir():
+    target = sysinfo.home() / ".oh-my-zsh"
+    if (target / "oh-my-zsh.sh").is_file():
         sysinfo.info(t("omz.already"))
         return
 
-    installer_urls = mirrors.github_urls(
-        "https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh"
-    )
-    repo_url = mirrors.github("https://github.com/ohmyzsh/ohmyzsh.git")
-    with tempfile.NamedTemporaryFile(suffix=".sh", delete=False) as handle:
-        script = Path(handle.name)
-    try:
-        net.download(installer_urls, script, mirrors)
-        sysinfo.run(
-            ["sh", str(script)],
-            env={"RUNZSH": "no", "REMOTE": repo_url, "CHSH": "no", **net.proxy_env(mirrors)},
-            check=False,
-        )
-    finally:
-        script.unlink(missing_ok=True)
-
-    target = sysinfo.home() / ".oh-my-zsh"
-    if not target.is_dir():
-        # Its installer clones REMOTE inside itself, so a mirror that refuses
-        # git leaves nothing behind; clone with the full fallback chain.
-        sysinfo.warn(t("omz.fallback"))
-        net.git_clone("https://github.com/ohmyzsh/ohmyzsh.git", target, mirrors)
+    # Clone directly instead of executing upstream tools/install.sh so
+    # installation works identically from bash/dash/zsh, uses the full
+    # githubProxy fallback chain, and never overwrites ~/.zshrc.
+    net.git_clone("https://github.com/ohmyzsh/ohmyzsh.git", target, mirrors)
+    if not sysinfo.DRY_RUN and not (target / "oh-my-zsh.sh").is_file():
+        raise RuntimeError(t("omz.incomplete", target))
     sysinfo.success(t("omz.done"))
 
 
@@ -610,7 +598,7 @@ def _broadcast_font_change() -> None:
 
 def setup_omz_plugins(mirrors: Mirrors) -> None:
     ohmyzsh = sysinfo.home() / ".oh-my-zsh"
-    if not ohmyzsh.is_dir():
+    if not (ohmyzsh / "oh-my-zsh.sh").is_file():
         sysinfo.warn(t("omz.plugins_missing"))
         return
     custom = Path(os.environ.get("ZSH_CUSTOM") or ohmyzsh / "custom")
