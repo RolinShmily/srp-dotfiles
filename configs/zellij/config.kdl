@@ -14,9 +14,9 @@ keybinds clear-defaults=true {
         bind "d" { NewPane "down"; SwitchToMode "normal"; }
         bind "e" { TogglePaneEmbedOrFloating; SwitchToMode "normal"; }
         bind "f" { ToggleFocusFullscreen; SwitchToMode "normal"; }
-        bind "i" { MoveFocus "up"; }
-        bind "j" { MoveFocus "left"; }
-        bind "k" { MoveFocus "down"; }
+        bind "h" { MoveFocus "left"; }
+        bind "j" { MoveFocus "down"; }
+        bind "k" { MoveFocus "up"; }
         bind "l" { MoveFocus "right"; }
         bind "n" { NewPane; SwitchToMode "normal"; }
         bind "p" { SwitchFocus; }
@@ -42,11 +42,11 @@ keybinds clear-defaults=true {
         bind "[" { BreakPaneLeft; SwitchToMode "normal"; }
         bind "]" { BreakPaneRight; SwitchToMode "normal"; }
         bind "b" { BreakPane; SwitchToMode "normal"; }
-        bind "i" { GoToPreviousTab; }
-        bind "j" { GoToPreviousTab; }
-        bind "k" { GoToNextTab; }
+        bind "h" { GoToPreviousTab; }
+        bind "j" { GoToNextTab; }
+        bind "k" { GoToPreviousTab; }
         bind "l" { GoToNextTab; }
-        bind "J" { MoveTab "left"; }
+        bind "H" { MoveTab "left"; }
         bind "L" { MoveTab "right"; }
         bind "n" { NewTab; SwitchToMode "normal"; }
         bind "r" { SwitchToMode "renametab"; TabNameInput 0; }
@@ -57,9 +57,9 @@ keybinds clear-defaults=true {
     }
     scroll {
         bind "e" { EditScrollback; SwitchToMode "normal"; }
-        bind "Alt i" { MoveFocus "up"; SwitchToMode "normal"; }
-        bind "Alt j" { MoveFocusOrTab "left"; SwitchToMode "normal"; }
-        bind "Alt k" { MoveFocus "down"; SwitchToMode "normal"; }
+        bind "Alt h" { MoveFocusOrTab "left"; SwitchToMode "normal"; }
+        bind "Alt j" { MoveFocus "down"; SwitchToMode "normal"; }
+        bind "Alt k" { MoveFocus "up"; SwitchToMode "normal"; }
         bind "Alt l" { MoveFocusOrTab "right"; SwitchToMode "normal"; }
         bind "s" { SwitchToMode "entersearch"; SearchInput 0; }
     }
@@ -96,7 +96,7 @@ keybinds clear-defaults=true {
     }
     // Bottom-right hint bar is generated from these bindings. Keep only the
     // three groups actually used: Alt f (floating), Alt +/- (resize) and
-    // Alt i/j/k/l (focus, in the block below).
+    // Alt h/j/k/l (focus, in the block below).
     // Dropped: Alt b (NewPane), Alt [ / Alt ] (swap layouts) and Alt =
     // (a redundant unshifted alias for Alt +).
     shared_except "locked" {
@@ -118,9 +118,9 @@ keybinds clear-defaults=true {
         bind "Ctrl o" { SwitchToMode "session"; }
     }
     shared_except "locked" "scroll" {
-        bind "Alt i" { MoveFocus "up"; }
-        bind "Alt j" { MoveFocusOrTab "left"; }
-        bind "Alt k" { MoveFocus "down"; }
+        bind "Alt h" { MoveFocusOrTab "left"; }
+        bind "Alt j" { MoveFocus "down"; }
+        bind "Alt k" { MoveFocus "up"; }
         bind "Alt l" { MoveFocusOrTab "right"; }
     }
     shared_except "locked" "scroll" "search" "tmux" {
@@ -152,9 +152,9 @@ keybinds clear-defaults=true {
         bind "Ctrl c" { ScrollToBottom; SwitchToMode "normal"; }
         bind "d" { HalfPageScrollDown; }
         bind "Ctrl f" { PageScrollDown; }
-        bind "i" { ScrollUp; }
-        bind "j" { PageScrollUp; }
-        bind "k" { ScrollDown; }
+        bind "h" { PageScrollUp; }
+        bind "j" { ScrollDown; }
+        bind "k" { ScrollUp; }
         bind "l" { PageScrollDown; }
         bind "u" { HalfPageScrollUp; }
     }
@@ -187,9 +187,9 @@ keybinds clear-defaults=true {
         bind "[" { SwitchToMode "scroll"; }
         bind "Ctrl b" { Write 2; SwitchToMode "normal"; }
         bind "c" { NewTab; SwitchToMode "normal"; }
-        bind "i" { MoveFocus "up"; SwitchToMode "normal"; }
-        bind "j" { MoveFocus "left"; SwitchToMode "normal"; }
-        bind "k" { MoveFocus "down"; SwitchToMode "normal"; }
+        bind "h" { MoveFocus "left"; SwitchToMode "normal"; }
+        bind "j" { MoveFocus "down"; SwitchToMode "normal"; }
+        bind "k" { MoveFocus "up"; SwitchToMode "normal"; }
         bind "l" { MoveFocus "right"; SwitchToMode "normal"; }
         bind "n" { GoToNextTab; SwitchToMode "normal"; }
         bind "o" { FocusNextPane; }
