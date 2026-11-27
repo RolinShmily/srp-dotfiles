@@ -23,6 +23,16 @@ class ConfigEntry:
     when: str = ""
 
 
+@dataclass
+class ScriptEntry:
+    name: str
+    url: str
+    shell: str = ""
+    args: list[str] = field(default_factory=list)
+    env: dict[str, str] = field(default_factory=dict)
+    check: str = ""
+
+
 class Manifest:
     def __init__(self, repo: Path, os_name: str):
         self.os_name = os_name
@@ -69,6 +79,33 @@ class Manifest:
                     exclude=[str(item) for item in exclude] if isinstance(exclude, list) else [],
                     if_missing=bool(raw.get("ifMissing")),
                     when=str(raw.get("when") or ""),
+                )
+            )
+        return entries
+
+    def scripts(self) -> list[ScriptEntry]:
+        entries: list[ScriptEntry] = []
+        for raw in self.array("scripts"):
+            if not isinstance(raw, dict):
+                continue
+            name = str(raw.get("name") or "").strip()
+            url = str(raw.get("url") or "").strip()
+            if not name or not url:
+                continue
+            raw_args = raw.get("args")
+            raw_env = raw.get("env")
+            entries.append(
+                ScriptEntry(
+                    name=name,
+                    url=url,
+                    shell=str(raw.get("shell") or "").strip(),
+                    args=[str(item) for item in raw_args] if isinstance(raw_args, list) else [],
+                    env=(
+                        {str(k): str(v) for k, v in raw_env.items()}
+                        if isinstance(raw_env, dict)
+                        else {}
+                    ),
+                    check=str(raw.get("check") or "").strip(),
                 )
             )
         return entries

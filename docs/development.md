@@ -101,8 +101,8 @@ pwsh -NoProfile -Command '$e = $null; [void][System.Management.Automation.Langua
 All unit tests run completely offline:
 - `scripts/tests/` exercises catalog generation, manifest loading, message key coverage, mirror
   resolution, proxy scheme detection, interactive startup menu & step confirmation (`test_runner.py`),
-  Windows shim resolution (`test_run.py`), and package manager fallbacks (`dnf`, `pacman`, `apt`,
-  `pkg`, `winget`, `scoop`, fonts, login shell).
+  standalone script installers (`test_scripts.py`), Windows shim resolution (`test_run.py`), and
+  package manager fallbacks (`dnf`, `pacman`, `apt`, `pkg`, `winget`, `scoop`, fonts, login shell).
 - `worker/test.mjs` mocks the `ASSETS` binding and upstream script fetch to test routing, User-Agent
   detection, `buildCommand`, `buildMirrorFlags`, and `buildProxyFlag`.
 
@@ -196,6 +196,24 @@ python scripts/gen_catalog.py
 python scripts/main.py --catalog --os arch
 python scripts/main.py -y --os arch --dry-run
 ```
+
+For tools distributed via official install scripts rather than an OS package manager, declare an
+entry under `scripts` in the target `manifest/<os>.json`:
+
+```json
+{
+  "scripts": [
+    {
+      "name": "herdr-core",
+      "url": "https://releases.herdr.dev/core/install.sh",
+      "shell": "sh"
+    }
+  ]
+}
+```
+
+Then regenerate `worker/public/catalog.json`; it appears automatically under `script:<name>` in the
+CLI and `/config`.
 
 ### Adding a config entry
 

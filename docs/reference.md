@@ -56,6 +56,7 @@ Passing any CLI flag skips the menu and executes directly. Without a TTY (headle
 | `font:<name>` | `fonts` (all platforms) |
 | `npm:<name>` | `npmGlobals` |
 | `skill:<item>` | `skillsAdd` |
+| `script:<name>` | `scripts` (standalone official install scripts) |
 | `<name>` | Config entry `name` (`--configs` only) |
 
 ## Manifest schema
@@ -70,6 +71,7 @@ Located in `manifest/<os>.json` (`arch`, `debian`, `fedora`, `termux`, `windows`
 | `fonts` | string[] | All |
 | `npmGlobals` | string[] | All |
 | `skillsAdd` | string[] | All |
+| `scripts` | object[] | All |
 | `configs` | object[] | All |
 | `wingetPackages` | string[] | Windows |
 | `scoopPackages` | string[] | Windows |
@@ -104,6 +106,19 @@ installed replacement.
 | `when` | no | Path guard; skip deployment when this path does not exist |
 
 Path placeholders expanded at runtime: `~`, `%APPDATA%`, `%LOCALAPPDATA%`, `$SCOOP`, `$PROFILE`.
+
+### Script entry
+
+Declared in `scripts` for tools installed via official upstream scripts (for example `herdr-core`, `herdr-tui`, `tailscale`, and `magpie`):
+
+| Field | Required | Meaning |
+| :--- | :--- | :--- |
+| `name` | yes | Stable app ID exposed as `script:<name>` |
+| `url` | yes | Upstream install script URL (downloaded via `net.download` with `githubProxy` fallback and HTML error-page rejection) |
+| `shell` | no | Interpreter (`sh`/`bash` on Unix, default `sh`; `powershell`/`pwsh` on Windows, default `powershell` with `-ExecutionPolicy Bypass -File`) |
+| `args` | no | Extra arguments forwarded to the downloaded script |
+| `env` | no | Extra environment variables merged with active proxy variables |
+| `check` | no | Command name or path guard; skip installation when already present |
 
 ## Mirror schema
 

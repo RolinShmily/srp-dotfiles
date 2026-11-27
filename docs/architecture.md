@@ -101,7 +101,7 @@ Fetch order when cloning or downloading:
 | :--- | :--- |
 | `scripts/main.py` | Argument parsing, zero-arg interactive startup menu, `--catalog` output, high-level step scheduling, exit code handling |
 | `scripts/lib/manifest.py` | Loads OS manifests and `mirror.json`, validates structure, applies CLI mirror/proxy overrides |
-| `scripts/lib/catalog.py` | Expands manifests into stable app IDs (`pkg:`, `winget:`, `scoop:`, `font:`, `npm:`, `skill:`), config IDs, and mirror metadata |
+| `scripts/lib/catalog.py` | Expands manifests into stable app IDs (`pkg:`, `winget:`, `scoop:`, `font:`, `npm:`, `skill:`, `script:`), config IDs, and mirror metadata |
 | `scripts/lib/platform_info.py` | Detects target OS, expands path placeholders (`~`, `%APPDATA%`, `$PROFILE`, etc.), resolves bare Windows `.cmd`/`.bat` shims via `PATHEXT` |
 | `scripts/lib/proxy.py` | Normalizes `--proxy`: probes bare `host:port` for SOCKS5 vs HTTP and preserves explicit URL schemes |
 | `scripts/lib/net.py` | Builds proxied GitHub URL candidate lists (always retaining direct upstream as final fallback) and streams downloads |

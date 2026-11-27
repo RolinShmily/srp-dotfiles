@@ -16,7 +16,8 @@
     "tldr-pages.tlrc",
     "JanDeDobbeleer.OhMyPosh",
     "Gyan.FFmpeg",
-    "oschwartz10612.Poppler"
+    "oschwartz10612.Poppler",
+    "Tailscale.Tailscale"
   ],
   "scoopPackages": [
     "curl",
@@ -38,6 +39,18 @@
     "live-server"
   ],
   "skillsAdd": [],
+  "scripts": [
+    {
+      "name": "herdr-core",
+      "url": "https://releases.herdr.dev/core/install.ps1",
+      "shell": "powershell"
+    },
+    {
+      "name": "herdr-tui",
+      "url": "https://herdr.dev/install.ps1",
+      "shell": "powershell"
+    }
+  ],
   "configs": [
     {
       "name": "vimrc",

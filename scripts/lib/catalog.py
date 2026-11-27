@@ -8,6 +8,7 @@ Apps are concrete packages from the manifest, not preset groups:
   font:<name>    Maple Mono font
   npm:<name>     global npm package
   skill:<item>   agent skill
+  script:<name>  standalone official install script
 """
 
 from __future__ import annotations
@@ -100,6 +101,8 @@ def build_catalog(manifest: Manifest, mirrors, profiles=None, default_profile=""
         add(f"npm:{package}", "npm", str(package))
     for item in manifest.array("skillsAdd"):
         add(f"skill:{item}", "skill", str(item))
+    for entry in manifest.scripts():
+        add(f"script:{entry.name}", "script", entry.name)
 
     return {
         "schema": SCHEMA,

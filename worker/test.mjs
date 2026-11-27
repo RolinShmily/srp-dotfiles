@@ -78,6 +78,27 @@ const catalog = JSON.parse(readFileSync(new URL("./public/catalog.json", import.
 assert.ok(catalog.schema >= 8);
 assert.ok(catalog.catalogs.arch.mirrors.fields.some((field) => field.id === "pypi"));
 assert.ok(catalog.catalogs.windows.mirrors.fields.some((field) => field.id === "scoop"));
+for (const osName of ["windows", "fedora"]) {
+  const ids = catalog.catalogs[osName].apps.map((app) => app.id);
+  assert.ok(ids.includes("script:herdr-core"), `${osName} missing script:herdr-core`);
+  assert.ok(ids.includes("script:herdr-tui"), `${osName} missing script:herdr-tui`);
+}
+assert.ok(
+  catalog.catalogs.debian.apps.some((app) => app.id === "script:herdr-core"),
+  "debian missing script:herdr-core",
+);
+assert.ok(
+  catalog.catalogs.fedora.apps.some((app) => app.id === "script:tailscale"),
+  "fedora missing script:tailscale",
+);
+assert.ok(
+  catalog.catalogs.fedora.apps.some((app) => app.id === "script:magpie"),
+  "fedora missing script:magpie",
+);
+assert.ok(
+  catalog.catalogs.windows.apps.some((app) => app.id === "winget:Tailscale.Tailscale"),
+  "windows missing winget:Tailscale.Tailscale",
+);
 
 const allApps = ["pkg:zsh", "font:maple"];
 const allConfigs = ["zshrc", "tmux"];

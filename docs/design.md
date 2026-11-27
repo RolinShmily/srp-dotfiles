@@ -9,7 +9,7 @@ are shaped that way.
 1. **Manifests are the API.** `manifest/<os>.json` is the single source of truth for packages, apps,
    fonts, and configs. Scripts must not hardcode OS-specific package lists.
 2. **Select concrete apps, not abstract presets.** Selection is expressed directly as `pkg:`,
-   `winget:`, `scoop:`, `font:`, `npm:`, and `skill:` IDs plus config names. Supporting
+   `winget:`, `scoop:`, `font:`, `npm:`, `skill:`, and `script:` IDs plus config names. Supporting
    infrastructure (Scoop setup, shell setup, backup creation) is derived automatically from what was
    selected.
 3. **Mirrors are configuration.** Network sources live in `manifest/mirror.json` as named profiles

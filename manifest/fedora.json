@@ -56,6 +56,28 @@
     "live-server"
   ],
   "skillsAdd": [],
+  "scripts": [
+    {
+      "name": "herdr-core",
+      "url": "https://releases.herdr.dev/core/install.sh",
+      "shell": "sh"
+    },
+    {
+      "name": "herdr-tui",
+      "url": "https://herdr.dev/install.sh",
+      "shell": "sh"
+    },
+    {
+      "name": "tailscale",
+      "url": "https://tailscale.com/install.sh",
+      "shell": "sh"
+    },
+    {
+      "name": "magpie",
+      "url": "https://usemagpie.ai/install.sh",
+      "shell": "sh"
+    }
+  ],
   "configs": [
     {
       "name": "zshrc",

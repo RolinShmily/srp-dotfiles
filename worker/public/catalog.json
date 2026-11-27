@@ -551,6 +551,12 @@
           "source": "font",
           "name": "SourceHanSansSC",
           "label": "SourceHanSansSC"
+        },
+        {
+          "id": "script:herdr-core",
+          "source": "script",
+          "name": "herdr-core",
+          "label": "herdr-core"
         }
       ],
       "configs": [
@@ -928,6 +934,30 @@
           "source": "npm",
           "name": "live-server",
           "label": "live-server"
+        },
+        {
+          "id": "script:herdr-core",
+          "source": "script",
+          "name": "herdr-core",
+          "label": "herdr-core"
+        },
+        {
+          "id": "script:herdr-tui",
+          "source": "script",
+          "name": "herdr-tui",
+          "label": "herdr-tui"
+        },
+        {
+          "id": "script:tailscale",
+          "source": "script",
+          "name": "tailscale",
+          "label": "tailscale"
+        },
+        {
+          "id": "script:magpie",
+          "source": "script",
+          "name": "magpie",
+          "label": "magpie"
         }
       ],
       "configs": [
@@ -1436,6 +1466,12 @@
           "label": "oschwartz10612.Poppler"
         },
         {
+          "id": "winget:Tailscale.Tailscale",
+          "source": "winget",
+          "name": "Tailscale.Tailscale",
+          "label": "Tailscale.Tailscale"
+        },
+        {
           "id": "scoop:curl",
           "source": "scoop",
           "name": "curl",
@@ -1542,6 +1578,18 @@
           "source": "npm",
           "name": "live-server",
           "label": "live-server"
+        },
+        {
+          "id": "script:herdr-core",
+          "source": "script",
+          "name": "herdr-core",
+          "label": "herdr-core"
+        },
+        {
+          "id": "script:herdr-tui",
+          "source": "script",
+          "name": "herdr-tui",
+          "label": "herdr-tui"
         }
       ],
       "configs": [

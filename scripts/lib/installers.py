@@ -18,7 +18,7 @@ from typing import Callable
 from . import net
 from . import platform_info as sysinfo
 from .messages import t
-from .manifest import Manifest, Mirrors
+from .manifest import Manifest, Mirrors, ScriptEntry
 
 MAPLE_URL = "https://github.com/subframe7536/maple-font/releases/latest/download/MapleMono-NF-CN.zip"
 
@@ -372,6 +372,61 @@ def install_skill(item: str) -> None:
     sysinfo.success(t("skill.done", item))
 
 
+def _looks_like_script(path: Path) -> bool:
+    try:
+        head = path.read_bytes()[:256]
+    except OSError:
+        return False
+    text = head.decode("utf-8", errors="ignore").lstrip("\ufeff \t\r\n").lower()
+    if not text:
+        return False
+    return not (text.startswith("<!doctype html") or text.startswith("<html"))
+
+
+def _script_already_installed(check: str) -> bool:
+    if not check:
+        return False
+    if any(sep in check for sep in ("/", "\\")) or check.startswith(("~", "%", "$")):
+        return sysinfo.expand_path(check).exists()
+    return bool(sysinfo.which(check))
+
+
+def install_script(os_name: str, entry: ScriptEntry, mirrors: Mirrors) -> None:
+    if entry.check and _script_already_installed(entry.check):
+        sysinfo.info(t("script.already", entry.name, entry.check))
+        return
+
+    is_windows = os_name == "windows" or sysinfo.IS_WINDOWS
+    shell = entry.shell or ("powershell" if is_windows else "sh")
+    is_powershell = shell.lower() in ("powershell", "powershell.exe", "pwsh", "pwsh.exe")
+    suffix = ".ps1" if is_powershell else ".sh"
+
+    def build_cmd(script_path: Path) -> list[str]:
+        if is_powershell:
+            return [shell, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script_path), *entry.args]
+        return [shell, str(script_path), *entry.args]
+
+    env = {**net.proxy_env(mirrors), **entry.env}
+    urls = mirrors.github_urls(entry.url)
+
+    if sysinfo.DRY_RUN:
+        placeholder = Path(f"{entry.name}{suffix}")
+        net.download(urls, placeholder, mirrors, validate=_looks_like_script)
+        sysinfo.run(build_cmd(placeholder), env=env or None)
+        return
+
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as handle:
+        script_path = Path(handle.name)
+    try:
+        net.download(urls, script_path, mirrors, validate=_looks_like_script)
+        sysinfo.run(build_cmd(script_path), env=env or None)
+    finally:
+        script_path.unlink(missing_ok=True)
+    if is_windows:
+        sysinfo.refresh_windows_path()
+    sysinfo.success(t("script.done", entry.name))
+
+
 # ------------------------------------------------------------------ Windows
 
 def set_execution_policy() -> None:
@@ -693,6 +748,7 @@ __all__ = [
     "install_font_windows",
     "install_omz",
     "install_scoop",
+    "install_script",
     "install_skill",
     "install_system_packages",
     "npm_install",

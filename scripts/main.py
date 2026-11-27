@@ -275,6 +275,15 @@ def run_install(
             lambda value=item: installers.install_skill(value),
             core=False,
         )
+    selected_scripts = set(app_names(apps, selected_apps, "script:"))
+    for entry in data.scripts():
+        if entry.name not in selected_scripts:
+            continue
+        runner.run(
+            t("step.script", entry.name),
+            lambda item=entry: installers.install_script(os_name, item, mirrors),
+            core=False,
+        )
 
     if mirrors.pypi_indexes:
         runner.run(t("step.pypi_mirror"), lambda: installers.configure_pypi_mirror(mirrors), core=False)

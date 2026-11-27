@@ -31,6 +31,13 @@
   ],
   "npmGlobals": [],
   "skillsAdd": [],
+  "scripts": [
+    {
+      "name": "herdr-core",
+      "url": "https://releases.herdr.dev/core/install.sh",
+      "shell": "sh"
+    }
+  ],
   "configs": [
     {
       "name": "zshrc",
