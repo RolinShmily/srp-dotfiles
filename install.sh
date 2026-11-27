@@ -37,15 +37,19 @@
 # Usage
 # ==============================================================================
 #
-# Run directly (the script fetches the repository when needed):
+# Run directly (opens an interactive menu defaulting to full auto-install):
+#
+#   $ curl -fsSL https://dot.srprolin.com | sh
+#
+# Non-interactive / with flags:
 #
 #   $ curl -fsSL https://dot.srprolin.com | sh -s -- -y
 #   $ curl -fsSL https://dot.srprolin.com | sh -s -- -c -y   # configs only
 #
 # From a local checkout:
 #
-#   $ ./install.sh                  # confirm each step, install and deploy
-#   $ ./install.sh -y               # same, without prompts
+#   $ ./install.sh                  # interactive menu (default: full auto)
+#   $ ./install.sh -y               # install and deploy without prompts
 #   $ ./install.sh -c               # deploy configs only
 #   $ ./install.sh --os arch        # force the target profile
 #   $ ./install.sh --dry-run -y     # print the plan only
@@ -231,8 +235,8 @@ download_repo() {
 if [ ! -f "$REPO/scripts/main.py" ]; then
     if ! clone_repo && ! download_repo; then
         echo "Could not fetch $REPO_SLUG. Try one of:" >&2
-        echo "  SRP_GH_PROXY=https://gh-proxy.com/ sh install.sh -y" >&2
-        echo "  SRP_REPO_URL=<git mirror url> sh install.sh -y" >&2
+        echo "  curl -fsSL $WORKER | SRP_GH_PROXY=https://gh-proxy.com/ sh" >&2
+        echo "  curl -fsSL $WORKER | SRP_REPO_URL=<git mirror url> sh" >&2
         echo "  git clone $GITHUB_URL $REPO" >&2
         exit 1
     fi
@@ -246,4 +250,9 @@ if [ "$REPO_MODE" != local ] && [ -n "$(repo_ref)" ]; then
     echo "Revision: $(repo_ref)" >&2
 fi
 
+# Reattach stdin to the controlling terminal for piped invocations (curl | sh)
+# so interactive mode selection works; headless CI/containers fall through.
+if [ ! -t 0 ] && (exec </dev/tty) 2>/dev/null; then
+    exec "$PY" "$REPO/scripts/main.py" "$@" </dev/tty
+fi
 exec "$PY" "$REPO/scripts/main.py" "$@"

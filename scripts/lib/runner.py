@@ -37,7 +37,11 @@ class Runner:
         if self.assume_yes or self.dry_run:
             return True
         level = t("label.core") if core else t("label.optional")
-        return self._ask(t("prompt.confirm", name, level), "y") in ("y", "yes")
+        answer = self._ask(t("prompt.confirm", name, level), "y")
+        if answer in ("a", "all"):
+            self.assume_yes = True
+            return True
+        return answer in ("y", "yes")
 
     def run(self, name: str, fn: Callable[[], None], core: bool = True) -> bool:
         if self.dry_run:

@@ -61,14 +61,15 @@ install.sh / install.ps1
         │  1. Reject root (unless SRP_ALLOW_ROOT=1)
         │  2. Verify Python 3.9+
         │  3. Resolve repo (local / SRP_DOTFILES_DIR / auto-refreshed ~/.srp-dotfiles)
+        │  4. Reattach /dev/tty when piped on Unix; isolate scope on PowerShell
         ▼
 scripts/main.py
-        │  1. Parse flags (--config, --os, --apps, --configs, --mirror*, --proxy, --dry-run)
+        │  1. Parse flags (or show interactive startup menu when invoked with no flags on a TTY)
         │  2. Load manifest/<os>.json + manifest/mirror.json
         │  3. Resolve concrete selection & build ordered step plan
         ▼
 scripts/lib/runner.py
-        │  Per-step confirm (or -y), execute, retry / skip / abort, final audit summary
+        │  Per-step confirm ([Y/n/a] or -y), execute, retry / skip / abort, final audit summary
         │
         ├── installers.py   OS packages, Scoop/winget, fonts, npm globals, skills, login shell
         └── deploy.py       backup existing targets -> copy files/directories
@@ -98,13 +99,13 @@ Fetch order when cloning or downloading:
 
 | Module | Responsibility |
 | :--- | :--- |
-| `scripts/main.py` | Argument parsing, `--catalog` output, high-level step scheduling, exit code handling |
+| `scripts/main.py` | Argument parsing, zero-arg interactive startup menu, `--catalog` output, high-level step scheduling, exit code handling |
 | `scripts/lib/manifest.py` | Loads OS manifests and `mirror.json`, validates structure, applies CLI mirror/proxy overrides |
 | `scripts/lib/catalog.py` | Expands manifests into stable app IDs (`pkg:`, `winget:`, `scoop:`, `font:`, `npm:`, `skill:`), config IDs, and mirror metadata |
 | `scripts/lib/platform_info.py` | Detects target OS, expands path placeholders (`~`, `%APPDATA%`, `$PROFILE`, etc.), resolves bare Windows `.cmd`/`.bat` shims via `PATHEXT` |
 | `scripts/lib/proxy.py` | Normalizes `--proxy`: probes bare `host:port` for SOCKS5 vs HTTP and preserves explicit URL schemes |
 | `scripts/lib/net.py` | Builds proxied GitHub URL candidate lists (always retaining direct upstream as final fallback) and streams downloads |
-| `scripts/lib/runner.py` | Runs steps with interactive confirmation (or `-y`), tracks ok/skipped/failed counts, and prints the end-of-run summary |
+| `scripts/lib/runner.py` | Runs steps with interactive confirmation (`[Y/n/a]`, where `a` enables auto-yes for remaining steps) or `-y`, tracks ok/skipped/failed counts, and prints the end-of-run summary |
 | `scripts/lib/deploy.py` | Unlinks legacy symlinks/hard-links, archives existing targets to `~/.dotfiles_backup_*`, and performs real copies |
 | `scripts/lib/installers.py` | Platform-specific installers with resilient failure handling: batch-then-per-package retries (`apt`, `pacman`, `pkg`), `--skip-broken` (`dnf`), benign `UPDATE_NOT_APPLICABLE` handling (`winget`), PATH shim updates (`scoop`), font archive extraction, and login shell setup (`chsh` targeting `SUDO_USER`) |
 | `scripts/lib/context.py` | Immutable/shared run context (`os`, `dry_run`, `yes`, `mirrors`, `repo_dir`) threaded into steps |

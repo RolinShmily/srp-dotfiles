@@ -58,7 +58,7 @@ class MirrorConfigTests(unittest.TestCase):
     def _declared(self, name: str) -> set[str]:
         text = (REPO_DIR / name).read_text(encoding="utf-8")
         marker = "GH_PREFIXES=" if name.endswith(".sh") else "$prefixes +="
-        line = next(item for item in text.splitlines() if item.startswith(marker))
+        line = next(item for item in text.splitlines() if item.lstrip().startswith(marker))
         return {url.rstrip("/") + "/" for url in re.findall(r"https://[^\s\"']+", line)}
 
     def test_bootstrap_prefixes_match_the_cn_profile(self) -> None:

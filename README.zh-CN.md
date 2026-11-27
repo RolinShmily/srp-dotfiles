@@ -42,16 +42,16 @@ winget install Python.Python.3.12
 Linux / Termux：
 
 ```bash
-curl -fsSL https://dot.srprolin.com | sh -s -- -y
+curl -fsSL https://dot.srprolin.com | sh
 ```
 
 Windows PowerShell：
 
 ```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force;
-irm https://dot.srprolin.com/install.ps1 -OutFile install.ps1;
-.\install.ps1 -y
+irm https://dot.srprolin.com | iex
 ```
+
+无参数启动会弹出交互菜单（直接回车默认全量自动确认，等价 `-y`；也可选择逐步确认或仅部署配置）。传入任意参数（如 `-y`、`-c`、`--mirror cn`）时会跳过菜单直接执行。
 
 > 不想全装？打开可视化配置器 **[dot.srprolin.com/config](https://dot.srprolin.com/config)**，直接勾选需要的软件、配置和镜像，复制生成的命令运行即可。
 
@@ -61,17 +61,17 @@ irm https://dot.srprolin.com/install.ps1 -OutFile install.ps1;
 git clone https://github.com/RolinShmily/dotfiles.git ~/Projects/dotfiles
 cd ~/Projects/dotfiles
 
-./install.sh              # 交互模式：逐步确认
-./install.sh -y           # 全部自动确认
-./install.sh -c           # 只部署配置，不装软件
+./install.sh              # 交互菜单（默认全量自动确认）
+./install.sh -y           # 全部自动确认，不弹菜单
+./install.sh -c           # 只部署配置，逐步确认
 ./install.sh --dry-run -y # 只预览执行计划，不做实际修改
 ```
 
-Windows PowerShell 5.1 默认执行策略为 `Restricted`，先对当前会话放开即可：
+Windows PowerShell 5.1 默认执行策略为 `Restricted`（仅限制本地 `.ps1` 文件），先对当前会话放开即可：
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
-.\install.ps1             # 交互模式
+.\install.ps1             # 交互菜单（默认全量自动确认）
 .\install.ps1 -y          # 全部自动确认
 .\install.ps1 -c          # 只部署配置
 ```
@@ -90,7 +90,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 ```
 
 - `--apps none` 或 `--configs none` 可完全跳过对应项。
-- 默认每个步骤都会询问确认，非交互环境（如管道运行）请加上 `-y`。
+- 终端下无参数运行会弹出启动菜单（默认全量自动安装；逐步确认中随时可按 `a` 切换后续全部自动确认）；无 TTY 的非交互环境请加上 `-y`。
 - 在线引导若直连 GitHub 失败，会自动回退到 Worker 仓库归档及内置 GitHub 镜像。
 
 ## 文档导航

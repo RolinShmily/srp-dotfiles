@@ -42,16 +42,16 @@ Run the installer as your **normal user**, not through `sudo` or root — config
 Linux / Termux:
 
 ```bash
-curl -fsSL https://dot.srprolin.com | sh -s -- -y
+curl -fsSL https://dot.srprolin.com | sh
 ```
 
 Windows PowerShell:
 
 ```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force;
-irm https://dot.srprolin.com/install.ps1 -OutFile install.ps1;
-.\install.ps1 -y
+irm https://dot.srprolin.com | iex
 ```
+
+Running with no flags opens a short interactive menu (press Enter for the default full auto-install `-y`, or choose step-by-step confirmation / configs only). Passing any flag (such as `-y`, `-c`, or `--mirror cn`) skips the menu and runs directly.
 
 > Prefer picking only what you need? Open the visual configurator at **[dot.srprolin.com/config](https://dot.srprolin.com/config)** to check apps, configs, and mirrors and copy the generated command.
 
@@ -61,18 +61,18 @@ irm https://dot.srprolin.com/install.ps1 -OutFile install.ps1;
 git clone https://github.com/RolinShmily/dotfiles.git ~/Projects/dotfiles
 cd ~/Projects/dotfiles
 
-./install.sh              # interactive: confirm each step
-./install.sh -y           # approve all steps
-./install.sh -c           # deploy configs only (skip packages)
+./install.sh              # interactive menu (default: full auto-install)
+./install.sh -y           # install and deploy without prompts
+./install.sh -c           # deploy configs only (step-by-step)
 ./install.sh --dry-run -y # preview the plan without changing anything
 ```
 
-On Windows PowerShell 5.1 (which defaults to `Restricted` execution policy):
+On Windows PowerShell 5.1 (which defaults to `Restricted` execution policy for local `.ps1` files):
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
-.\install.ps1             # interactive
-.\install.ps1 -y          # approve all steps
+.\install.ps1             # interactive menu (default: full auto-install)
+.\install.ps1 -y          # install and deploy without prompts
 .\install.ps1 -c          # deploy configs only
 ```
 
@@ -90,7 +90,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 ```
 
 - Pass `none` to `--apps` or `--configs` to skip that category completely.
-- By default, every step asks for confirmation; pass `-y` for non-interactive runs.
+- With no flags on a TTY, a startup menu lets you pick full auto-install (default), step-by-step confirmation (where `a` switches remaining steps to auto-yes), or configs only. Pass `-y` for headless/CI runs.
 - If GitHub is unreachable during online bootstrap, the script automatically falls back to the Worker archive and built-in GitHub mirrors.
 
 ## Documentation

@@ -56,19 +56,20 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 install also sets `RemoteSigned` for the current user, allowing future sessions to run
 `.\install.ps1` directly.
 
-Remote one-liner (matching the web configurator output):
+Remote one-liners (matching the web configurator output; no local `.ps1` file or `Set-ExecutionPolicy` required):
 
 ```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force;
-irm https://dot.srprolin.com/install.ps1 -OutFile install.ps1;
-.\install.ps1 -y
+# Default interactive menu (Enter runs full auto-install)
+irm https://dot.srprolin.com | iex
+
+# With explicit CLI flags in memory
+& ([scriptblock]::Create((irm https://dot.srprolin.com/install.ps1))) -y --mirror cn
 ```
 
-Fallbacks when a group policy pins the execution policy:
+Fallbacks when running from a local clone under a group-policy-pinned execution policy:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -y
-& ([scriptblock]::Create((irm https://dot.srprolin.com/install.ps1))) -y
 Get-Content .\install.ps1 -Raw | Invoke-Expression
 ```
 
@@ -99,8 +100,9 @@ pwsh -NoProfile -Command '$e = $null; [void][System.Management.Automation.Langua
 
 All unit tests run completely offline:
 - `scripts/tests/` exercises catalog generation, manifest loading, message key coverage, mirror
-  resolution, proxy scheme detection, runner step behavior, and package manager fallbacks (`dnf`,
-  `pacman`, `apt`, `pkg`, `winget`, `scoop`, fonts, login shell).
+  resolution, proxy scheme detection, interactive startup menu & step confirmation (`test_runner.py`),
+  Windows shim resolution (`test_run.py`), and package manager fallbacks (`dnf`, `pacman`, `apt`,
+  `pkg`, `winget`, `scoop`, fonts, login shell).
 - `worker/test.mjs` mocks the `ASSETS` binding and upstream script fetch to test routing, User-Agent
   detection, `buildCommand`, `buildMirrorFlags`, and `buildProxyFlag`.
 

@@ -22,11 +22,13 @@ are shaped that way.
    the repository. Business logic lives in `scripts/`.
 6. **Bootstrap must not depend on the repository.** `mirror.json` lives inside the repo, so initial
    fetching uses built-in GitHub mirror probing and Worker archive fallbacks before giving up.
-7. **Steps are explicit and resilient.** Every step confirms interactively (unless `-y`), can be
-   retried, skipped, or aborted, and appears in the final audit report. `--dry-run` shows the exact
-   plan with zero side effects. Single unavailable or conflicting packages degrade to warnings
-   instead of aborting the whole machine setup; only missing config sources or total step failures
-   return non-zero.
+7. **Steps are explicit and resilient.** Zero-argument interactive runs open a brief mode selector
+   (defaulting to full auto-install, with step-by-step and configs-only choices), while explicit
+   CLI flags bypass the menu. In step-by-step mode every step confirms interactively (`[Y/n/a]`,
+   where `a` switches the remaining steps to auto-yes), can be retried, skipped, or aborted, and
+   appears in the final audit report. `--dry-run` shows the exact plan with zero side effects.
+   Single unavailable or conflicting packages degrade to warnings instead of aborting the whole
+   machine setup; only missing config sources or total step failures return non-zero.
 8. **One deploy verb: copy.** Every config entry copies its source over the target after archiving
    the previous content to `~/.dotfiles_backup_*`. `ifMissing` is the only guard that skips an
    existing target. No symlinks and no per-app custom deploy scripts.

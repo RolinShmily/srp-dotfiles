@@ -405,6 +405,33 @@ def run_action(
     return 1 if runner.results.failed else 0
 
 
+def choose_startup_mode(os_name: str) -> tuple[str, bool] | None:
+    print()
+    print(t("menu.title", os_name))
+    print(t("menu.auto"))
+    print(t("menu.step"))
+    print(t("menu.config"))
+    print(t("menu.config_step"))
+    print(t("menu.quit"))
+    while True:
+        try:
+            choice = input(t("menu.prompt")).strip().lower()
+        except EOFError:
+            print()
+            return None
+        if choice in ("", "1"):
+            return "all", True
+        if choice == "2":
+            return "all", False
+        if choice == "3":
+            return "config", True
+        if choice == "4":
+            return "config", False
+        if choice in ("q", "quit"):
+            return None
+        sysinfo.warn(t("menu.invalid", choice))
+
+
 def main(argv: list[str]) -> int:
     args = parse_args(argv)
 
@@ -439,6 +466,7 @@ def main(argv: list[str]) -> int:
         return 0
 
     action = "config" if args.do_config else "all"
+    assume_yes = args.yes
 
     # The engine escalates per command; running the whole thing as root would
     # deploy configs into /root and leave root-owned files in the user's home.
@@ -451,9 +479,16 @@ def main(argv: list[str]) -> int:
         sysinfo.error(t("error.root"))
         return 2
 
-    if not sys.stdin.isatty() and not args.yes and not args.dry_run:
+    if not sys.stdin.isatty() and not assume_yes and not args.dry_run:
         sysinfo.error(t("error.no_tty"))
         return 2
+
+    if not argv and sys.stdin.isatty():
+        selection = choose_startup_mode(os_name)
+        if selection is None:
+            sysinfo.info(t("step.aborted"))
+            return 0
+        action, assume_yes = selection
 
     if args.dry_run:
         sysinfo.set_dry_run(True)
@@ -461,7 +496,7 @@ def main(argv: list[str]) -> int:
         action,
         REPO_DIR,
         os_name,
-        args.yes,
+        assume_yes,
         args.dry_run,
         args.apps,
         args.configs,
