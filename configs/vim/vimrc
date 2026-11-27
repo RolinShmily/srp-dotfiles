@@ -9,14 +9,13 @@ set fileencodings=utf-8,gbk,gb18030,latin1 " 文件编码自动识别
 set fileformat=unix           " 换行符格式
 filetype plugin indent on     " 开启文件类型侦测与缩进规则
 syntax enable                 " 开启基础语法高亮
-syntax on
 
 " ------------------------------------------------------------------
 " 2. 界面与显示增强
 " ------------------------------------------------------------------
-set number                    " 显示行号
-set relativenumber            " 显示相对行号（便于跳转，可根据习惯关闭）
-set cursorline                " 高亮当前行
+set number                    " 显示固定绝对行号
+set norelativenumber          " 禁用相对行号（防止移动光标时左侧行号变动）
+set cursorline                " 高亮当前行与当前行号
 set ruler                     " 状态栏标尺（行号/列号）
 set showcmd                   " 显示未输入完成的命令
 set showmode                  " 底部显示当前模式 (INSERT/NORMAL)
@@ -28,11 +27,91 @@ set linebreak                 " 单词边界折行，不打断单词
 set list                      " 显示隐藏字符（Tab、行尾空格等）
 set listchars=tab:▸\ ,trail:·,extends:❯,precedes:❮
 
-" 终端真彩色与暗色背景支持
+" 终端真彩色与暗色背景支持（终端不支持 24 位色时回退至下方 256 色定义）
 if has('termguicolors')
-    set termguicolors
+    if !has('nvim') && !has('win32') && &term =~# '^\%(tmux\|screen\)'
+        let &t_8f = "\<Esc>[38;2;%lu;%lu;%lum"
+        let &t_8b = "\<Esc>[48;2;%lu;%lu;%lum"
+    endif
+    try
+        set termguicolors
+    catch /^Vim\%((\a\+)\)\=:E954:/
+    endtry
 endif
 set background=dark
+
+" ------------------------------------------------------------------
+" 2.1 冷色调配色方案（黑 / 紫 / 蓝 / 粉 / 冰青，零外部依赖、无红橙暖色）
+" ------------------------------------------------------------------
+" 界面元素
+highlight Normal       ctermfg=189 ctermbg=233 guifg=#d8def8 guibg=#151521
+highlight EndOfBuffer  ctermfg=236 ctermbg=233 guifg=#2b2b42 guibg=#151521
+highlight LineNr       ctermfg=60  ctermbg=233 guifg=#565a7a guibg=#151521
+highlight CursorLine   cterm=NONE  ctermbg=235 gui=NONE      guibg=#212136
+highlight CursorLineNr cterm=bold  ctermfg=212 ctermbg=235   gui=bold guifg=#f29fd8 guibg=#212136
+highlight SignColumn   ctermfg=60  ctermbg=233 guifg=#565a7a guibg=#151521
+highlight ColorColumn  ctermbg=235             guibg=#1e1e32
+highlight Visual       ctermbg=60              guibg=#342e59
+highlight StatusLine   cterm=bold  ctermfg=189 ctermbg=236   gui=bold guifg=#e2e6ff guibg=#272442
+highlight StatusLineNC cterm=NONE  ctermfg=60  ctermbg=234   gui=NONE guifg=#6e7396 guibg=#1b1b2d
+highlight VertSplit    cterm=NONE  ctermfg=237 ctermbg=NONE  gui=NONE guifg=#323052 guibg=#151521
+highlight Folded       ctermfg=103 ctermbg=235 guifg=#8e94b8 guibg=#1e1e32
+highlight FoldColumn   ctermfg=60  ctermbg=233 guifg=#565a7a guibg=#151521
+highlight NonText      ctermfg=238             guifg=#3e4163
+highlight SpecialKey   ctermfg=238             guifg=#3e4163
+highlight MatchParen   cterm=bold  ctermfg=212 ctermbg=60    gui=bold guifg=#f29fd8 guibg=#342e59
+highlight Search       cterm=NONE  ctermfg=233 ctermbg=117   gui=NONE guifg=#151521 guibg=#7dd3fc
+highlight IncSearch    cterm=bold  ctermfg=233 ctermbg=212   gui=bold guifg=#151521 guibg=#f29fd8
+highlight Pmenu        ctermfg=189 ctermbg=235 guifg=#d8def8 guibg=#1f1f33
+highlight PmenuSel     cterm=bold  ctermfg=233 ctermbg=141   gui=bold guifg=#151521 guibg=#c49bff
+highlight PmenuSbar    ctermbg=234             guibg=#1b1b2d
+highlight PmenuThumb   ctermbg=60              guibg=#565a7a
+highlight WildMenu     cterm=bold  ctermfg=233 ctermbg=111   gui=bold guifg=#151521 guibg=#7eb6ff
+
+" 语法高亮（紫 / 蓝 / 冰青 / 柔粉）
+highlight Comment      cterm=NONE  ctermfg=60  gui=italic guifg=#676d91
+highlight Constant     ctermfg=212             guifg=#f29fd8
+highlight String       ctermfg=117             guifg=#8be3f7
+highlight Character    ctermfg=117             guifg=#8be3f7
+highlight Number       ctermfg=212             guifg=#f29fd8
+highlight Boolean      ctermfg=212             guifg=#f29fd8
+highlight Float        ctermfg=212             guifg=#f29fd8
+highlight Identifier   cterm=NONE  ctermfg=111 gui=NONE   guifg=#7eb6ff
+highlight Function     ctermfg=111             guifg=#7eb6ff
+highlight Statement    cterm=NONE  ctermfg=141 gui=NONE   guifg=#c49bff
+highlight Conditional  ctermfg=141             guifg=#c49bff
+highlight Repeat       ctermfg=141             guifg=#c49bff
+highlight Label        ctermfg=141             guifg=#c49bff
+highlight Operator     ctermfg=182             guifg=#e0aaff
+highlight Keyword      ctermfg=141             guifg=#c49bff
+highlight Exception    ctermfg=177             guifg=#d896ff
+highlight PreProc      ctermfg=177             guifg=#d896ff
+highlight Include      ctermfg=177             guifg=#d896ff
+highlight Define       ctermfg=177             guifg=#d896ff
+highlight Macro        ctermfg=177             guifg=#d896ff
+highlight Type         cterm=NONE  ctermfg=147 gui=NONE   guifg=#9ea8ff
+highlight StorageClass ctermfg=147             guifg=#9ea8ff
+highlight Structure    ctermfg=147             guifg=#9ea8ff
+highlight Typedef      ctermfg=147             guifg=#9ea8ff
+highlight Special      ctermfg=182             guifg=#e6a8e8
+highlight SpecialChar  ctermfg=212             guifg=#f29fd8
+highlight Delimiter    ctermfg=146             guifg=#a6adc8
+highlight Underlined   cterm=underline ctermfg=111 gui=underline guifg=#7eb6ff
+highlight Title        cterm=bold  ctermfg=111 gui=bold   guifg=#7eb6ff
+highlight Directory    cterm=bold  ctermfg=111 gui=bold   guifg=#7eb6ff
+highlight Todo         cterm=bold  ctermfg=233 ctermbg=141 gui=bold guifg=#151521 guibg=#c49bff
+highlight Error        cterm=bold  ctermfg=212 ctermbg=53  gui=bold guifg=#f6a6d8 guibg=#3a1d3d
+highlight ErrorMsg     cterm=bold  ctermfg=212 ctermbg=53  gui=bold guifg=#f6a6d8 guibg=#3a1d3d
+highlight WarningMsg   cterm=bold  ctermfg=177 ctermbg=NONE gui=bold guifg=#d896ff guibg=NONE
+highlight ModeMsg      cterm=bold  ctermfg=141 gui=bold   guifg=#c49bff
+highlight MoreMsg      ctermfg=117             guifg=#8be3f7
+highlight Question     ctermfg=111             guifg=#7eb6ff
+
+" Diff 冷色调
+highlight DiffAdd      ctermfg=117 ctermbg=23  guifg=#8be3f7 guibg=#1b2b3b
+highlight DiffChange   ctermbg=236             guibg=#252242
+highlight DiffDelete   ctermfg=176 ctermbg=53  guifg=#d98cc4 guibg=#301c38
+highlight DiffText     cterm=bold  ctermfg=212 ctermbg=60  gui=bold guifg=#f29fd8 guibg=#382e66
 
 " ------------------------------------------------------------------
 " 3. 缩进与排版规则 (2 空格 / 4 空格标准)
