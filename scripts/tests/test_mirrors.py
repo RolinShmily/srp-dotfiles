@@ -98,6 +98,26 @@ class DownloadTests(unittest.TestCase):
             self.assertTrue(attempts[0].startswith("https://gh-proxy.com/"))
             self.assertTrue(attempts[1].startswith("https://github.com/"))
 
+    def test_urllib_failure_falls_back_to_curl(self) -> None:
+        mirrors = Mirrors(proxy="http://127.0.0.1:7890")
+        with tempfile.TemporaryDirectory() as tmp:
+            dest = Path(tmp) / "install.sh"
+
+            def fake_run(cmd, **kwargs) -> None:
+                self.assertEqual(cmd[0], "curl")
+                self.assertIn("--proxy", cmd)
+                dest.write_text("#!/bin/sh\n", encoding="utf-8")
+
+            with mock.patch.object(
+                net, "_download_one", side_effect=OSError("SSL: UNEXPECTED_EOF_WHILE_READING")
+            ), mock.patch.object(net.sysinfo, "which", return_value="/usr/bin/curl"), mock.patch.object(
+                net.sysinfo, "run", side_effect=fake_run
+            ) as run_cmd:
+                net.download("https://example.test/install.sh", dest, mirrors)
+
+            run_cmd.assert_called_once()
+            self.assertTrue(dest.is_file())
+
     def test_every_mirror_failing_raises(self) -> None:
         mirrors = Mirrors(github_proxies=["https://gh-proxy.com/"])
         with tempfile.TemporaryDirectory() as tmp:

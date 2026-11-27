@@ -53,6 +53,18 @@ class WindowsShimResolutionTests(unittest.TestCase):
         which.assert_not_called()
         self.assertEqual(run.call_args.args[0], ["scoop", "bucket", "list"])
 
+    def test_none_env_value_removes_inherited_var_case_insensitively(self) -> None:
+        completed = subprocess.CompletedProcess([], 0, "", "")
+        with mock.patch.dict(platform_info.os.environ, {"PSMODULEPATH": r"C:\pwsh7\Modules"}, clear=True), mock.patch.object(
+            platform_info, "IS_WINDOWS", False
+        ), mock.patch.object(platform_info.subprocess, "run", return_value=completed) as run:
+            platform_info.run(["powershell", "-File", "x.ps1"], env={"PSModulePath": None, "FOO": "1"})
+
+        passed_env = run.call_args.kwargs["env"]
+        self.assertNotIn("PSMODULEPATH", passed_env)
+        self.assertNotIn("PSModulePath", passed_env)
+        self.assertEqual(passed_env["FOO"], "1")
+
 
 if __name__ == "__main__":
     unittest.main()

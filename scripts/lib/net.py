@@ -19,6 +19,14 @@ def _download_one(url: str, dest: Path) -> None:
         shutil.copyfileobj(response, handle)
 
 
+def _download_with_curl(url: str, dest: Path, proxy: str) -> None:
+    cmd = ["curl", "-fsSL", "--connect-timeout", "20", "--max-time", "120"]
+    if proxy:
+        cmd += ["--proxy", proxy]
+    cmd += ["-o", str(dest), url]
+    sysinfo.run(cmd)
+
+
 def download(
     url: str | list[str],
     dest: Path,
@@ -42,9 +50,15 @@ def download(
     for candidate in urls:
         try:
             if proxy.lower().startswith("socks") and sysinfo.which("curl"):
-                sysinfo.run(["curl", "-fL", "--proxy", proxy, "-o", str(dest), candidate])
+                _download_with_curl(candidate, dest, proxy)
             else:
-                _download_one(candidate, dest)
+                try:
+                    _download_one(candidate, dest)
+                except Exception:
+                    if not sysinfo.which("curl"):
+                        raise
+                    dest.unlink(missing_ok=True)
+                    _download_with_curl(candidate, dest, proxy)
             if validate is not None and not validate(dest):
                 raise ValueError(t("net.bad_content", candidate))
             return

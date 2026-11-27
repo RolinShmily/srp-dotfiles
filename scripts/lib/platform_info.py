@@ -105,7 +105,7 @@ def run(
     *,
     check: bool = True,
     capture: bool = False,
-    env: dict[str, str] | None = None,
+    env: dict[str, str | None] | None = None,
     cwd: Path | None = None,
     sudo: bool = False,
 ) -> subprocess.CompletedProcess:
@@ -126,7 +126,12 @@ def run(
 
     merged_env = dict(os.environ)
     if env:
-        merged_env.update(env)
+        for key, value in env.items():
+            if value is None:
+                for existing in [k for k in merged_env if k.lower() == key.lower()]:
+                    merged_env.pop(existing, None)
+            else:
+                merged_env[key] = value
 
     try:
         result = subprocess.run(

@@ -115,17 +115,39 @@ class ScriptInstallerTests(unittest.TestCase):
             dest.write_text("Write-Output ok\n", encoding="utf-8")
             self.assertTrue(validate(dest))
 
-        with mock.patch.object(installers.net, "download", side_effect=fake_download), mock.patch.object(
-            installers.sysinfo, "run"
-        ) as run_cmd, mock.patch.object(
+        with mock.patch.object(installers.sysinfo, "which", return_value="pwsh.exe"), mock.patch.object(
+            installers.net, "download", side_effect=fake_download
+        ), mock.patch.object(installers.sysinfo, "run") as run_cmd, mock.patch.object(
             installers.sysinfo, "refresh_windows_path"
         ) as refresh, redirect_stdout(io.StringIO()):
             installers.install_script("windows", entry, mirrors)
 
         cmd = run_cmd.call_args.args[0]
-        self.assertEqual(cmd[:5], ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File"])
+        self.assertEqual(cmd[:5], ["pwsh", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File"])
         self.assertTrue(cmd[5].endswith(".ps1"))
+        self.assertIsNone(run_cmd.call_args.kwargs["env"])
         refresh.assert_called_once()
+
+    def test_windows_powershell_fallback_clears_psmodulepath(self) -> None:
+        entry = ScriptEntry(
+            name="herdr-tui",
+            url="https://herdr.dev/install.ps1",
+            shell="powershell",
+        )
+
+        def fake_download(urls, dest: Path, used_mirrors: Mirrors, validate=None) -> None:
+            dest.write_text("Write-Output ok\n", encoding="utf-8")
+
+        with mock.patch.object(installers.sysinfo, "which", return_value=None), mock.patch.object(
+            installers.net, "download", side_effect=fake_download
+        ), mock.patch.object(installers.sysinfo, "run") as run_cmd, mock.patch.object(
+            installers.sysinfo, "refresh_windows_path"
+        ), redirect_stdout(io.StringIO()):
+            installers.install_script("windows", entry, Mirrors())
+
+        cmd = run_cmd.call_args.args[0]
+        self.assertEqual(cmd[:5], ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File"])
+        self.assertEqual(run_cmd.call_args.kwargs["env"], {"PSModulePath": None})
 
     def test_skips_when_check_command_or_path_exists(self) -> None:
         entry_cmd = ScriptEntry(name="tool", url="https://example.test/install.sh", check="tool")

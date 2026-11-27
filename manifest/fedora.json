@@ -69,7 +69,7 @@
     },
     {
       "name": "tailscale",
-      "url": "https://tailscale.com/install.sh",
+      "url": "https://raw.githubusercontent.com/tailscale/tailscale/main/scripts/installer.sh",
       "shell": "sh"
     },
     {

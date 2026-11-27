@@ -391,6 +391,26 @@ def _script_already_installed(check: str) -> bool:
     return bool(sysinfo.which(check))
 
 
+def _resolve_powershell(requested: str) -> tuple[str, dict[str, str | None]]:
+    """Prefer pwsh on Windows; strip inherited PS7 PSModulePath if falling back to 5.1.
+
+    When the installer is launched from PowerShell 7 (pwsh), Windows PowerShell
+    5.1 (powershell.exe) inherits PS7's PSModulePath and loads incompatible
+    .NET Core modules such as Microsoft.PowerShell.Archive 1.2.7, breaking
+    Expand-Archive with MethodCountCouldNotFindBest.
+    """
+    lower = requested.lower()
+    if lower in ("", "powershell", "powershell.exe"):
+        if sysinfo.which("pwsh"):
+            return "pwsh", {}
+        return requested or "powershell", {"PSModulePath": None}
+    if lower in ("pwsh", "pwsh.exe"):
+        if sysinfo.which(requested):
+            return requested, {}
+        return "powershell", {"PSModulePath": None}
+    return requested, {}
+
+
 def install_script(os_name: str, entry: ScriptEntry, mirrors: Mirrors) -> None:
     if entry.check and _script_already_installed(entry.check):
         sysinfo.info(t("script.already", entry.name, entry.check))
@@ -399,6 +419,9 @@ def install_script(os_name: str, entry: ScriptEntry, mirrors: Mirrors) -> None:
     is_windows = os_name == "windows" or sysinfo.IS_WINDOWS
     shell = entry.shell or ("powershell" if is_windows else "sh")
     is_powershell = shell.lower() in ("powershell", "powershell.exe", "pwsh", "pwsh.exe")
+    shell_env: dict[str, str | None] = {}
+    if is_powershell:
+        shell, shell_env = _resolve_powershell(shell)
     suffix = ".ps1" if is_powershell else ".sh"
 
     def build_cmd(script_path: Path) -> list[str]:
@@ -406,7 +429,7 @@ def install_script(os_name: str, entry: ScriptEntry, mirrors: Mirrors) -> None:
             return [shell, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script_path), *entry.args]
         return [shell, str(script_path), *entry.args]
 
-    env = {**net.proxy_env(mirrors), **entry.env}
+    env: dict[str, str | None] = {**shell_env, **net.proxy_env(mirrors), **entry.env}
     urls = mirrors.github_urls(entry.url)
 
     if sysinfo.DRY_RUN:
