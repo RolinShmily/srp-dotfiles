@@ -451,6 +451,12 @@
           "label": "nodejs"
         },
         {
+          "id": "pkg:npm",
+          "source": "apt",
+          "name": "npm",
+          "label": "npm"
+        },
+        {
           "id": "pkg:ripgrep",
           "source": "apt",
           "name": "ripgrep",
@@ -553,10 +559,10 @@
           "label": "SourceHanSansSC"
         },
         {
-          "id": "script:herdr-core",
-          "source": "script",
-          "name": "herdr-core",
-          "label": "herdr-core"
+          "id": "npm:@earendil-works/pi-coding-agent",
+          "source": "npm",
+          "name": "@earendil-works/pi-coding-agent",
+          "label": "@earendil-works/pi-coding-agent"
         }
       ],
       "configs": [
@@ -587,6 +593,10 @@
         {
           "id": "tmux",
           "label": "tmux"
+        },
+        {
+          "id": "pi",
+          "label": "pi"
         }
       ],
       "mirrors": {
@@ -934,12 +944,6 @@
           "source": "npm",
           "name": "live-server",
           "label": "live-server"
-        },
-        {
-          "id": "script:herdr-core",
-          "source": "script",
-          "name": "herdr-core",
-          "label": "herdr-core"
         },
         {
           "id": "script:herdr-tui",
@@ -1544,6 +1548,12 @@
           "label": "vscode"
         },
         {
+          "id": "scoop:magpie/magpie-app",
+          "source": "scoop",
+          "name": "magpie/magpie-app",
+          "label": "magpie/magpie-app"
+        },
+        {
           "id": "font:Maple-Mono-NF-CN",
           "source": "font",
           "name": "Maple-Mono-NF-CN",
@@ -1578,12 +1588,6 @@
           "source": "npm",
           "name": "live-server",
           "label": "live-server"
-        },
-        {
-          "id": "script:herdr-core",
-          "source": "script",
-          "name": "herdr-core",
-          "label": "herdr-core"
         },
         {
           "id": "script:herdr-tui",
@@ -1672,7 +1676,8 @@
             "go": "",
             "scoop": [
               "extras = https://github.com/ScoopInstaller/Extras",
-              "nerd-fonts = https://github.com/matthewjberger/scoop-nerd-fonts"
+              "nerd-fonts = https://github.com/matthewjberger/scoop-nerd-fonts",
+              "magpie = https://github.com/yetone/magpie-releases"
             ]
           },
           "cn": {
@@ -1692,7 +1697,8 @@
               "extras = https://mirror.nju.edu.cn/git/scoop-extras.git",
               "versions = https://mirror.nju.edu.cn/git/scoop-versions.git",
               "nerd-fonts = https://mirror.nju.edu.cn/git/scoop-nerd-fonts.git/",
-              "dorado = https://github.com/chawyehsu/dorado"
+              "dorado = https://github.com/chawyehsu/dorado",
+              "magpie = https://github.com/yetone/magpie-releases"
             ]
           }
         }

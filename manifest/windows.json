@@ -31,7 +31,8 @@
     "btop",
     "zellij",
     "notepad3",
-    "vscode"
+    "vscode",
+    "magpie/magpie-app"
   ],
   "npmGlobals": [
     "@earendil-works/pi-coding-agent",
@@ -40,11 +41,6 @@
   ],
   "skillsAdd": [],
   "scripts": [
-    {
-      "name": "herdr-core",
-      "url": "https://releases.herdr.dev/core/install.ps1",
-      "shell": "powershell"
-    },
     {
       "name": "herdr-tui",
       "url": "https://herdr.dev/install.ps1",

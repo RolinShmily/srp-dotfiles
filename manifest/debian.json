@@ -14,6 +14,7 @@
     "zsh-syntax-highlighting",
     "python3",
     "nodejs",
+    "npm",
     "ripgrep",
     "fd-find",
     "bat",
@@ -29,15 +30,10 @@
     "fastfetch",
     "btop"
   ],
-  "npmGlobals": [],
-  "skillsAdd": [],
-  "scripts": [
-    {
-      "name": "herdr-core",
-      "url": "https://releases.herdr.dev/core/install.sh",
-      "shell": "sh"
-    }
+  "npmGlobals": [
+    "@earendil-works/pi-coding-agent"
   ],
+  "skillsAdd": [],
   "configs": [
     {
       "name": "zshrc",
@@ -77,6 +73,11 @@
       "name": "tmux",
       "source": "configs/tmux",
       "target": "~/.config/tmux"
+    },
+    {
+      "name": "pi",
+      "source": "configs/pi",
+      "target": "~/.pi/agent"
     }
   ]
 }

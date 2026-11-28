@@ -9,6 +9,7 @@ Apps are concrete packages from the manifest, not preset groups:
   npm:<name>     global npm package
   skill:<item>   agent skill
   script:<name>  standalone official install script
+  release:<name> GitHub release package installer
 """
 
 from __future__ import annotations
@@ -103,6 +104,8 @@ def build_catalog(manifest: Manifest, mirrors, profiles=None, default_profile=""
         add(f"skill:{item}", "skill", str(item))
     for entry in manifest.scripts():
         add(f"script:{entry.name}", "script", entry.name)
+    for entry in manifest.github_releases():
+        add(f"release:{entry.name}", "release", entry.name)
 
     return {
         "schema": SCHEMA,

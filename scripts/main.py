@@ -284,6 +284,15 @@ def run_install(
             lambda item=entry: installers.install_script(os_name, item, mirrors),
             core=False,
         )
+    selected_releases = set(app_names(apps, selected_apps, "release:"))
+    for entry in data.github_releases():
+        if entry.name not in selected_releases:
+            continue
+        runner.run(
+            t("step.release", entry.name),
+            lambda item=entry: installers.install_github_release(os_name, item, mirrors),
+            core=False,
+        )
 
     if mirrors.pypi_indexes:
         runner.run(t("step.pypi_mirror"), lambda: installers.configure_pypi_mirror(mirrors), core=False)

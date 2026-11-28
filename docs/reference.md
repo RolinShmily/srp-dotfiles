@@ -57,6 +57,7 @@ Passing any CLI flag skips the menu and executes directly. Without a TTY (headle
 | `npm:<name>` | `npmGlobals` |
 | `skill:<item>` | `skillsAdd` |
 | `script:<name>` | `scripts` (standalone official install scripts) |
+| `release:<name>` | `githubReleases` (GitHub Release package installers such as `.rpm` / `.deb`) |
 | `<name>` | Config entry `name` (`--configs` only) |
 
 ## Manifest schema
@@ -72,6 +73,7 @@ Located in `manifest/<os>.json` (`arch`, `debian`, `fedora`, `termux`, `windows`
 | `npmGlobals` | string[] | All |
 | `skillsAdd` | string[] | All |
 | `scripts` | object[] | All |
+| `githubReleases` | object[] | Unix |
 | `configs` | object[] | All |
 | `wingetPackages` | string[] | Windows |
 | `scoopPackages` | string[] | Windows |
@@ -109,7 +111,7 @@ Path placeholders expanded at runtime: `~`, `%APPDATA%`, `%LOCALAPPDATA%`, `$SCO
 
 ### Script entry
 
-Declared in `scripts` for tools installed via official upstream scripts (for example `herdr-core`, `herdr-tui`, `tailscale`, and `magpie`):
+Declared in `scripts` for tools installed via official upstream scripts (for example `herdr-tui`, `tailscale`, and `magpie`):
 
 | Field | Required | Meaning |
 | :--- | :--- | :--- |
@@ -118,6 +120,20 @@ Declared in `scripts` for tools installed via official upstream scripts (for exa
 | `shell` | no | Interpreter (`sh`/`bash` on Unix, default `sh`; `powershell`/`pwsh` on Windows, default `powershell` with `-ExecutionPolicy Bypass -File`) |
 | `args` | no | Extra arguments forwarded to the downloaded script |
 | `env` | no | Extra environment variables merged with active proxy variables |
+| `check` | no | Command name or path guard; skip installation when already present |
+
+### GitHub release entry
+
+Declared in `githubReleases` for packages distributed as GitHub Release assets rather than an OS repository (for example, an upstream `.rpm` or `.deb` release):
+
+| Field | Required | Meaning |
+| :--- | :--- | :--- |
+| `name` | yes | Stable app ID exposed as `release:<name>` |
+| `repo` | yes | GitHub `owner/repo` slug |
+| `asset` | yes | Glob pattern matching the release asset filename (for example `Paseo-*-x86_64.rpm`) |
+| `metadata` | no | Release metadata file under `releases/latest/download/<metadata>` (for example `latest-linux.yml`) used to resolve the asset filename and optional `sha512` through `githubProxy` before falling back to the GitHub Releases API |
+| `installer` | no | Package installer (`dnf` or `apt`; inferred from `.rpm` / `.deb` when omitted) |
+| `arches` | no | Allowed `platform.machine()` values; skip with a warning on unsupported architectures |
 | `check` | no | Command name or path guard; skip installation when already present |
 
 ## Mirror schema
@@ -132,7 +148,8 @@ Defined in `manifest/mirror.json`:
     "global": {
       "scoopBuckets": [
         "extras = https://github.com/ScoopInstaller/Extras",
-        "nerd-fonts = https://github.com/matthewjberger/scoop-nerd-fonts"
+        "nerd-fonts = https://github.com/matthewjberger/scoop-nerd-fonts",
+        "magpie = https://github.com/yetone/magpie-releases"
       ]
     },
     "cn": {
@@ -152,7 +169,8 @@ Defined in `manifest/mirror.json`:
         "extras = https://mirror.nju.edu.cn/git/scoop-extras.git",
         "versions = https://mirror.nju.edu.cn/git/scoop-versions.git",
         "nerd-fonts = https://mirror.nju.edu.cn/git/scoop-nerd-fonts.git/",
-        "dorado = https://github.com/chawyehsu/dorado"
+        "dorado = https://github.com/chawyehsu/dorado",
+        "magpie = https://github.com/yetone/magpie-releases"
       ]
     }
   }

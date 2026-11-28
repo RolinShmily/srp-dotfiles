@@ -6,7 +6,8 @@
     "global": {
       "scoopBuckets": [
         "extras = https://github.com/ScoopInstaller/Extras",
-        "nerd-fonts = https://github.com/matthewjberger/scoop-nerd-fonts"
+        "nerd-fonts = https://github.com/matthewjberger/scoop-nerd-fonts",
+        "magpie = https://github.com/yetone/magpie-releases"
       ]
     },
     "cn": {
@@ -26,7 +27,8 @@
         "extras = https://mirror.nju.edu.cn/git/scoop-extras.git",
         "versions = https://mirror.nju.edu.cn/git/scoop-versions.git",
         "nerd-fonts = https://mirror.nju.edu.cn/git/scoop-nerd-fonts.git/",
-        "dorado = https://github.com/chawyehsu/dorado"
+        "dorado = https://github.com/chawyehsu/dorado",
+        "magpie = https://github.com/yetone/magpie-releases"
       ]
     }
   }

@@ -80,12 +80,29 @@ assert.ok(catalog.catalogs.arch.mirrors.fields.some((field) => field.id === "pyp
 assert.ok(catalog.catalogs.windows.mirrors.fields.some((field) => field.id === "scoop"));
 for (const osName of ["windows", "fedora"]) {
   const ids = catalog.catalogs[osName].apps.map((app) => app.id);
-  assert.ok(ids.includes("script:herdr-core"), `${osName} missing script:herdr-core`);
+  assert.ok(!ids.includes("script:herdr-core"), `${osName} should not include script:herdr-core`);
   assert.ok(ids.includes("script:herdr-tui"), `${osName} missing script:herdr-tui`);
+  assert.ok(!ids.includes("winget:Paseo.Paseo"), `${osName} should not include winget:Paseo.Paseo`);
+  assert.ok(!ids.includes("npm:@getpaseo/cli"), `${osName} should not include npm:@getpaseo/cli`);
+  assert.ok(!ids.includes("release:paseo"), `${osName} should not include release:paseo`);
+}
+for (const forbidden of ["script:herdr-core", "script:herdr-tui", "npm:@getpaseo/cli"]) {
+  assert.ok(
+    !catalog.catalogs.debian.apps.some((app) => app.id === forbidden),
+    `debian should not include ${forbidden}`,
+  );
 }
 assert.ok(
-  catalog.catalogs.debian.apps.some((app) => app.id === "script:herdr-core"),
-  "debian missing script:herdr-core",
+  catalog.catalogs.debian.apps.some((app) => app.id === "pkg:npm"),
+  "debian missing pkg:npm",
+);
+assert.ok(
+  catalog.catalogs.debian.apps.some((app) => app.id === "npm:@earendil-works/pi-coding-agent"),
+  "debian missing npm:@earendil-works/pi-coding-agent",
+);
+assert.ok(
+  catalog.catalogs.debian.configs.some((cfg) => cfg.id === "pi"),
+  "debian missing pi config",
 );
 assert.ok(
   catalog.catalogs.fedora.apps.some((app) => app.id === "script:tailscale"),
@@ -98,6 +115,10 @@ assert.ok(
 assert.ok(
   catalog.catalogs.windows.apps.some((app) => app.id === "winget:Tailscale.Tailscale"),
   "windows missing winget:Tailscale.Tailscale",
+);
+assert.ok(
+  catalog.catalogs.windows.apps.some((app) => app.id === "scoop:magpie/magpie-app"),
+  "windows missing scoop:magpie/magpie-app",
 );
 
 const allApps = ["pkg:zsh", "font:maple"];

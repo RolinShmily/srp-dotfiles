@@ -58,11 +58,6 @@
   "skillsAdd": [],
   "scripts": [
     {
-      "name": "herdr-core",
-      "url": "https://releases.herdr.dev/core/install.sh",
-      "shell": "sh"
-    },
-    {
       "name": "herdr-tui",
       "url": "https://herdr.dev/install.sh",
       "shell": "sh"

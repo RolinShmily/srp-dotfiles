@@ -101,7 +101,8 @@ pwsh -NoProfile -Command '$e = $null; [void][System.Management.Automation.Langua
 All unit tests run completely offline:
 - `scripts/tests/` exercises catalog generation, manifest loading, message key coverage, mirror
   resolution, proxy scheme detection, interactive startup menu & step confirmation (`test_runner.py`),
-  standalone script installers (`test_scripts.py`), Windows shim resolution (`test_run.py`), and
+  standalone script installers (`test_scripts.py`), GitHub release package installers (`test_releases.py`),
+  Windows shim resolution (`test_run.py`), and
   package manager fallbacks (`dnf`, `pacman`, `apt`, `pkg`, `winget`, `scoop`, fonts, login shell).
 - `worker/test.mjs` mocks the `ASSETS` binding and upstream script fetch to test routing, User-Agent
   detection, `buildCommand`, `buildMirrorFlags`, and `buildProxyFlag`.
@@ -204,8 +205,8 @@ entry under `scripts` in the target `manifest/<os>.json`:
 {
   "scripts": [
     {
-      "name": "herdr-core",
-      "url": "https://releases.herdr.dev/core/install.sh",
+      "name": "magpie",
+      "url": "https://usemagpie.ai/install.sh",
       "shell": "sh"
     }
   ]
@@ -214,6 +215,26 @@ entry under `scripts` in the target `manifest/<os>.json`:
 
 Then regenerate `worker/public/catalog.json`; it appears automatically under `script:<name>` in the
 CLI and `/config`.
+
+For Linux desktop apps distributed as GitHub Release `.rpm` / `.deb` assets, declare an entry under
+`githubReleases` in `manifest/<os>.json`:
+
+```json
+{
+  "githubReleases": [
+    {
+      "name": "paseo",
+      "repo": "getpaseo/paseo",
+      "asset": "Paseo-*-x86_64.rpm",
+      "metadata": "latest-linux.yml",
+      "installer": "dnf",
+      "arches": ["x86_64", "amd64"]
+    }
+  ]
+}
+```
+
+It appears automatically under `release:<name>` after regenerating `worker/public/catalog.json`.
 
 ### Adding a config entry
 

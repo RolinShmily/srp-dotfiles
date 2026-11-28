@@ -13,14 +13,14 @@ from .manifest import Mirrors
 from .messages import t
 
 
-def _download_one(url: str, dest: Path) -> None:
+def _download_one(url: str, dest: Path, timeout: int = 120) -> None:
     request = urllib.request.Request(url, headers={"User-Agent": "srp-dotfiles"})
-    with urllib.request.urlopen(request, timeout=120) as response, dest.open("wb") as handle:
+    with urllib.request.urlopen(request, timeout=timeout) as response, dest.open("wb") as handle:
         shutil.copyfileobj(response, handle)
 
 
-def _download_with_curl(url: str, dest: Path, proxy: str) -> None:
-    cmd = ["curl", "-fsSL", "--connect-timeout", "20", "--max-time", "120"]
+def _download_with_curl(url: str, dest: Path, proxy: str, max_time: int = 120) -> None:
+    cmd = ["curl", "-fsSL", "--connect-timeout", "20", "--max-time", str(max_time)]
     if proxy:
         cmd += ["--proxy", proxy]
     cmd += ["-o", str(dest), url]
@@ -32,6 +32,7 @@ def download(
     dest: Path,
     mirrors: Mirrors,
     validate: Callable[[Path], bool] | None = None,
+    timeout: int = 120,
 ) -> None:
     """Download to dest, trying each URL until one delivers usable bytes.
 
@@ -50,15 +51,18 @@ def download(
     for candidate in urls:
         try:
             if proxy.lower().startswith("socks") and sysinfo.which("curl"):
-                _download_with_curl(candidate, dest, proxy)
+                _download_with_curl(candidate, dest, proxy, max_time=timeout)
             else:
                 try:
-                    _download_one(candidate, dest)
+                    if timeout == 120:
+                        _download_one(candidate, dest)
+                    else:
+                        _download_one(candidate, dest, timeout=timeout)
                 except Exception:
                     if not sysinfo.which("curl"):
                         raise
                     dest.unlink(missing_ok=True)
-                    _download_with_curl(candidate, dest, proxy)
+                    _download_with_curl(candidate, dest, proxy, max_time=timeout)
             if validate is not None and not validate(dest):
                 raise ValueError(t("net.bad_content", candidate))
             return

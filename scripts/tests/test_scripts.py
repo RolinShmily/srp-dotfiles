@@ -19,21 +19,32 @@ from lib.manifest import Manifest, Mirrors, ScriptEntry  # noqa: E402
 
 
 class ScriptManifestAndCatalogTests(unittest.TestCase):
-    def test_windows_and_fedora_declare_herdr_scripts(self) -> None:
+    def test_windows_and_fedora_declare_herdr_tui_without_herdr_core_or_paseo(self) -> None:
         for os_name, expected_shell in (("windows", "powershell"), ("fedora", "sh")):
             manifest = Manifest(REPO_DIR, os_name)
             entries = {entry.name: entry for entry in manifest.scripts()}
-            self.assertIn("herdr-core", entries, os_name)
+            self.assertNotIn("herdr-core", entries, os_name)
             self.assertIn("herdr-tui", entries, os_name)
-            self.assertEqual(entries["herdr-core"].shell, expected_shell)
             self.assertEqual(entries["herdr-tui"].shell, expected_shell)
 
             cat = catalog.build_catalog(manifest, Mirrors())
             ids = {app["id"]: app for app in cat["apps"]}
-            self.assertEqual(ids["script:herdr-core"]["source"], "script")
+            self.assertNotIn("script:herdr-core", ids, os_name)
             self.assertEqual(ids["script:herdr-tui"]["source"], "script")
+            self.assertNotIn("winget:Paseo.Paseo", ids, os_name)
+            self.assertNotIn("npm:@getpaseo/cli", ids, os_name)
+            self.assertNotIn("release:paseo", ids, os_name)
 
-    def test_fedora_and_windows_include_tailscale_and_magpie(self) -> None:
+    def test_debian_excludes_herdr_and_paseo(self) -> None:
+        manifest = Manifest(REPO_DIR, "debian")
+        self.assertEqual(manifest.scripts(), [])
+        cat = catalog.build_catalog(manifest, Mirrors())
+        ids = {app["id"]: app for app in cat["apps"]}
+        self.assertNotIn("script:herdr-core", ids)
+        self.assertNotIn("script:herdr-tui", ids)
+        self.assertNotIn("npm:@getpaseo/cli", ids)
+
+    def test_windows_fedora_and_debian_include_tailscale_magpie_and_pi(self) -> None:
         fedora = catalog.build_catalog(Manifest(REPO_DIR, "fedora"), Mirrors())
         fedora_ids = {app["id"]: app for app in fedora["apps"]}
         self.assertEqual(fedora_ids["script:tailscale"]["source"], "script")
@@ -42,17 +53,14 @@ class ScriptManifestAndCatalogTests(unittest.TestCase):
         windows = catalog.build_catalog(Manifest(REPO_DIR, "windows"), Mirrors())
         windows_ids = {app["id"]: app for app in windows["apps"]}
         self.assertEqual(windows_ids["winget:Tailscale.Tailscale"]["source"], "winget")
+        self.assertEqual(windows_ids["scoop:magpie/magpie-app"]["source"], "scoop")
 
-    def test_debian_declares_herdr_core_script(self) -> None:
-        manifest = Manifest(REPO_DIR, "debian")
-        entries = {entry.name: entry for entry in manifest.scripts()}
-        self.assertEqual(list(entries), ["herdr-core"])
-        self.assertEqual(entries["herdr-core"].shell, "sh")
-
-        cat = catalog.build_catalog(manifest, Mirrors())
-        ids = {app["id"]: app for app in cat["apps"]}
-        self.assertEqual(ids["script:herdr-core"]["source"], "script")
-        self.assertNotIn("script:herdr-tui", ids)
+        debian = catalog.build_catalog(Manifest(REPO_DIR, "debian"), Mirrors())
+        debian_ids = {app["id"]: app for app in debian["apps"]}
+        debian_configs = {cfg["id"] for cfg in debian["configs"]}
+        self.assertEqual(debian_ids["pkg:npm"]["source"], "apt")
+        self.assertEqual(debian_ids["npm:@earendil-works/pi-coding-agent"]["source"], "npm")
+        self.assertIn("pi", debian_configs)
 
 
 class ScriptInstallerTests(unittest.TestCase):
@@ -72,17 +80,17 @@ class ScriptInstallerTests(unittest.TestCase):
 
     def test_unix_script_downloads_and_executes_with_merged_env(self) -> None:
         entry = ScriptEntry(
-            name="herdr-core",
-            url="https://releases.herdr.dev/core/install.sh",
+            name="herdr-tui",
+            url="https://herdr.dev/install.sh",
             shell="sh",
             args=["--quiet"],
-            env={"HC_VERSION": "1.0.0"},
+            env={"HERDR_CHANNEL": "stable"},
         )
         mirrors = Mirrors(proxy="http://127.0.0.1:7890")
         seen_paths: list[Path] = []
 
         def fake_download(urls, dest: Path, used_mirrors: Mirrors, validate=None) -> None:
-            self.assertEqual(urls, ["https://releases.herdr.dev/core/install.sh"])
+            self.assertEqual(urls, ["https://herdr.dev/install.sh"])
             self.assertIs(used_mirrors, mirrors)
             dest.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
             self.assertTrue(validate(dest))
@@ -99,7 +107,7 @@ class ScriptInstallerTests(unittest.TestCase):
         self.assertEqual(cmd[0], "sh")
         self.assertTrue(cmd[1].endswith(".sh"))
         self.assertEqual(cmd[2:], ["--quiet"])
-        self.assertEqual(env["HC_VERSION"], "1.0.0")
+        self.assertEqual(env["HERDR_CHANNEL"], "stable")
         self.assertEqual(env["HTTPS_PROXY"], "http://127.0.0.1:7890")
         self.assertFalse(seen_paths[0].exists())
 

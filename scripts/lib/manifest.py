@@ -33,6 +33,17 @@ class ScriptEntry:
     check: str = ""
 
 
+@dataclass
+class ReleaseEntry:
+    name: str
+    repo: str
+    asset: str
+    metadata: str = ""
+    installer: str = ""
+    arches: list[str] = field(default_factory=list)
+    check: str = ""
+
+
 class Manifest:
     def __init__(self, repo: Path, os_name: str):
         self.os_name = os_name
@@ -105,6 +116,32 @@ class Manifest:
                         if isinstance(raw_env, dict)
                         else {}
                     ),
+                    check=str(raw.get("check") or "").strip(),
+                )
+            )
+        return entries
+
+    def github_releases(self) -> list[ReleaseEntry]:
+        entries: list[ReleaseEntry] = []
+        for raw in self.array("githubReleases"):
+            if not isinstance(raw, dict):
+                continue
+            name = str(raw.get("name") or "").strip()
+            repo = str(raw.get("repo") or "").strip().strip("/")
+            asset = str(raw.get("asset") or "").strip()
+            if not name or not repo or not asset:
+                continue
+            raw_arches = raw.get("arches")
+            entries.append(
+                ReleaseEntry(
+                    name=name,
+                    repo=repo,
+                    asset=asset,
+                    metadata=str(raw.get("metadata") or "").strip(),
+                    installer=str(raw.get("installer") or "").strip().lower(),
+                    arches=[str(item).strip() for item in raw_arches if str(item).strip()]
+                    if isinstance(raw_arches, list)
+                    else [],
                     check=str(raw.get("check") or "").strip(),
                 )
             )

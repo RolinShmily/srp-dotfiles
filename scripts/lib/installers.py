@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import base64
 import configparser
 import fnmatch
 import getpass
+import hashlib
+import json
 import os
 import re
 import shlex
@@ -18,7 +21,7 @@ from typing import Callable
 from . import net
 from . import platform_info as sysinfo
 from .messages import t
-from .manifest import Manifest, Mirrors, ScriptEntry
+from .manifest import Manifest, Mirrors, ReleaseEntry, ScriptEntry
 
 MAPLE_URL = "https://github.com/subframe7536/maple-font/releases/latest/download/MapleMono-NF-CN.zip"
 
@@ -450,6 +453,171 @@ def install_script(os_name: str, entry: ScriptEntry, mirrors: Mirrors) -> None:
     sysinfo.success(t("script.done", entry.name))
 
 
+RPM_MAGIC = b"\xed\xab\xee\xdb"
+DEB_MAGIC = b"!<arch>\n"
+
+
+def _parse_release_metadata(text: str, pattern: str) -> tuple[str, str] | None:
+    """Extract (filename, sha512) matching pattern from electron-builder YAML."""
+    in_files = False
+    current_url = ""
+    current_sha512 = ""
+    candidates: list[tuple[str, str]] = []
+
+    def flush() -> None:
+        nonlocal current_url, current_sha512
+        if current_url:
+            candidates.append((current_url, current_sha512))
+            current_url = ""
+            current_sha512 = ""
+
+    for raw_line in text.splitlines():
+        stripped = raw_line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        indent = len(raw_line) - len(raw_line.lstrip(" "))
+        if indent == 0:
+            flush()
+            in_files = stripped == "files:"
+            continue
+        if not in_files:
+            continue
+        if stripped.startswith("- url:") or stripped.startswith("url:"):
+            flush()
+            current_url = stripped.split(":", 1)[1].strip().strip("'\"")
+        elif stripped.startswith("sha512:") and current_url and not current_sha512:
+            current_sha512 = stripped.split(":", 1)[1].strip().strip("'\"")
+    flush()
+
+    for raw_name, sha512 in candidates:
+        name = Path(raw_name).name
+        if name != raw_name or ".." in name:
+            continue
+        if fnmatch.fnmatch(name, pattern):
+            return name, sha512
+    return None
+
+
+def _sha512_base64(path: Path) -> str:
+    digest = hashlib.sha512()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(65536), b""):
+            digest.update(chunk)
+    return base64.b64encode(digest.digest()).decode("ascii")
+
+
+def _validate_release_asset(path: Path, suffix: str, expected_sha512: str = "") -> bool:
+    try:
+        head = path.read_bytes()[:16]
+    except OSError:
+        return False
+    if not head:
+        return False
+    if suffix == ".rpm" and not head.startswith(RPM_MAGIC):
+        return False
+    if suffix == ".deb" and not head.startswith(DEB_MAGIC):
+        return False
+    if expected_sha512 and _sha512_base64(path) != expected_sha512:
+        return False
+    return True
+
+
+def _resolve_github_release_asset(entry: ReleaseEntry, mirrors: Mirrors) -> tuple[str, str, str]:
+    """Return (filename, download_url, expected_sha512) for the latest release."""
+    base_download = f"https://github.com/{entry.repo}/releases/latest/download"
+    meta_error: Exception | None = None
+    if entry.metadata:
+        with tempfile.NamedTemporaryFile(suffix=".yml", delete=False) as handle:
+            meta_path = Path(handle.name)
+        try:
+            net.download(
+                mirrors.github_urls(f"{base_download}/{entry.metadata}"),
+                meta_path,
+                mirrors,
+                validate=_looks_like_script,
+            )
+            matched = _parse_release_metadata(
+                meta_path.read_text(encoding="utf-8", errors="ignore"), entry.asset
+            )
+            if matched is not None:
+                filename, expected_sha512 = matched
+                return filename, f"{base_download}/{filename}", expected_sha512
+            meta_error = RuntimeError(
+                f"No asset matching {entry.asset!r} in {entry.repo} metadata {entry.metadata!r}"
+            )
+        except (OSError, ValueError, sysinfo.CommandError) as exc:
+            meta_error = exc
+        finally:
+            meta_path.unlink(missing_ok=True)
+
+    api_url = f"https://api.github.com/repos/{entry.repo}/releases/latest"
+    with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as handle:
+        api_path = Path(handle.name)
+    try:
+        net.download(api_url, api_path, mirrors, validate=_looks_like_script)
+        payload = json.loads(api_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, sysinfo.CommandError) as exc:
+        if meta_error is not None:
+            raise RuntimeError(
+                f"Failed to resolve {entry.repo} release via {entry.metadata} ({meta_error}) and GitHub API ({exc})"
+            ) from exc
+        raise
+    finally:
+        api_path.unlink(missing_ok=True)
+
+    for asset in payload.get("assets") or []:
+        if not isinstance(asset, dict):
+            continue
+        name = str(asset.get("name") or "").strip()
+        download_url = str(asset.get("browser_download_url") or "").strip()
+        if name and download_url and fnmatch.fnmatch(name, entry.asset):
+            return name, download_url, ""
+    raise RuntimeError(f"No release asset matching {entry.asset!r} in {entry.repo}")
+
+
+def install_github_release(os_name: str, entry: ReleaseEntry, mirrors: Mirrors) -> None:
+    if entry.check and _script_already_installed(entry.check):
+        sysinfo.info(t("release.already", entry.name, entry.check))
+        return
+    if entry.arches and sysinfo.ARCH.lower() not in {arch.lower() for arch in entry.arches}:
+        sysinfo.warn(t("release.arch_unsupported", entry.name, sysinfo.ARCH))
+        return
+
+    suffix = Path(entry.asset).suffix.lower()
+    installer = entry.installer or {".rpm": "dnf", ".deb": "apt"}.get(suffix, "")
+    if installer not in ("dnf", "apt"):
+        raise RuntimeError(f"Unsupported release installer for {entry.name}: {installer or suffix or '-'}")
+
+    def install_cmd(pkg_path: Path) -> list[str]:
+        if installer == "dnf":
+            return ["dnf", "install", "-y", str(pkg_path)]
+        return ["apt-get", "install", "-y", str(pkg_path)]
+
+    if sysinfo.DRY_RUN:
+        placeholder = Path(entry.asset)
+        preview_url = f"https://github.com/{entry.repo}/releases/latest/download/{entry.asset}"
+        net.download(mirrors.github_urls(preview_url), placeholder, mirrors)
+        sysinfo.run(install_cmd(placeholder), sudo=True)
+        return
+
+    filename, asset_url, expected_sha512 = _resolve_github_release_asset(entry, mirrors)
+    temp_dir = Path(tempfile.mkdtemp(prefix="srp_release_"))
+    pkg_path = temp_dir / filename
+    try:
+        sysinfo.info(t("release.downloading", entry.name, filename))
+        net.download(
+            mirrors.github_urls(asset_url),
+            pkg_path,
+            mirrors,
+            validate=lambda path: _validate_release_asset(path, Path(filename).suffix.lower(), expected_sha512),
+            timeout=600,
+        )
+        sysinfo.run(install_cmd(pkg_path), sudo=True)
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=True)
+    sysinfo.success(t("release.done", entry.name))
+
+
 # ------------------------------------------------------------------ Windows
 
 def set_execution_policy() -> None:
@@ -769,6 +937,7 @@ def configure_git() -> None:
 __all__ = [
     "install_font",
     "install_font_windows",
+    "install_github_release",
     "install_omz",
     "install_scoop",
     "install_script",
